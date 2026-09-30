@@ -99,6 +99,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 #prompt kbd{background:#fff;color:#0b1a2a;border-radius:7px;padding:1px 8px;margin-right:8px;font-family:var(--display)}
 
 /* minimap */
+#radarBtn{position:absolute;z-index:6;right:calc(max(12px,env(safe-area-inset-right)) + 176px);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:none;flex-direction:column;align-items:center;gap:1px;
+  background:rgba(8,21,36,.78);border:1.5px solid rgba(95,255,208,.35);color:#9fe8d4;border-radius:14px;padding:6px 9px;font:800 11px var(--body);cursor:pointer}
+#radarBtn svg{width:22px;height:22px}#radarBtn.on{color:#0b2a24;background:#5fffd0;border-color:#5fffd0;box-shadow:0 0 18px rgba(95,255,208,.6)}
 #mini{position:absolute;z-index:5;right:max(12px,env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom,0px));width:168px;height:168px;border-radius:50%;
   border:3px solid rgba(255,255,255,.55);box-shadow:0 8px 24px rgba(0,0,0,.4);cursor:pointer;background:#0f5a8a}
 
@@ -253,6 +256,7 @@ table.lb td.n{text-align:right}
   #keys,#stats,#bar,#tr,#prompt,#shake{display:none!important}
   #coins{font-size:18px;padding:5px 12px 5px 7px} #coins .c{width:22px;height:22px}
   #lvlring{width:34px;height:34px} #lvlring b{font-size:14px} #lvlbox .t{font-size:11px}
+  #radarBtn{right:calc(10px + env(safe-area-inset-right,0px));top:calc(180px + env(safe-area-inset-top,0px));bottom:auto;padding:5px 7px}
   #mini{width:104px;height:104px;top:calc(70px + env(safe-area-inset-top,0px));bottom:auto;right:calc(10px + env(safe-area-inset-right,0px))}
   #tr{right:calc(72px + env(safe-area-inset-right,0px))}
   #qchip{display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:13px;background:rgba(80,55,0,.75);border:1px solid rgba(255,210,74,.5);font:600 14px var(--display);color:var(--gold)}
@@ -348,6 +352,7 @@ table.lb td.n{text-align:right}
     <div id="keys"><b>WASD</b> laufen · <b>Rechte Maus</b> drehen · <b>Linke Maus</b> halten = auf die Stelle werfen · <b>B</b> Boot · <b>Shift</b> Turbo · <b>E</b> reden/öffnen · <b>Enter</b> Chat</div>
   </div>
   <canvas id="mini" width="336" height="336" aria-label="Minikarte"></canvas>
+  <button id="radarBtn" aria-label="Fisch-Radar" title="Fisch-Radar (R)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12 19 6"/></svg><span>Radar</span></button>
   <div id="power"><i></i></div>
 
   <div id="touch">

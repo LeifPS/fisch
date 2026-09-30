@@ -361,7 +361,7 @@ const waterMat=new THREE.ShaderMaterial({uniforms:waterU,transparent:true,fog:tr
     float a=mix(0.45,0.97,dm); a=max(a,foam); a=max(a,zone*0.92);
     if(uRadar>0.){ for(int i=0;i<16;i++){ vec4 A=uA[i]; if(A.z<=0.) continue; vec2 d2=vWorld.xz-A.xy; float r=length(d2*vec2(1.,A.w)); float k=1.-smoothstep(A.z*0.9,A.z,r);
         if(k>0.){ float st=step(0.5,fract((vWorld.x+vWorld.z)*0.06-uTime*0.35)); float edge=smoothstep(A.z*0.82,A.z*0.97,r)*(1.-smoothstep(A.z*0.97,A.z,r))*2.; col=mix(col,uAC[i],(0.22+st*0.16+edge*0.5)*k*uRadar); a=max(a,0.8*k*uRadar); } } }
-    if(uHunt.z>0.){ float hd=length(vWorld.xz-uHunt.xy)/uHunt.z; float ring=smoothstep(0.96,1.,hd)*(1.-smoothstep(1.,1.02,hd)); col=mix(col,vec3(1.,0.35,0.2),ring*0.5*uHunt.w); col=mix(col,col*vec3(0.75,0.85,1.1),(1.-smoothstep(0.7,1.,hd))*0.25*uHunt.w); }
+    if(uHunt.z>0.){ float hd=length(vWorld.xz-uHunt.xy)/uHunt.z;  col=mix(col,col*vec3(0.75,0.85,1.1),(1.-smoothstep(0.7,1.,hd))*0.25*uHunt.w); }
     gl_FragColor=vec4(col,a);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -883,10 +883,6 @@ function buildPortal(Pt){ const d=new THREE.Mesh(new THREE.CircleGeometry(Pt.r,7
   PORTAL_FX.push({Pt,ring,beam}) }
 
 /* ---------- event & school visuals ---------- */
-const evRing=new THREE.Mesh(new THREE.TorusGeometry(1,0.012,8,96),new THREE.MeshBasicMaterial({color:0xff6a3c,transparent:true,opacity:.9})); evRing.rotation.x=Math.PI/2; scene.add(evRing);
-const evBeam=new THREE.Mesh(new THREE.CylinderGeometry(4,6,600,20,1,true),new THREE.MeshBasicMaterial({color:0xff7b54,transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false})); scene.add(evBeam);
-const evFin=new THREE.Mesh(new THREE.ConeGeometry(2.2,6,3),stdMat({color:"#2a2f36"})); evFin.scale.z=.35; scene.add(evFin);
-const schoolRing=new THREE.Mesh(new THREE.RingGeometry(0.96,1,64),new THREE.MeshBasicMaterial({color:0x9ff3ff,transparent:true,opacity:.4,depthWrite:false,side:THREE.DoubleSide})); schoolRing.rotation.x=-Math.PI/2; scene.add(schoolRing);
 
 /* ---------- fish shadows in the water ---------- */
 const shadowGeo=(()=>{ const s=new THREE.Shape(); s.moveTo(1,0); s.quadraticCurveTo(0.6,0.42,-0.3,0.3); s.quadraticCurveTo(-0.7,0.2,-0.85,0.05); s.lineTo(-1.25,0.38); s.lineTo(-1.1,0); s.lineTo(-1.25,-0.38); s.lineTo(-0.85,-0.05); s.quadraticCurveTo(-0.7,-0.2,-0.3,-0.3); s.quadraticCurveTo(0.6,-0.42,1,0);

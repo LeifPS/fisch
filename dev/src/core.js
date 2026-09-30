@@ -301,10 +301,10 @@ function world(now=nowMs()){ const real=now; now+=GW.off||0;
 
 /* ---------- save state ---------- */
 let SAVE_KEY="fischerdock-v3-guest"; const SAVE_V=5;
-function freshState(){return{v:SAVE_V,money:100,xp:0,rods:["Flimsy Rod"],rod:"Flimsy Rod",bait:{Worm:5},baitEq:"Worm",fish:[],dex:{},dexLoc:{},bag:0,boat:0,bell:false,
+function freshState(){return{v:SAVE_V,money:100,xp:0,rods:["Flimsy Rod"],rod:"Flimsy Rod",bait:{Worm:5},baitEq:"Worm",fish:[],dex:{},dexLoc:{},bag:0,boat:0,bell:false,radar:false,
   story:0,bounties:[],bountyDone:0,visited:{Moosewood:1},dexRewards:{},relics:0,ench:{},mastery:{},buffs:{},tmap:null,chests:{},found:{},lq:{},titles:[],title:"",
   stats:{earned:0,caught:0,perfect:0,bestV:0,bestN:"",streak:0,bestStreak:0,snaps:0,sold:0,shadow:0,event:0,rarest:0,reef:0,chests:0,enchants:0,digs:0,foggy:0,nightLeg:0,exoticPlus:0,snowCaught:0,frozen:0},
-  pos:null,nick:"",savedAt:0,settings:{music:true,sfx:true}}}
+  pos:null,nick:"",savedAt:0,settings:{music:true,sfx:true,radar:true}}}
 let S=freshState();
 function loadSave(o){ const f=freshState(); return Object.assign(f,o,{stats:Object.assign(f.stats,o.stats||{}),settings:Object.assign(f.settings,o.settings||{})}) }
 function loadLocal(id,name){ SAVE_KEY="fischerdock-v3-"+(id||"guest"); S=freshState(); try{ const raw=localStorage.getItem(SAVE_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.v===SAVE_V) S=loadSave(o) } }catch(e){} S.nick=name||S.nick||"Gast"; return S }
@@ -333,7 +333,7 @@ function gearStats(W){
 const bagCap=()=>BAGS[S.bag]||20;
 
 /* ---------- fish rolling ---------- */
-function poolFor(loc,spot,W,inEvent){
+function poolFor(loc,spot,W,inEvent,here){
   const out=[];
   for(const f of FISH){
     if(f.l!==loc) continue;
@@ -343,6 +343,7 @@ function poolFor(loc,spot,W,inEvent){
     if(f.t&&f.t!==W.time) continue;
     if(f.hard&&((f.w.length&&!f.w.includes(W.weather))||(f.s.length&&!f.s.includes(W.season)))) continue;
     if(f.r==="Apex"&&!isEv) continue;
+    if(f.area&&!(here&&here.has(f.n))) continue; // bound to a fish area (visible with the Fish Radar)
     out.push({f,isEv});
   }
   return out;
@@ -353,10 +354,10 @@ function chanceOf(f,isEv,W,G){
   let luck=G.luck; if(G.bait&&f.b.includes(G.bait.n)) luck+=G.bait.pl;
   return c*Math.max(0.05,1+luck/100);
 }
-function rollFish(loc,spot,W,G,inEvent,extraLuck=0){
-  const pool=poolFor(loc,spot,W,inEvent); if(!pool.length) return null;
+function rollFish(loc,spot,W,G,inEvent,extraLuck=0,here=null){
+  const pool=poolFor(loc,spot,W,inEvent,here); if(!pool.length) return null;
   const G2=extraLuck?{...G,luck:G.luck+extraLuck}:G;
-  const cand=pool.map(({f,isEv})=>({f,c:chanceOf(f,isEv,W,G2)})).sort((a,b)=>a.c-b.c);
+  const cand=pool.map(({f,isEv})=>({f,c:chanceOf(f,isEv,W,G2)*(f.area?2.2:1)})).sort((a,b)=>a.c-b.c);
   for(const x of cand){ if(Math.random()*100<x.c) return x.f }
   const tot=cand.reduce((s,x)=>s+x.c,0); let r=Math.random()*tot;
   for(const x of cand){ if((r-=x.c)<=0) return x.f } return cand[cand.length-1].f;
@@ -380,6 +381,7 @@ const STORY=[
   {t:"Schatten im Wasser",d:"Wirf direkt neben sichtbare Fischschatten. Fange 5 Fische auf diese Weise.",goal:5,prog:()=>S.stats.shadow,rw:{c:200,boat:1}},
   {t:"Leinen los!",d:"Rufe am Wasser dein Ruderboot und besuche Roslit Bay oder Terrapin Island.",goal:1,prog:()=>(S.visited["Roslit Bay"]||S.visited["Terrapin Island"])?1:0,rw:{c:300,bait:["Minnow",5]}},
   {t:"Buntes Riff",d:"Fange einen Fisch am Korallenriff von Roslit Bay.",goal:1,prog:()=>S.stats.reef||0,rw:{c:400}},
+  {t:"Der Fischfinder",d:"Entdecke 10 Arten. Werftmeister Ole schenkt dir dann seinen alten Fisch-Radar: Er zeigt, wo welche Fische leben.",goal:10,prog:()=>Object.keys(S.dex).length,rw:{c:600,radar:1}},
   {t:"Etwas Seltenes",d:"Fange einen Fisch der Seltenheit Rare oder besser.",goal:1,prog:()=>S.stats.rarest>=3?1:0,rw:{c:500}},
   {t:"Mehr PS",d:"Kaufe das Motorboot in der Werft von Moosewood (ab Level 5).",goal:1,prog:()=>S.boat>=2?1:0,rw:{c:600}},
   {t:"Heiße Gewässer",d:"Fange einen Fisch am Roslit Volcano.",goal:1,prog:()=>S.dexLoc["Roslit Volcano"]?1:0,rw:{c:900,bait:["Coal",5]}},
@@ -389,7 +391,7 @@ const STORY=[
   {t:"Hinaus auf die Hochsee",d:"Kaufe das Hochseeboot (ab Level 12).",goal:1,prog:()=>S.boat>=3?1:0,rw:{c:3000}},
   {t:"Der Altar",d:"Fahre zum Keepers Altar im hohen Norden und verzaubere eine Rute mit einem Relikt.",goal:1,prog:()=>S.stats.enchants,rw:{c:5000,relic:1}},
   {t:"Meister der Rute",d:"Erreiche Meisterschaft 3 mit einer Rute (Fänge mit dieser Rute).",goal:3,prog:()=>Math.max(0,...Object.keys(S.mastery).map(n=>masteryOf(n).L)),rw:{c:4000}},
-  {t:"Event-Jäger",d:"Fange einen Fisch während eines Events im roten Kreis.",goal:1,prog:()=>S.stats.event,rw:{c:6000}},
+  {t:"Event-Jäger",d:"Fange einen Hunt-Fisch. Hunts ziehen durch ein Gebiet auf der Karte; wer dort angelt, hat manchmal Glück.",goal:1,prog:()=>S.stats.event,rw:{c:6000}},
   {t:"Hinab in die Tiefe",d:"Kaufe die Tauchglocke in der Werft (ab Level 20).",goal:1,prog:()=>S.bell?1:0,rw:{c:5000}},
   {t:"Der tiefe Grund",d:"Fange einen Fisch in The Depths.",goal:1,prog:()=>S.dexLoc["The Depths"]?1:0,rw:{c:10000,relic:2}},
   {t:"Gerüchte",d:"Irgendwo leben drei verborgene Meister: im Nebel ganz im Osten, in einer Lagune hinter Klippen, auf einem eisigen Gipfel. Finde einen von ihnen.",goal:1,prog:()=>Object.keys(S.found).length?1:0,rw:{c:8000,relic:1}},
@@ -446,7 +448,7 @@ function makeBounty(loc){
   const f=easy[Math.floor(Math.random()*easy.length)]; const w=Math.round(f.bw*(0.9+Math.random()*0.3)*100)/100;
   return {k:"weight",loc,f:f.n,w,n:1,have:0,rw:Math.round((120+120*rIdx(f.r))*tierMul),xp:120,txt:`Fange ${f.n} ab ${fmtKg(w)}`,hint:bountyHint(f)};
 }
-function bountyHint(f){ const h=[]; if(f.t) h.push(f.t==="Day"?"tagsüber":"nachts"); if(f.sub&&!EVSET.has(f.sub)) h.push(spotDE(f.sub)); if(f.w.length) h.push(f.w.map(w=>WEATHER_DE[w]).join("/")); if(f.b.length) h.push("mag "+f.b[0]); return h.join(" · ") }
+function bountyHint(f){ const h=[]; if(f.area) h.push("Fischgebiet (Radar)"); if(f.t) h.push(f.t==="Day"?"tagsüber":"nachts"); if(f.sub&&!EVSET.has(f.sub)) h.push(spotDE(f.sub)); if(f.w.length) h.push(f.w.map(w=>WEATHER_DE[w]).join("/")); if(f.b.length) h.push("mag "+f.b[0]); return h.join(" · ") }
 function spotDE(s){return {Saltwater:"Salzwasser",Freshwater:"Süßwasser (Teich)","Coral Reef":"Korallenriff","Open Sea":"offene See","Deep Ocean":"Tiefsee (weit draußen)"}[s]||s}
 function locName(l){return l==="Ocean"?"offener See":l}
 function ensureBounties(loc){ let g=0; while(S.bounties.length<3&&g++<30){ const b=makeBounty(loc); if(S.bounties.some(x=>x.txt===b.txt||(x.k==="rarity"&&b.k==="rarity"))) continue; S.bounties.push(b) } }

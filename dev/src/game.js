@@ -85,7 +85,7 @@ addEventListener("keydown",e=>{
   if(e.key==="Enter"){ $("chatin").focus(); e.preventDefault(); return }
   if(e.code==="Space"){ e.preventDefault(); if(e.repeat) return; if(F.state==="reel"&&F.reel){ F.reel.hold=true } else if(F.state==="lure"&&!F.target){ shake() } else if(F.state==="idle") jump(); return }
   if(e.repeat) return;
-  ({b:toggleBoat,e:interact,h:toggleHold,i:()=>openModal("bag"),j:()=>openModal("dex"),q:()=>openModal("quests"),g:()=>openModal("gear"),m:()=>openModal("map"),p:()=>openModal("players")})[k]?.();
+  ({b:toggleBoat,e:interact,h:toggleHold,r:toggleRadar,i:()=>openModal("bag"),j:()=>openModal("dex"),q:()=>openModal("quests"),g:()=>openModal("gear"),m:()=>openModal("map"),p:()=>openModal("players")})[k]?.();
   if(["arrowup","arrowdown","arrowleft","arrowright"].includes(k)) e.preventDefault();
 });
 addEventListener("keyup",e=>{ keys[e.key.toLowerCase()]=false; if(e.code==="Space"&&F.reel) F.reel.hold=false });
@@ -212,6 +212,69 @@ function updateSeaVis(){ SEAG[1].visible=curSea===1; SEAG[2].visible=curSea===2;
 /* stream terrain detail + height map around a new position right away (teleports, boot) */
 function warmWorld(x,z){ fineTilesAround(x,z,LOW?260:380); updateHMap(x,z,true) }
 
+/* ---------- fish areas: like Fisch, most fish live in their own patch of water. The Fish Radar makes them visible. ---------- */
+const AREAS=[], AREA_LOC={};
+const AWLOCS=new Set(Object.values(AW_LOC)), DEEPLOCS=new Set(DEEPZ.map(z=>z.n));
+const isBound=f=>!EVSET.has(f.sub)&&f.r!=="Apex"&&!AWLOCS.has(f.l)&&!DEEPLOCS.has(f.l)&&rIdx(f.r)>=2&&f.sub!=="Freshwater"&&f.sub!=="Coral Reef";
+function coastDist(I,a){ const ca=Math.cos(a), sa=Math.sin(a); let d=I.r*0.25; while(d<I.ext&&terrainAt(I.x+ca*d,I.z+sa*d)>-1.5) d+=6; return d }
+function addArea(o){ o.id=AREAS.length; o.asp=o.asp||1; AREAS.push(o); (AREA_LOC[o.loc]||(AREA_LOC[o.loc]=[])).push(o); return o }
+function genAreas(){ const r=rng(424242); for(const f of FISH) f.area=isBound(f);
+  const byR=(a,b)=>rIdx(a.r)-rIdx(b.r)||a.n.localeCompare(b.n);
+  for(const I of ISL){
+    if(I.reefAng!==undefined){ const a=I.reefAng, d=coastDist(I,a)+70; addArea({loc:I.n,x:I.x+Math.cos(a)*d,z:I.z+Math.sin(a)*d,r:170,nat:"Korallenriff",fish:FISH.filter(f=>f.l===I.n&&f.sub==="Coral Reef").map(f=>f.n)}) }
+    if(I.pond) addArea({loc:I.n,x:I.pond.x,z:I.pond.z,r:I.pond.r,nat:"Teich",fresh:1,fish:FISH.filter(f=>f.l===I.n&&f.sub==="Freshwater").map(f=>f.n)});
+    const bound=FISH.filter(f=>f.l===I.n&&f.area).sort(byR); if(!bound.length) continue;
+    const n=clamp(Math.ceil(bound.length/3),2,6), base=r()*6.28, list=[];
+    for(let k=0;k<n;k++){ const a=base+k/n*6.28+(r()-.5)*0.5; if(I.chanAng!==undefined&&Math.abs(angDiff(a,I.chanAng))<0.25) continue; const d=coastDist(I,a)+50+r()*110;
+      list.push(addArea({loc:I.n,x:I.x+Math.cos(a)*d,z:I.z+Math.sin(a)*d,r:70+r()*60,asp:0.65+r()*0.5,fish:[]})) }
+    // the Castaway lagoon keeps its own treasures
+    if(I.biome==="cliffring") list.push(addArea({loc:I.n,x:I.x+18,z:I.z-10,r:I.r*0.22,fish:[],lagoon:1}));
+    bound.forEach((f,i)=>list[(i*7)%list.length].fish.push(f.n)) }
+  for(const [loc,n,cx,R] of [["Ocean",14,0,SEA1_R*0.86],["Sturmsee",8,SEA2X,SEA2_R*0.86]]){
+    const bound=FISH.filter(f=>f.l===loc&&f.area).sort(byR); if(!bound.length) continue; const list=[]; let g=0;
+    while(list.length<n&&g++<6000){ const a=r()*6.28, d=Math.sqrt(r())*R, x=cx+Math.cos(a)*d, z=Math.sin(a)*d;
+      if(ISL.some(I=>Math.hypot(x-I.x,z-I.z)<I.r*1.35+420)||DEEPZ.some(Z=>Math.hypot(x-Z.x,z-Z.z)<Z.r+320)||PORTALS.some(P=>Math.hypot(x-P.x,z-P.z)<P.r+300)||RAFTS.some(R=>Math.hypot(x-R.x,z-R.z)<260)||list.some(A=>Math.hypot(x-A.x,z-A.z)<1100)) continue;
+      const deep=ISL.every(I=>Math.hypot(x-I.x,z-I.z)-I.r>1150); if(!deep&&list.filter(A=>!A.deep).length>=Math.ceil(n*0.55)) continue;
+      list.push(addArea({loc,x,z,r:190+r()*150,asp:0.6+r()*0.5,fish:[],deep})) }
+    const deepA=list.filter(A=>A.deep), shA=list.filter(A=>!A.deep);
+    bound.forEach((f,i)=>{ const wantDeep=f.sub==="Deep Ocean", pool=wantDeep?deepA:f.sub==="Open Sea"?shA:list; if(!pool.length){ f.area=false; return } pool[(i*5)%pool.length].fish.push(f.n) }) }
+}
+function areasHere(x,z,loc){ const A=AREA_LOC[loc]; if(!A) return null; let set=null; for(const a of A){ if(a.nat) continue; const dx=x-a.x, dz=(z-a.z)*a.asp; if(dx*dx+dz*dz<a.r*a.r){ if(!set){ set=new Set(); set.areas=new Set() } a.fish.forEach(n=>set.add(n)); set.areas.add(a.id) } } return set }
+/* radar: stripes in the water shader + floating "[Fish]" labels above each area */
+const radarLbl=new Map(); let radarT=0;
+const radarOn=()=>!!S.radar&&S.settings.radar!==false;
+function toggleRadar(){ if(!S.radar){ toast("Du hast noch keinen Fisch-Radar. Ihn gibt es über die Story (Kapitel „Der Fischfinder“).","#ffb35a"); return } S.settings.radar=!radarOn(); markDirty(); updateRadarUI(); SFX.ui(); toast(radarOn()?"Fisch-Radar an":"Fisch-Radar aus","#5fffd0") }
+function updateRadarUI(){ const b=$("radarBtn"); if(b){ b.style.display=S.radar?"flex":"none"; b.classList.toggle("on",radarOn()) } if(!radarOn()){ waterU.uRadar.value=0; for(const L of radarLbl.values()) L.s.visible=false } }
+function areaText(a){ const known=a.fish.filter(n=>S.dex[n]).length; const names=a.fish.slice().sort((x,y)=>rIdx(FISHBY[y].r)-rIdx(FISHBY[x].r)).map(n=>S.dex[n]?n:"???");
+  const shown=names.slice(0,3).join(", ")+(names.length>3?` +${names.length-3}`:""); return (a.nat?a.nat+": ":a.school?"Schwarm: ":"")+"["+(shown||"leer")+"]" }
+function areaColor(a){ let best=0; for(const n of a.fish){ const f=FISHBY[n]; if(f) best=Math.max(best,rIdx(f.r)) } return RCOL[RARITY[best]]||"#9ff3ff" }
+function updateRadar(dt,t){ radarT-=dt; const on=radarOn(); waterU.uRadar.value=lerp(waterU.uRadar.value,on?1:0,clamp(dt*4,0,1)); if(!on) return;
+  if(radarT<=0){ radarT=0.5; const W=world(); const cand=AREAS.filter(a=>a.fish.length&&SEAOF(a.loc)===curSea&&!(ISLBY[a.loc]&&ISLBY[a.loc].hidden&&!S.visited[a.loc])).map(a=>[Math.hypot(a.x-pl.x,a.z-pl.z)-a.r,a]).filter(x=>x[0]<1800);
+    const SCH=schoolFor(W,locationAt(pl.x,pl.z)); if(SCH) cand.push([Math.hypot(SCH.x-pl.x,SCH.z-pl.z)-SCH.r,{id:"school",x:SCH.x,z:SCH.z,r:SCH.r,asp:1,fish:[SCH.f.n],school:1}]);
+    cand.sort((a,b)=>a[0]-b[0]); const U=waterU.uA.value, C=waterU.uAC.value;
+    for(let i=0;i<16;i++){ const a=cand[i]&&cand[i][1]; if(a&&!a.fresh){ U[i].set(a.x,a.z,a.r,a.asp); C[i].set(areaColor(a)) } else U[i].set(0,0,0,1) }
+    const keep=new Set();
+    for(const [d,a] of cand.slice(0,12)){ if(d>900) continue; const key=a.id+"|"+areaText(a); keep.add(a.id); let L=radarLbl.get(a.id);
+      if(!L||L.key!==key){ if(L) scene.remove(L.s); const s=textSprite(areaText(a),{size:44,color:areaColor(a),scale:0.05}); s.renderOrder=7; s.userData.w0=s.scale.x; s.userData.h0=s.scale.y; scene.add(s); L={s,key,a}; radarLbl.set(a.id,L) } L.a=a }
+    for(const [id,L] of radarLbl){ if(!keep.has(id)){ scene.remove(L.s); L.s.material.map.dispose(); radarLbl.delete(id) } } }
+  for(const L of radarLbl.values()){ const a=L.a, d=Math.hypot(a.x-pl.x,a.z-pl.z); const f=clamp((900-d)/200,0,1); L.s.visible=f>0.02; L.s.material.opacity=f; const y=(a.fresh?(ISLBY[a.loc].pond.y||2):0)+8+Math.min(40,d*0.035)+Math.sin(t*1.5+a.x)*0.4; L.s.position.set(a.x,y,a.z); const k=clamp(d/180,1,4.5); L.s.scale.set(L.s.userData.w0*k,L.s.userData.h0*k,1) } }
+
+/* ---------- hunts: a huge shadow roams a region; fishing anywhere inside sometimes hooks it ---------- */
+const huntSil=new THREE.Mesh(shadowGeo,new THREE.MeshBasicMaterial({color:0x020a12,transparent:true,opacity:0,depthWrite:false})); huntSil.renderOrder=3; scene.add(huntSil);
+const huntFin=new THREE.Mesh(new THREE.ConeGeometry(2.6,7,3),stdMat({color:"#2a2f36"})); huntFin.scale.z=0.35; scene.add(huntFin);
+const huntBirds=[]; { const wing=new THREE.PlaneGeometry(2.2,0.7); wing.translate(1.1,0,0); const mat=stdMat({color:"#f4f6f8",side:THREE.DoubleSide});
+  for(let i=0;i<6;i++){ const g=new THREE.Group(); const b=new THREE.Mesh(new THREE.CapsuleGeometry(.25,.9,4,8),stdMat({color:"#ffffff"})); b.rotation.z=Math.PI/2; const l=new THREE.Mesh(wing,mat), rr=new THREE.Mesh(wing,mat); rr.scale.x=-1; g.add(b,l,rr); g.visible=false; scene.add(g); huntBirds.push({g,l,r:rr,ph:i*1.1}) } }
+const HUNT_SIZE={Megalodon:26,Livyatan:30,"Blue Whale":34,"Humpback Whale":30,"Sei Whale":28,Narwhal:14,Orca:14,Shark:12,Megamouth:18,Bloop:34,Mosslurker:26,Dreadfin:24,Mossjaw:22};
+function updateHunt(dt,t,W){ const EZ=W.event&&!W.aw?eventZone(W.event):null; const vis=!!EZ&&seaAt(EZ.x)===curSea&&Math.hypot(EZ.x-pl.x,EZ.z-pl.z)<EZ.r+2500;
+  waterU.uHunt.value.set(EZ?EZ.x:0,EZ?EZ.z:0,EZ?EZ.r:0,vis?1:0); huntSil.visible=huntFin.visible=vis; huntBirds.forEach(b=>b.g.visible=vis); if(!vis) return;
+  const key=Object.keys(HUNT_SIZE).find(k=>W.event.n.includes(k)), sz=HUNT_SIZE[key]||16;
+  const a=t*0.05+(W.event.slot%7), rr=EZ.r*(0.35+0.2*Math.sin(t*0.13)), x=EZ.x+Math.cos(a)*rr, z=EZ.z+Math.sin(a)*rr;
+  huntSil.position.set(x,-1.2,z); huntSil.rotation.y=-a-Math.PI/2; huntSil.scale.setScalar(sz); huntSil.material.opacity=0.28+0.08*Math.sin(t*0.7);
+  const surf=Math.max(0,Math.sin(t*0.45))**6; huntFin.position.set(x+Math.cos(a+Math.PI/2)*sz*0.2,-2+surf*(2.2+sz*0.08),z+Math.sin(a+Math.PI/2)*sz*0.2); huntFin.rotation.y=-a; huntFin.scale.set(sz/12,sz/12,sz/12*0.35);
+  if(surf>0.4&&Math.random()<dt*30) FX.emit(huntFin.position.x,0.4,huntFin.position.z,(Math.random()-.5)*3,3+Math.random()*3,(Math.random()-.5)*3,0.8,1.2,"#ffffff",-9);
+  if(surf>0.9&&Math.random()<dt*2) splashFX(x,0.3,z,30,2.2);
+  huntBirds.forEach((b,i)=>{ const ba=t*0.35+b.ph, br=24+i*5; b.g.position.set(x+Math.cos(ba)*br,34+i*3+Math.sin(t+i)*2,z+Math.sin(ba)*br); b.g.rotation.y=-ba; const f=Math.sin(t*8+i)*0.6; b.l.rotation.x=f; b.r.rotation.x=f }) }
+
 /* ---------- fish shadows ---------- */
 const shadows=[]; let shadowSpawnT=0;
 function schoolFor(W,loc){ const slot=Math.floor(nowMs()/SCHOOL_MS); const r=rng(slot*7919+hashStr(loc)); const I=ISLBY[loc];
@@ -223,12 +286,12 @@ function eventZone(ev){ if(!ev) return null; const r=rng(ev.slot*131+7); const I
   for(let k=0;k<60;k++){ const a=r()*Math.PI*2, d=1500+r()*6000, x=Math.cos(a)*d, z=Math.sin(a)*d; if(ISL.every(I=>Math.hypot(x-I.x,z-I.z)>I.r+500)&&DEEPZ.every(Z=>Math.hypot(x-Z.x,z-Z.z)>Z.r+300)) return {x,z,r:260} } return {x:1800,z:1800,r:260} }
 function fishContext(x,z,w){ const W=world(); let loc=locationAt(x,z); const deep=DEEPZ.some(Z=>Z.n===loc); if(deep&&!S.bell) loc=seaAt(x)===2?"Sturmsee":"Ocean";
   let spot=spotAt(loc,x,z,w.kind); const EZ=eventZone(W.event); const inEvent=!!(EZ&&W.event&&Math.hypot(x-EZ.x,z-EZ.z)<EZ.r&&(W.event.l===loc||W.event.l==="Ocean"&&loc==="Ocean"));
-  const SC=schoolFor(W,loc); const inSchool=!!(SC&&Math.hypot(x-SC.x,z-SC.z)<SC.r); return {W,loc,spot,inEvent,school:inSchool?SC:null,deepBlocked:deep&&!S.bell,kind:w.kind,deep:deep&&!!S.bell} }
+  const SC=schoolFor(W,loc); const inSchool=!!(SC&&Math.hypot(x-SC.x,z-SC.z)<SC.r); const here=w.kind==="fresh"?null:areasHere(x,z,loc); return {W,loc,spot,inEvent,school:inSchool?SC:null,deepBlocked:deep&&!S.bell,kind:w.kind,deep:deep&&!!S.bell,here,areas:here?[...here.areas]:[]} }
 function rollAW(W,G){ const loc=AW_LOC[W.aw]; let tot=0; const cand=FISH.filter(f=>f.l===loc).map(f=>{ let w=f.c*Math.max(0.3,1+G.luck/300); if(G.bait&&f.b.includes(G.bait.n)) w*=1.6; tot+=w; return [f,w] });
   let r=Math.random()*(tot+380); for(const [f,w] of cand){ if((r-=w)<=0) return f } return null }
 function rollAt(ctx,G){ if(ctx.W.aw&&ctx.kind!=="fresh"){ const f=rollAW(ctx.W,G); if(f) return f }
   const AB=G.AB||{}; const ex=AB.luckIf&&AB.luckIf[0]==="deep"&&ctx.deep?AB.luckIf[1]:0;
-  if(ctx.school&&Math.random()<0.65) return ctx.school.f; if(ctx.inEvent&&Math.random()<0.5){ const ev=poolFor(ctx.loc,ctx.spot,ctx.W,true).filter(x=>x.isEv); if(ev.length) return ev[Math.floor(Math.random()*ev.length)].f } return rollFish(ctx.loc,ctx.spot,ctx.W,G,ctx.inEvent,(ctx.school?40:0)+ex) }
+  if(ctx.school&&Math.random()<0.55) return ctx.school.f; if(ctx.inEvent&&Math.random()<0.3){ const ev=poolFor(ctx.loc,ctx.spot,ctx.W,true).filter(x=>x.isEv); if(ev.length) return ev[Math.floor(Math.random()*ev.length)].f } return rollFish(ctx.loc,ctx.spot,ctx.W,G,ctx.inEvent,(ctx.school?40:0)+ex,ctx.here) }
 function spawnShadow(){
   const G=gearStats(); for(let k=0;k<12;k++){ const a=Math.random()*Math.PI*2, d=10+Math.random()*52, x=pl.x+Math.cos(a)*d, z=pl.z+Math.sin(a)*d; const w=waterAt(x,z); if(!w) continue;
     if(w.kind==="sea"&&terrainAt(x,z)>-1.3) continue; const ctx=fishContext(x,z,w); const f=rollAt(ctx,G); if(!f) return;
@@ -434,7 +497,7 @@ function fishIcon(n,mut,sil){ const key=n+"|"+(mut||"")+"|"+(sil?1:0); if(ICONS[
 function iconCanvas(n,mut,sil,w,h){ const c=document.createElement("canvas"); const dpr=Math.min(2,devicePixelRatio||1); c.width=w*dpr; c.height=h*dpr; c.style.width=w+"px"; c.style.height=h+"px"; c.getContext("2d").drawImage(fishIcon(n,mut,sil),0,0,c.width,c.height); return c }
 
 /* ---------- quests ---------- */
-function reward(rw,src){ if(rw.c){ S.money+=rw.c } if(rw.relic){ S.relics+=rw.relic; setTimeout(()=>toast(`+${rw.relic} Enchant-Relikt${rw.relic>1?"e":""}`,"#8fe8ff"),1800) } if(rw.bait){ S.bait[rw.bait[0]]=(S.bait[rw.bait[0]]||0)+rw.bait[1]; if(!S.baitEq) S.baitEq=rw.bait[0] } if(rw.boat&&S.boat<rw.boat){ S.boat=rw.boat; setTimeout(()=>{ bigMsg("Ruderboot erhalten!","Drücke B am Wasser, um es zu rufen.","#5fd8ff") },2800) } SFX.coin() }
+function reward(rw,src){ if(rw.c){ S.money+=rw.c } if(rw.radar&&!S.radar){ S.radar=true; S.settings.radar=true; updateRadarUI(); setTimeout(()=>{ bigMsg("Fisch-Radar erhalten!","Taste R oder der Radar-Knopf zeigt Fischgebiete im Wasser.","#5fffd0"); SFX.relic() },3000) } if(rw.relic){ S.relics+=rw.relic; setTimeout(()=>toast(`+${rw.relic} Enchant-Relikt${rw.relic>1?"e":""}`,"#8fe8ff"),1800) } if(rw.bait){ S.bait[rw.bait[0]]=(S.bait[rw.bait[0]]||0)+rw.bait[1]; if(!S.baitEq) S.baitEq=rw.bait[0] } if(rw.boat&&S.boat<rw.boat){ S.boat=rw.boat; setTimeout(()=>{ bigMsg("Ruderboot erhalten!","Drücke B am Wasser, um es zu rufen.","#5fd8ff") },2800) } SFX.coin() }
 function checkStory(){ let guard=0; while(STORY[S.story]&&guard++<5){ const q=STORY[S.story]; if(q.prog()<q.goal) break; reward(q.rw); const t=q.t; S.story++; setTimeout(()=>{ bigMsg("Auftrag erfüllt!",`${t} · +${fmt(q.rw.c||0)} C$`); SFX.quest() },1200); markDirty() } renderQuests(true) }
 function onCatchQuests(it,f,ctx){ for(const b of S.bounties){ let ok=false;
     if(b.k==="count") ok=ctx.loc===b.loc; else if(b.k==="species") ok=f.n===b.f; else if(b.k==="rarity") ok=rIdx(f.r)>=b.min; else if(b.k==="weight") ok=f.n===b.f&&it.w>=b.w;
@@ -581,8 +644,8 @@ function drawMap(c,size,full,sea){ sea=sea||curSea; const M=mapFrame(sea), sc=si
   for(const Pt of PORTALS){ if(Pt.from!==sea) continue; const [x,y]=w2m(Pt.x,Pt.z); const g2=c.createRadialGradient(x,y,0,x,y,Pt.r*sc*1.3); g2.addColorStop(0,"#ffffff"); g2.addColorStop(0.4,sea===1?"#5fd8ff":"#ffb35a"); g2.addColorStop(1,"rgba(0,0,0,0)"); c.fillStyle=g2; c.beginPath(); c.arc(x,y,Pt.r*sc*1.3,0,7); c.fill() }
   for(const I of ISL){ if(I.sea!==sea||(I.hidden&&!S.visited[I.n])) continue; const [x,y]=w2m(I.x,I.z); c.fillStyle=I.pal.sand; c.beginPath(); c.arc(x,y,I.r*sc*1.02,0,7); c.fill(); c.fillStyle=I.pal.grass; c.beginPath(); c.arc(x,y,I.r*sc*0.8,0,7); c.fill();
     if(I.biome==="cliffring"){ c.fillStyle="#2a9ec4"; c.beginPath(); c.arc(x,y,I.r*sc*0.32,0,7); c.fill() } }
-  if(EZ){ const [x,y]=w2m(EZ.x,EZ.z); c.strokeStyle="#ff5a3c"; c.lineWidth=full?4:3; c.beginPath(); c.arc(x,y,EZ.r*sc,0,7); c.stroke() }
-  for(const I of ISL){ if(I.sea!==sea) continue; const SCH=schoolFor(W,I.n); if(SCH&&(!I.hidden||S.visited[I.n])){ const [x,y]=w2m(SCH.x,SCH.z); c.fillStyle="rgba(159,243,255,.8)"; c.beginPath(); c.arc(x,y,full?5:3,0,7); c.fill() } }
+  if(radarOn()) for(const a of AREAS){ if(SEAOF(a.loc)!==sea||!a.fish.length||a.fresh||(ISLBY[a.loc]&&ISLBY[a.loc].hidden&&!S.visited[a.loc])) continue; const [x,y]=w2m(a.x,a.z); c.fillStyle=areaColor(a)+"55"; c.beginPath(); c.ellipse(x,y,Math.max(2,a.r*sc),Math.max(2,a.r*sc/a.asp),0,0,7); c.fill() }
+  if(EZ){ const [x,y]=w2m(EZ.x,EZ.z); c.fillStyle="rgba(255,90,60,.18)"; c.setLineDash([6,5]); c.strokeStyle="#ff7b54"; c.lineWidth=full?3:2; c.beginPath(); c.arc(x,y,Math.max(5,EZ.r*sc),0,7); c.fill(); c.stroke(); c.setLineDash([]) }
   for(const R of RAFTS){ if(seaAt(R.x)!==sea) continue; const [x,y]=w2m(R.x,R.z); c.fillStyle="#e6c28a"; c.fillRect(x-5,y-5,10,10) }
   if(S.tmap&&seaAt(S.tmap.x)===sea){ const [x,y]=w2m(S.tmap.x,S.tmap.z); c.strokeStyle="#ff3a2a"; c.lineWidth=4; c.beginPath(); c.moveTo(x-8,y-8); c.lineTo(x+8,y+8); c.moveTo(x+8,y-8); c.lineTo(x-8,y+8); c.stroke() }
   if(full){ c.textAlign="center"; c.textBaseline="middle"; c.font=`700 ${size/44}px Fredoka, sans-serif`;
@@ -593,7 +656,7 @@ function drawMap(c,size,full,sea){ sea=sea||curSea; const M=mapFrame(sea), sc=si
   if(sea===curSea){ const [px,py]=w2m(pl.x,pl.z); c.save(); c.translate(px,py); c.rotate(Math.PI-pl.ry); const s=full?12:9; c.fillStyle="#ffd24a"; c.strokeStyle="#000"; c.lineWidth=2; c.beginPath(); c.moveTo(0,-s); c.lineTo(s*.7,s*.7); c.lineTo(0,s*.35); c.lineTo(-s*.7,s*.7); c.closePath(); c.fill(); c.stroke(); c.restore() } }
 function panelMap(body){ $("sheetTitle").textContent="Seekarte"; const sea=mapSea||curSea; const seas=[["1","Erste See"]]; if(S.visited["Ankerheim"]) seas.push(["2","Zweite See"]); setTabs(seas.length>1?seas:[],String(sea));
   const cv=document.createElement("canvas"); cv.id="mapcv"; cv.width=1000; cv.height=1000; body.appendChild(cv); drawMap(cv.getContext("2d"),1000,true,sea);
-  body.insertAdjacentHTML("beforeend",`<p class="note">${sea===1?"Gelbe Ringe: Reichweite von Ruderboot und Motorboot. ":""}Rot: laufendes Event. Hellblaue Punkte: Fischschwärme. Rotes X: deine Schatzkarte. Graue Namen: noch nicht besucht. Manche Orte erscheinen erst, wenn du sie gefunden hast.</p>`);
+  body.insertAdjacentHTML("beforeend",`<p class="note">${sea===1?"Gelbe Ringe: Reichweite von Ruderboot und Motorboot. ":""}Rot gestrichelt: ungefähres Hunt-Gebiet. Farbige Flecken (mit Fisch-Radar): Fischgebiete. Rotes X: deine Schatzkarte. Graue Namen: noch nicht besucht. Manche Orte erscheinen erst, wenn du sie gefunden hast.</p>`);
   const row=document.createElement("div"); row.className="row";
   const b=document.createElement("button"); b.className="btn alt"; b.textContent="Nach Moosewood reisen"; b.onclick=()=>{ closeModal(); fastTravel("Moosewood") }; row.appendChild(b);
   if(S.visited["Ankerheim"]){ const b2=document.createElement("button"); b2.className="btn alt"; b2.textContent="Nach Ankerheim reisen"; b2.onclick=()=>{ closeModal(); fastTravel("Ankerheim") }; row.appendChild(b2) }
@@ -608,15 +671,15 @@ function drawMini(){ const size=336, c=miniCtx, range=pl.boat?1500:700, sc=size/
   for(const I of ISL){ if(I.sea!==curSea) continue; if(I.hidden&&!S.visited[I.n]&&Math.hypot(I.x-pl.x,I.z-pl.z)>260) continue; c.fillStyle=I.pal.sand; c.beginPath(); c.arc(tx(I.x),tz(I.z),I.r*sc,0,7); c.fill(); c.fillStyle=I.pal.grass; c.beginPath(); c.arc(tx(I.x),tz(I.z),I.r*sc*0.78,0,7); c.fill(); if(I.biome==="cliffring"&&S.visited[I.n]){ c.fillStyle="#2a9ec4"; c.beginPath(); c.arc(tx(I.x),tz(I.z),I.r*sc*0.32,0,7); c.fill() } }
   for(const Pt of PORTALS){ if(Pt.from!==curSea) continue; c.fillStyle=curSea===1?"rgba(95,216,255,.6)":"rgba(255,179,90,.6)"; c.beginPath(); c.arc(tx(Pt.x),tz(Pt.z),Pt.r*sc,0,7); c.fill() }
   if(S.tmap){ c.strokeStyle="#ff3a2a"; c.lineWidth=5; const x=clamp(tx(S.tmap.x),10,size-10), y=clamp(tz(S.tmap.z),10,size-10); c.beginPath(); c.moveTo(x-9,y-9); c.lineTo(x+9,y+9); c.moveTo(x+9,y-9); c.lineTo(x-9,y+9); c.stroke() }
-  if(EZ){ c.strokeStyle="#ff5a3c"; c.lineWidth=4; c.beginPath(); c.arc(tx(EZ.x),tz(EZ.z),EZ.r*sc,0,7); c.stroke() }
-  const SCH=schoolFor(W,locationAt(pl.x,pl.z)); if(SCH){ c.strokeStyle="rgba(159,243,255,.9)"; c.lineWidth=3; c.beginPath(); c.arc(tx(SCH.x),tz(SCH.z),SCH.r*sc,0,7); c.stroke() }
+  if(radarOn()) for(const a of AREA_LOC[locationAt(pl.x,pl.z)]||[]){ if(!a.fish.length||a.fresh) continue; c.fillStyle=areaColor(a)+"66"; c.beginPath(); c.ellipse(tx(a.x),tz(a.z),a.r*sc,a.r*sc/a.asp,0,0,7); c.fill() }
+  if(EZ&&seaAt(EZ.x)===curSea){ c.setLineDash([7,6]); c.fillStyle="rgba(255,90,60,.16)"; c.strokeStyle="#ff7b54"; c.lineWidth=3; c.beginPath(); c.arc(tx(EZ.x),tz(EZ.z),EZ.r*sc,0,7); c.fill(); c.stroke(); c.setLineDash([]) }
   for(const n of NPCS){ if(n.type==="villager") continue; c.fillStyle={merchant:"#ffd24a",shipwright:"#5fd8ff",appraiser:"#c78bff",alchemist:"#6fe37b",altar:"#8fe8ff",lq:"#ff8a3a"}[n.type]||"#fff"; c.beginPath(); c.arc(tx(n.x),tz(n.z),n.type==="lq"?7:5,0,7); c.fill() }
   for(const p of peers){ if(p.sameTab) continue; const pr=p.presence||{}; if(typeof pr.x!=="number"||seaAt(pr.x)!==curSea) continue; c.fillStyle=typeof pr.col==="string"?pr.col:"#f90"; c.strokeStyle="#fff"; c.lineWidth=2; c.beginPath(); c.arc(tx(pr.x),tz(pr.z),7,0,7); c.fill(); c.stroke() }
   c.translate(size/2,size/2); c.rotate(Math.PI-pl.ry); c.fillStyle="#ffd24a"; c.strokeStyle="#000"; c.lineWidth=3; c.beginPath(); c.moveTo(0,-16); c.lineTo(11,11); c.lineTo(0,5); c.lineTo(-11,11); c.closePath(); c.fill(); c.stroke(); c.restore() }
-$("mini").addEventListener("click",()=>openModal("map"));
+$("mini").addEventListener("click",()=>openModal("map")); $("radarBtn").addEventListener("click",e=>{ e.stopPropagation(); toggleRadar() });
 
 /* ---------- HUD ---------- */
-function refreshHUD(){
+function refreshHUD(){ updateRadarUI();
   $("coinv").textContent=fmt(S.money); const li=levelInfo(S.xp); $("lvlnum").textContent=li.L; $("lvltitle").textContent=S.title||titleFor(li.L); $("lvlxp").textContent=`${fmt(li.rest)} / ${fmt(li.need)} XP`; $("lvlarc").style.strokeDashoffset=107*(1-li.rest/li.need);
   const G=gearStats(); $("sRod").textContent=G.rod.n; $("sBait").textContent=G.bait?`${G.bait.n} ×${S.bait[G.bait.n]}`:"keiner"; $("sBag").textContent=`${S.fish.length}/${bagCap()}`; $("sBagSlot").classList.toggle("full",S.fish.length>=bagCap()); $("sBoat").textContent=S.boat?BOATS[S.boat].n:"—";
   const sg=v=>(v>0?"+":"")+v; $("sRel").textContent=S.relics;
@@ -631,7 +694,7 @@ function refreshWorldHUD(){
   if(loc!==lastLoc){ lastLoc=loc; const I=ISLBY[loc]; if(!S.visited[loc]){ S.visited[loc]=1; const xp=I&&I.hidden?400:60; gainXP(xp); markDirty(); if(performance.now()<bannerLock) toast(`Neu entdeckt: ${locName(loc)} · +${xp} XP`,"#5fd8ff"); else banner(loc==="Ocean"?"Offenes Meer":loc,(LOCDESC[loc]||"")+` · Neu entdeckt! +${xp} XP`); SFX.quest(); if(I&&I.hidden) flash("#ffffff55"); checkStory() } else if(loc!=="Ocean"&&loc!=="Sturmsee"&&performance.now()>=bannerLock) banner(loc,LOCDESC[loc]||"");
     if(S.bounties.length<3) ensureBounties(loc); pushPresence(true) }
   const ev=$("event"); if(W.event){ const left=Math.max(0,Math.ceil((W.event.ends-Date.now())/60000)); ev.style.display="block"; ev.textContent=`${W.event.n} · ${W.event.l==="Ocean"?"offene See":W.event.l} · noch ${left} min`;
-    if(lastEvent!==W.event.n){ lastEvent=W.event.n; toast(`Event: ${W.event.n}! Folge dem roten Lichtstrahl.`,"#ff7b54") } } else { ev.style.display="none"; lastEvent="" }
+    if(lastEvent!==W.event.n){ lastEvent=W.event.n; toast(`Hunt: ${W.event.n}! Das ungefähre Gebiet steht auf der Karte. Angle irgendwo darin – mit Glück beißt er an.`,"#ff7b54") } } else { ev.style.display="none"; lastEvent="" }
   if(AU.rainG) AU.rainG.gain.value=W.weather==="Rain"?0.5:0;
 }
 function contextHint(){ if(F.state!=="idle"||modalOpen()) return; if(nearNPC){ setHint(""); return } if(pl.swim){ setHint("Du schwimmst. Mit B rufst du dein Boot."); return }
@@ -968,6 +1031,8 @@ const CMDS={
   autoreel:{u:"set:on | off",d:"Automatisch einholen",f:P=>{ ADM.autoReel=onoff(pv(P,"set"),ADM.autoReel); return `Auto-Einholen: ${ADM.autoReel?"an":"aus"}` }},
   fps:{u:"set:on | off",d:"FPS-Anzeige",f:P=>{ ADM.fps=onoff(pv(P,"set"),ADM.fps); return `FPS-Anzeige: ${ADM.fps?"an":"aus"}` }},
   boat:{u:"tier:3",d:"Boot (0–3)",f:P=>{ S.boat=Math.max(0,Math.min(3,pn(pv(P,"tier"),3)|0)); if(!S.boat) pl.boat=false; return `Boot: ${BOATS[S.boat].n}` }},
+  radar:{u:"set:on | off",d:"Fisch-Radar geben/nehmen",f:P=>{ S.radar=onoff(pv(P,"set"),S.radar); S.settings.radar=S.radar; updateRadarUI(); return `Fisch-Radar: ${S.radar?"ja":"nein"}` }},
+  areas:{u:"",d:"Fischgebiete hier auflisten",f:()=>{ const loc=locationAt(pl.x,pl.z); const A=(AREA_LOC[loc]||[]).map(a=>`#${a.id} ${a.nat||(a.deep?"tief":"")} (${Math.round(Math.hypot(a.x-pl.x,a.z-pl.z))} m): ${a.fish.join(", ")}`); A.forEach(t=>addChat("Admin",t,true)); return `${A.length} Gebiete bei ${loc}` }},
   bell:{u:"set:on | off",d:"Tauchglocke",f:P=>{ S.bell=onoff(pv(P,"set"),S.bell); return `Tauchglocke: ${S.bell?"ja":"nein"}` }},
   bag:{u:"tier:5 | clear:yes",d:"Rucksack",f:P=>{ if(P.clear!==undefined){ const n=S.fish.length; S.fish=[]; return `${n} Fische entfernt` } S.bag=Math.max(0,Math.min(BAGS.length-1,pn(pv(P,"tier"),BAGS.length-1)|0)); return `Rucksack: ${bagCap()} Plätze` }},
   rods:{u:"all | name:Kings Rod",d:"Ruten geben",f:P=>{ const q=pv(P,"name"); if(!q||q==="all"||q==="alle"){ RODS.forEach(r=>{ if(!S.rods.includes(r.n)) S.rods.push(r.n) }); return `Alle ${RODS.length} Ruten` } const r=findIn(RODS,q,x=>x.n); if(!r) throw new Error("Rute nicht gefunden."); if(!S.rods.includes(r.n)) S.rods.push(r.n); S.rod=r.n; setRodLook(me,r.n); colorBobber(bobber,r.n); pushPresence(true); return `Rute: ${r.n} (ausgerüstet)` }},
@@ -1139,8 +1204,8 @@ function frame(now){
   for(const s of SWIRLS){ if(s.ring) s.ring.rotation.z+=s.sp*dt; if(s.orb){ s.orb.position.y=s.y+Math.sin(t*1.5)*0.6; s.orb.rotation.y=t } }
   for(const fl of FLOATERS){ fl.m.position.y=fl.base+Math.sin(t*1.3+fl.ph)*(fl.amp||0.15) }
   if(lighthouseBeam) lighthouseBeam.rotation.y=t*0.6;
-  const EZ=eventZone(W.event); evRing.visible=evBeam.visible=evFin.visible=!!EZ; if(EZ){ evRing.position.set(EZ.x,0.8,EZ.z); evRing.scale.setScalar(EZ.r); evBeam.position.set(EZ.x,300,EZ.z); const fa=t*0.35; evFin.position.set(EZ.x+Math.cos(fa)*EZ.r*0.45,1.4+Math.sin(t*2)*0.3,EZ.z+Math.sin(fa)*EZ.r*0.45); evFin.rotation.y=-fa; if(Math.random()<dt*20) FX.emit(evFin.position.x,0.4,evFin.position.z,(Math.random()-.5)*2,2,(Math.random()-.5)*2,0.6,0.8,"#ffffff",-8) }
-  const SCH=schoolFor(W,locationAt(pl.x,pl.z)); schoolRing.visible=!!SCH; if(SCH){ schoolRing.position.set(SCH.x,0.5,SCH.z); schoolRing.scale.setScalar(SCH.r*(1+Math.sin(t*2)*0.03)); if(Math.random()<dt*25){ const a=Math.random()*6.28, d=Math.random()*SCH.r; FX.emit(SCH.x+Math.cos(a)*d,0.2,SCH.z+Math.sin(a)*d,0,3+Math.random()*2,0,0.7,0.5,"#dff6ff",-4) } }
+  updateRadar(dt,t); updateHunt(dt,t,W);
+  const SCH=schoolFor(W,locationAt(pl.x,pl.z)); if(SCH&&seaAt(SCH.x)===curSea){ if(Math.random()<dt*25){ const a=Math.random()*6.28, d=Math.random()*SCH.r; FX.emit(SCH.x+Math.cos(a)*d,0.2,SCH.z+Math.sin(a)*d,0,3+Math.random()*2,0,0.7,0.5,"#dff6ff",-4) } }
   if(rain.visible){ const a=rainGeo.attributes.position.array; for(let i=0;i<RAIN_N;i++){ let y=a[i*6+1]-70*dt; if(y<0) y+=70; a[i*6+1]=y; a[i*6+4]=y-1.6 } rainGeo.attributes.position.needsUpdate=true; rain.position.set(camera.position.x,camera.position.y-30,camera.position.z) }
   const SI=ISLBY["Snowcap Island"], FZ=ISLBY["Frostzinnen"]; const snowy=Math.hypot(pl.x-SI.x,pl.z-SI.z)<SI.r+120||Math.hypot(pl.x-FZ.x,pl.z-FZ.z)<FZ.r+140||(W.season==="Winter"&&W.weather!=="Clear"&&!pl.boat); snowFall.visible=snowy; if(snowy){ const a=snowFall.geometry.attributes.position.array; for(let i=0;i<900;i++){ a[i*3+1]-=5*dt; a[i*3]+=Math.sin(t+i)*0.02; if(a[i*3+1]<0) a[i*3+1]+=60 } snowFall.geometry.attributes.position.needsUpdate=true; snowFall.position.set(camera.position.x,camera.position.y-25,camera.position.z) }
   for(const gm of Object.values(GRASS)) if(gm) gm.material.uniforms.uPlayer.value.set(pl.x,pl.y,pl.z);
@@ -1193,6 +1258,7 @@ async function boot(){
   await accountGate(lt,lb);
   setRodLook(me,S.rod); colorBobber(bobber,S.rod);
   if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); cam.yaw=pl.ry } else spawnHome();
+  genAreas(); updateRadarUI();
   curSea=seaAt(pl.x); updateSeaVis(); warmWorld(pl.x,pl.z); cullIslands(); syncChests(); updateAdminUI();
   ensureBounties(locationAt(pl.x,pl.z)); refreshHUD(); renderQuests(); updateSky();
   cam.x=pl.x-Math.sin(cam.yaw)*20; cam.z=pl.z-Math.cos(cam.yaw)*20; cam.y=pl.y+10;
@@ -1205,4 +1271,4 @@ async function boot(){
 }
 boot().catch(e=>{ const el=$("loaderr"); el.style.display="block"; el.textContent="Fehler: "+e.message; console.error(e) });
 
-if(/[?&]debug\b/.test(location.search)) window.__fd={TSTAT,cullIslands,updateTiles,renderer,ISG,doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
+if(/[?&]debug\b/.test(location.search)) window.__fd={TSTAT,cullIslands,updateTiles,AREAS,eventZone,renderer,ISG,doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
