@@ -31,6 +31,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 #loadbar i{display:block;height:100%;width:5%;background:linear-gradient(90deg,var(--gold),#fff3b0);transition:width .2s}
 #startBtn{display:none;margin-top:8px;background:var(--gold);color:#2a1d00;border:none;border-radius:16px;padding:14px 34px;font-size:22px;font-weight:700;box-shadow:0 6px 0 #b98a12}
 #startBtn:active{transform:translateY(3px);box-shadow:0 3px 0 #b98a12}
+#acct{display:none;flex-direction:column;gap:9px;width:min(340px,86vw);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+#acct .at{font-family:var(--display);font-size:20px;font-weight:700;text-align:center}
+#acct input{background:rgba(4,12,22,.7);border:1px solid var(--line);border-radius:12px;color:var(--ink);font:800 16px var(--body);padding:11px 13px;-webkit-user-select:text;user-select:text}
+#acct .ab{display:flex;gap:8px} #acct .ab button{flex:1;border:none;border-radius:12px;padding:11px;font-size:17px;font-weight:700}
+#accLogin{background:var(--gold);color:#2a1d00;box-shadow:0 4px 0 #b98a12} #accReg{background:#2f7fd8;color:#fff;box-shadow:0 4px 0 #1d5aa0}
+#accMsg{min-height:1.2em;text-align:center;color:#ffb3a8!important;font-size:14px}
+#acct .as{font-size:12px;text-align:center;color:var(--ink3)!important;font-weight:700}
+#accGuest{background:none;border:none;color:var(--ink3);font:800 13px var(--body);text-decoration:underline}
+#accWho{font-size:14px} #accWho a{color:var(--xp);cursor:pointer;text-decoration:underline}
 #loading .err{color:#ffb3a8;max-width:420px;text-align:center;font-weight:800;display:none}
 
 /* top left: coins + level */
@@ -145,6 +154,13 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-o
 #chatlog .who{color:var(--gold)}
 #chatin{background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--ink);font:800 13px var(--body);padding:8px 11px;-webkit-user-select:text;user-select:text}
 #chatin::placeholder{color:var(--ink3)}
+#chat{position:absolute}
+#cmdSug{display:none;position:absolute;left:0;right:0;bottom:calc(100% + 4px);max-height:240px;overflow-y:auto;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:4px;z-index:12;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+#cmdSug.on{display:block}
+#cmdSug div{padding:5px 9px;border-radius:8px;font:800 13px var(--body);cursor:pointer;display:flex;gap:8px;align-items:baseline}
+#cmdSug div b{color:var(--gold);white-space:nowrap} #cmdSug div span{color:var(--ink3);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cmdSug div.sel,#cmdSug div:hover{background:rgba(255,210,74,.16)}
+#cmdSug .hd{cursor:default;color:var(--ink2);font-size:11.5px} #cmdSug .hd:hover{background:none}
 
 /* modal */
 #modal{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:rgba(3,10,20,.55);padding:16px;box-sizing:border-box}
@@ -278,7 +294,17 @@ table.lb td.n{text-align:right}
     <h1>Fischerdock</h1>
     <p id="loadtxt">Inseln werden erschaffen…</p>
     <div id="loadbar"><i></i></div>
+    <form id="acct" onsubmit="return false" autocomplete="on">
+      <div class="at">Dein Angler-Account</div>
+      <input id="accName" name="username" autocomplete="username" maxlength="16" placeholder="Name (3–16 Zeichen)" spellcheck="false">
+      <input id="accPass" name="password" type="password" autocomplete="current-password" maxlength="72" placeholder="Passwort">
+      <div class="ab"><button id="accLogin" type="submit">Einloggen</button><button id="accReg" type="button">Registrieren</button></div>
+      <p id="accMsg"></p>
+      <p class="as">Jeder Name existiert nur einmal. Mit Name und Passwort spielst du auf jedem Gerät mit deinem Spielstand weiter.</p>
+      <button id="accGuest" type="button">Offline als Gast spielen</button>
+    </form>
     <button id="startBtn">Ablegen</button>
+    <p id="accWho"></p>
     <p class="err" id="loaderr"></p>
   </div>
 
@@ -363,6 +389,7 @@ table.lb td.n{text-align:right}
   <div id="flash"></div>
   <div id="chat">
     <div id="chatlog"></div>
+    <div id="cmdSug"></div>
     <input id="chatin" maxlength="90" placeholder="Chat (Enter)" autocomplete="off">
   </div>
 
@@ -375,34 +402,60 @@ table.lb td.n{text-align:right}
 </div>
 
 <script>
-/* Fischerdock – Cloudflare network layer. Provides window.claude.use("room"|"db"|"user") backed by the Worker. */
+/* Fischerdock v3 – Cloudflare network layer: accounts (name + password), presence room, global world state, board, cloud saves.
+   Exposes window.FDNET (accounts) and window.claude.use("room"|"db"|"user") for the game. */
 (()=>{
-  const LS=(k,v)=>{ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v) }catch(e){ return null } };
-  let TOKEN=LS("fd-token"); if(!TOKEN||TOKEN.length<20){ const a=new Uint8Array(24); crypto.getRandomValues(a); TOKEN=[...a].map(b=>b.toString(16).padStart(2,"0")).join(""); LS("fd-token",TOKEN) }
-  const idP=crypto.subtle.digest("SHA-256",new TextEncoder().encode(TOKEN)).then(h=>[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("").slice(0,16));
+  const LS=(k,v)=>{ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v) }catch(e){ return null } };
+  let TOKEN=LS("fd3-token")||"", ME=null;
+  const online=location.protocol.startsWith("http");
   async function api(path,opt={}){ const r=await fetch(path,{...opt,headers:{"authorization":"Bearer "+TOKEN,"content-type":"application/json"}});
-    if(!r.ok){ const e=new Error("HTTP "+r.status); e.code=r.status===400?"invalid_argument":"http"; throw e } return r.status===204?null:r.json() }
+    let d=null; try{ d=r.status===204?null:await r.json() }catch(e){}
+    if(!r.ok){ const e=new Error((d&&d.error)||("HTTP "+r.status)); e.status=r.status; e.code=r.status===400?"invalid_argument":"http"; throw e } return d }
   const boardListeners=new Set();
+  const gwListeners=new Set(), sysListeners=new Set(), admListeners=new Set();
+  let clockSkew=0;
+  const FDNET={
+    online, get me(){ return ME }, get token(){ return TOKEN },
+    now:()=>Date.now()+clockSkew,
+    async resume(){ if(!online||!TOKEN) return null; try{ ME=await api("/api/me"); return ME }catch(e){ if(e.status===401){ TOKEN=""; LS("fd3-token",null) } return null } },
+    async auth(kind,name,pass){ const d=await api("/api/"+kind,{method:"POST",body:JSON.stringify({name,pass})}); TOKEN=d.token; LS("fd3-token",TOKEN); LS("fd3-lastname",d.name); ME={id:d.id,name:d.name,admin:d.admin}; return ME },
+    async logout(){ try{ await api("/api/logout",{method:"POST"}) }catch(e){} TOKEN=""; ME=null; LS("fd3-token",null) },
+    lastName:()=>LS("fd3-lastname")||"",
+    onGW(cb){ gwListeners.add(cb) }, onSys(cb){ sysListeners.add(cb) }, onAdmin(cb){ admListeners.add(cb) },
+    send(o){ if(room&&room._ws&&room._ws.readyState===1){ room._ws.send(JSON.stringify(o)); return true } return false },
+    async fetchGW(){ if(!online) return null; try{ const d=await api("/api/gw"); clockSkew=d.now-Date.now(); gwListeners.forEach(f=>f(d.gw,null)); return d.gw }catch(e){ return null } },
+  };
+  window.FDNET=FDNET;
+  let room=null;
   function makeRoom(){
-    let ws=null, peersCb=null, connCb=null, myPres=null, retry=0; const peers=new Map();
-    const P=(peer,by,p)=>({peer,by,presence:p||{},sameTab:false,isMe:false});
+    let ws=null, peersCb=null, connCb=null, myPres=null, retry=0, dead=false; const peers=new Map();
+    const P=(peer,by,name,p)=>({peer,by,name,presence:p||{},sameTab:false,isMe:false});
     const emit=(joined,updated,left)=>{ if(peersCb) peersCb({peers:[...peers.values()],joined,updated,left}) };
+    const R={};
     function connect(){
-      ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws");
+      if(dead||!TOKEN) return;
+      ws=R._ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws");
       ws.onopen=()=>{ retry=0; ws.send(JSON.stringify({t:"auth",token:TOKEN})) };
       ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data) }catch(_){ return }
-        if(m.t==="hello"){ peers.clear(); const joined=m.peers.map(x=>{ const q=P(x.peer,x.by,x.p); peers.set(x.peer,q); return q }); if(connCb) connCb(true); if(myPres) ws.send(JSON.stringify({t:"p",p:myPres})); emit(joined,[],[]) }
-        else if(m.t==="j"){ const q=P(m.peer,m.by,m.p); peers.set(m.peer,q); emit([q],[],[]) }
+        if(m.t==="hello"){ clockSkew=(m.now||Date.now())-Date.now(); peers.clear(); const joined=m.peers.map(x=>{ const q=P(x.peer,x.by,x.name,x.p); peers.set(x.peer,q); return q }); if(connCb) connCb(true); if(myPres) ws.send(JSON.stringify({t:"p",p:myPres}));
+          if(ME) ME.admin=!!m.admin; admListeners.forEach(f=>f(!!m.admin,true)); gwListeners.forEach(f=>f(m.gw,null)); emit(joined,[],[]) }
+        else if(m.t==="j"){ const q=P(m.peer,m.by,m.name,m.p); peers.set(m.peer,q); emit([q],[],[]) }
         else if(m.t==="u"){ let q=peers.get(m.peer); if(q){ q.presence=m.p||{}; emit([],[q],[]) } }
         else if(m.t==="l"){ const q=peers.get(m.peer); if(q){ peers.delete(m.peer); emit([],[],[q]) } }
-        else if(m.t==="board"){ boardListeners.forEach(f=>f()) } };
-      ws.onclose=()=>{ if(connCb) connCb(false); if(peers.size){ const left=[...peers.values()]; peers.clear(); emit([],[],left) } setTimeout(connect,Math.min(15000,800*2**retry++)) };
+        else if(m.t==="board"){ boardListeners.forEach(f=>f()) }
+        else if(m.t==="gw"){ if(m.now) clockSkew=m.now-Date.now(); gwListeners.forEach(f=>f(m.gw,m.by||null)) }
+        else if(m.t==="sys"){ sysListeners.forEach(f=>f(m.text,m.by)) }
+        else if(m.t==="adm"){ if(ME) ME.admin=!!m.ok; admListeners.forEach(f=>f(!!m.ok,false)) }
+        else if(m.t==="kicked"){ dead=true; sysListeners.forEach(f=>f("Du hast dich an einem anderen Gerät angemeldet. Diese Sitzung ist jetzt offline.","System")) }
+        else if(m.t==="denied"){ dead=true } };
+      ws.onclose=()=>{ if(connCb) connCb(false); if(peers.size){ const left=[...peers.values()]; peers.clear(); emit([],[],left) } if(!dead) setTimeout(connect,Math.min(15000,800*2**retry++)) };
     }
-    return {
+    Object.assign(R,{
       presence(p){ myPres=p; if(ws&&ws.readyState===1) ws.send(JSON.stringify({t:"p",p})); return Promise.resolve() },
       onPeers(cb){ peersCb=cb; if(!ws) connect(); return ()=>{ peersCb=null } },
       onConnection(cb){ connCb=cb; if(ws) cb(ws.readyState===1); return ()=>{ connCb=null } },
-    };
+    });
+    return R;
   }
   let boardTimer=0;
   const db={
@@ -414,9 +467,8 @@ table.lb td.n{text-align:right}
       async get(){ if(/^data\/users\/[^/]+\/save$/.test(path)){ const r=await api("/api/save"); return {exists:!!r,data:()=>r} } return {exists:false,data:()=>null} },
       async set(obj){ const body=JSON.stringify(obj); if(/^data\/users\//.test(path)) return api("/api/save",{method:"PUT",body}); if(/^board\//.test(path)) return api("/api/board",{method:"PUT",body}) } } },
   };
-  const user={ async me(){ return {id:await idP,name:""} }, async profiles(){ return {} }, async can(){ return true } };
-  let room=null;
-  window.claude={ use:async k=>{ if(k==="room") return room||(room=makeRoom()); if(k==="db") return db; if(k==="user") return user; throw new Error("unknown capability "+k) } };
+  const user={ async me(){ return ME?{id:ME.id,name:ME.name}:{id:null,name:""} }, async profiles(){ return {} }, async can(){ return true } };
+  window.claude={ use:async k=>{ if(!ME) throw new Error("offline"); if(k==="room") return room||(room=makeRoom()); if(k==="db") return db; if(k==="user") return user; throw new Error("unknown capability "+k) } };
 })();
 
 </script>
@@ -438,6 +490,7 @@ import {OutputPass} from "three/addons/postprocessing/OutputPass.js";
 import {ShaderPass} from "three/addons/postprocessing/ShaderPass.js";
 import {RoundedBoxGeometry} from "three/addons/geometries/RoundedBoxGeometry.js";
 import {mergeGeometries} from "three/addons/utils/BufferGeometryUtils.js";
+import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 /* ============================ CORE v2: data, economy, progression ============================ */
 const $ = id => document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -658,31 +711,41 @@ const masteryOf=n=>{ const c=(S.mastery&&S.mastery[n])||0; let L=0; while(L<MAST
 const CYCLE=24*60e3, SEASON_MS=60*60e3, WEATHER_MS=6*60e3, EVENT_MS=15*60e3, EVENT_ON=10*60e3, SCHOOL_MS=5*60e3;
 const SEASONS=["Spring","Summer","Autumn","Winter"], SEASON_DE={Spring:"Frühling",Summer:"Sommer",Autumn:"Herbst",Winter:"Winter"};
 const WEATHER_DE={Clear:"Klar",Rain:"Regen",Foggy:"Nebel",Windy:"Wind",Aurora:"Polarlicht"};
-const ADMIN_W={off:0,weather:null,aurora:null,season:null,event:undefined};
-function world(now=Date.now()){ now+=ADMIN_W.off;
+/* global world state: admin overrides shared by all players (set on the server, see /api/gw) */
+const GW={off:0,weather:null,aurora:null,season:null,event:null,evUntil:0,aw:null,awUntil:0};
+const ADMIN_W=GW;
+const AW={
+  blood:{n:"Blutmond",d:"Der Mond färbt sich rot. Uralte Räuber steigen aus der Tiefe.",col:"#ff2a3a",night:true,mut:"Blutmond"},
+  star:{n:"Sternenfall",d:"Sterne stürzen ins Meer. Was sie berühren, beginnt zu leuchten.",col:"#b58bff",night:true,mut:"Kosmisch"},
+  storm:{n:"Leviathans Zorn",d:"Ein Sturm wie aus einer anderen Zeit. Etwas Gewaltiges ist erwacht.",col:"#5fd8ff",night:false,mut:"Sturmgeboren"},
+};
+const nowMs=()=>window.FDNET?FDNET.now():Date.now();
+function world(now=nowMs()){ const real=now; now+=GW.off||0;
   const phase=(now%CYCLE)/CYCLE, hour=(6+phase*24)%24, day=hour>=6&&hour<20;
   const season=SEASONS[Math.floor(now/SEASON_MS)%4];
   const wslot=Math.floor(now/WEATHER_MS); const wr=rng(Math.imul(wslot,2654435761)^0x5bd1e995)();
   let weather=wr<.45?"Clear":wr<.63?"Rain":wr<.8?"Foggy":"Windy";
-  if(ADMIN_W.weather) weather=ADMIN_W.weather;
-  const aurora=ADMIN_W.aurora!==null?(ADMIN_W.aurora&&!day):(!day&&weather==="Clear"&&rng(wslot*31+5)()<0.35);
+  if(GW.weather) weather=GW.weather;
+  const aw=GW.aw&&GW.awUntil>real?GW.aw:null;
+  let dayX=day; if(aw&&AW[aw].night) dayX=false;
+  if(aw==="storm") weather="Rain";
+  const aurora=aw?false:GW.aurora!==null&&GW.aurora!==undefined?(GW.aurora&&!dayX):(!dayX&&weather==="Clear"&&rng(wslot*31+5)()<0.35);
   const slot=Math.floor(now/EVENT_MS), er=rng(slot*97+13), roll=er(), pick=EVENTS[Math.floor(er()*EVENTS.length)];
   const active=roll<.75&&(now%EVENT_MS)<EVENT_ON;
-  const ev=ADMIN_W.event===undefined?(active?{...pick,slot,ends:slot*EVENT_MS+EVENT_ON}:null):ADMIN_W.event?{...ADMIN_W.event,slot:7,ends:now+EVENT_ON}:null;
-  return {phase,hour,day,time:day?"Day":"Night",season:ADMIN_W.season||season,weather,aurora,event:ev};
+  const forced=GW.event&&GW.evUntil>real?EVENTS.find(e=>e.n===GW.event):null;
+  const ev=forced?{...forced,slot:Math.floor(GW.evUntil/1000)%100000,ends:GW.evUntil-(real-Date.now())}:GW.event===false?null:(active?{...pick,slot,ends:slot*EVENT_MS+EVENT_ON-(now-Date.now())}:null);
+  return {phase,hour,day:dayX,realDay:day,time:dayX?"Day":"Night",season:GW.season||season,weather,aurora,event:ev,aw,awLeft:aw?GW.awUntil-real:0};
 }
 
 /* ---------- save state ---------- */
-const SAVE_KEY="fischerdock-inseln-v2";
-function freshState(){return{v:4,money:100,xp:0,rods:["Flimsy Rod"],rod:"Flimsy Rod",bait:{Worm:5},baitEq:"Worm",fish:[],dex:{},dexLoc:{},bag:0,boat:0,bell:false,
+let SAVE_KEY="fischerdock-v3-guest"; const SAVE_V=5;
+function freshState(){return{v:SAVE_V,money:100,xp:0,rods:["Flimsy Rod"],rod:"Flimsy Rod",bait:{Worm:5},baitEq:"Worm",fish:[],dex:{},dexLoc:{},bag:0,boat:0,bell:false,
   story:0,bounties:[],bountyDone:0,visited:{Moosewood:1},dexRewards:{},relics:0,ench:{},mastery:{},buffs:{},tmap:null,chests:{},found:{},lq:{},titles:[],title:"",
   stats:{earned:0,caught:0,perfect:0,bestV:0,bestN:"",streak:0,bestStreak:0,snaps:0,sold:0,shadow:0,event:0,rarest:0,reef:0,chests:0,enchants:0,digs:0,foggy:0,nightLeg:0,exoticPlus:0,snowCaught:0,frozen:0},
   pos:null,nick:"",savedAt:0,settings:{music:true,sfx:true}}}
 let S=freshState();
 function loadSave(o){ const f=freshState(); return Object.assign(f,o,{stats:Object.assign(f.stats,o.stats||{}),settings:Object.assign(f.settings,o.settings||{})}) }
-try{ const raw=localStorage.getItem(SAVE_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.v===4) S=loadSave(o) }
-  else { const old=localStorage.getItem("fischerdock-inseln-v1"); if(old){ const o=JSON.parse(old); if(o&&o.v===3){ o.v=4; o.pos=null; S=loadSave(o) } } } }catch(e){}
-if(!S.nick) S.nick="Angler-"+(1000+Math.floor(Math.random()*9000));
+function loadLocal(id,name){ SAVE_KEY="fischerdock-v3-"+(id||"guest"); S=freshState(); try{ const raw=localStorage.getItem(SAVE_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.v===SAVE_V) S=loadSave(o) } }catch(e){} S.nick=name||S.nick||"Gast"; return S }
 let dirty=false;
 function markDirty(){dirty=true;S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S))}catch(e){}}
 
@@ -1835,7 +1898,7 @@ function updateSeaVis(){ SEAG[1].visible=curSea===1; SEAG[2].visible=curSea===2 
 
 /* ---------- fish shadows ---------- */
 const shadows=[]; let shadowSpawnT=0;
-function schoolFor(W,loc){ const slot=Math.floor(Date.now()/SCHOOL_MS); const r=rng(slot*7919+hashStr(loc)); const I=ISLBY[loc];
+function schoolFor(W,loc){ const slot=Math.floor(nowMs()/SCHOOL_MS); const r=rng(slot*7919+hashStr(loc)); const I=ISLBY[loc];
   if(!I) return null; const pool=poolFor(loc,"",W,false).map(x=>x.f).filter(f=>!f.sub&&f.c>=3&&f.c<=60&&rIdx(f.r)<=4); if(!pool.length) return null;
   const f=pool[Math.floor(r()*pool.length)]; const a=r()*Math.PI*2; const d=I.r*(1.12+r()*0.3); return {f,x:I.x+Math.cos(a)*d,z:I.z+Math.sin(a)*d,r:22,loc} }
 function eventZone(ev){ if(!ev) return null; const r=rng(ev.slot*131+7); const I=ISLBY[ev.l], Z=DEEPZ.find(z=>z.n===ev.l);
@@ -2270,7 +2333,7 @@ function updateSky(){
 /* ---------- multiplayer ---------- */
 let room=null, db=null, user=null, myId=null, peers=[], boardDirty=false, board=[], names={}, canBoard=true, myProfileName="", myMsg=null, joinedAt=0;
 const seenCatch=new Map(), seenMsg=new Map(), avatars=new Map();
-function peerName(p){ const pr=p.presence||{}; return (p.by&&names[p.by])||(typeof pr.nick==="string"&&pr.nick.slice(0,20))||"Fischer" }
+function peerName(p){ return (typeof p.name==="string"&&p.name)||"Fischer" }
 function myName(){ return S.nick||myProfileName||"Du" }
 let lastPresSent=0, lastPresKey="", presTimer=0;
 function presenceObj(){ const p={v:5,nick:S.nick||"",loc:locationAt(pl.x,pl.z),x:Math.round(pl.x*10)/10,z:Math.round(pl.z*10)/10,y:Math.round(pl.y*10)/10,ry:Math.round(pl.ry*100)/100,b:pl.boat?S.boat:0,sw:pl.swim?1:0,mv:pl.moving?1:0,st:F.state,rod:S.rod,lvl:levelInfo(S.xp).L,col:myColor};
@@ -2328,39 +2391,41 @@ function panelPlayers(body){ $("sheetTitle").textContent="Spieler"; const tab=pa
     body.insertAdjacentHTML("beforeend",`<div style="overflow-x:auto"><table class="lb"><tr><th>Spieler</th><th>Ort</th><th>Status</th><th class="n">Lvl</th></tr>${rows.map(r=>`<tr class="${r.me?"me":""}"><td>${esc(r.name)}</td><td>${esc(ALL_LOC.includes(r.loc)?locName(r.loc):"?")}</td><td>${esc(stDE[r.st]||"")}</td><td class="n">${r.lvl}</td></tr>`).join("")}</table></div><p class="note">Mitspieler siehst du live in der Welt und als Punkte auf der Karte. Fänge ab Rare werden allen gemeldet. Teile einfach den Link zu dieser Seite, dann spielen Freunde live mit.</p>`); return }
   if(tab==="board"){ if(!db){ body.insertAdjacentHTML("beforeend",`<p class="note">Die Rangliste ist in dieser Ansicht nicht verfügbar.</p>`); return }
     const rows=[...board].sort((a,b)=>(b.earned||0)-(a.earned||0)).slice(0,25);
-    body.insertAdjacentHTML("beforeend",`<div style="overflow-x:auto"><table class="lb"><tr><th>#</th><th>Spieler</th><th class="n">Lvl</th><th class="n">Verdient</th><th class="n">Arten</th><th>Bester Fang</th></tr>${rows.map((r,i)=>`<tr class="${r.id===myId?"me":""}"><td>${i+1}</td><td>${esc(names[r.id]||(typeof r.nick==="string"&&r.nick)||"Fischer")}${typeof r.title==="string"&&r.title?` <span class="ttl">${esc(r.title.slice(0,30))}</span>`:""}${+r.qr?` <span class="ttl">${"★".repeat(clamp(+r.qr|0,0,4))}</span>`:""}</td><td class="n">${+r.lvl||1}</td><td class="n">${fmt(+r.earned||0)}</td><td class="n">${fmt(+r.dex||0)}</td><td>${esc(String(r.bestN||"").slice(0,40))}${r.bestV?" · "+fmt(+r.bestV)+" C$":""}</td></tr>`).join("")||`<tr><td colspan="6">Noch keine Einträge.</td></tr>`}</table></div>${canBoard?"":`<p class="note">Du kannst nur mitlesen. Die Rangliste ist gerade nicht erreichbar.</p>`}`); return }
+    body.insertAdjacentHTML("beforeend",`<div style="overflow-x:auto"><table class="lb"><tr><th>#</th><th>Spieler</th><th class="n">Lvl</th><th class="n">Verdient</th><th class="n">Arten</th><th>Bester Fang</th></tr>${rows.map((r,i)=>`<tr class="${r.id===myId?"me":""}"><td>${i+1}</td><td>${esc(names[r.id]||(typeof r.nick==="string"&&r.nick)||"Fischer")}${typeof r.title==="string"&&r.title?` <span class="ttl">${esc(r.title.slice(0,30))}</span>`:""}${+r.qr?` <span class="ttl">${"★".repeat(clamp(+r.qr|0,0,4))}</span>`:""}</td><td class="n">${+r.lvl||1}</td><td class="n">${fmt(+r.earned||0)}</td><td class="n">${fmt(+r.dex||0)}</td><td>${esc(String(r.bestN||"").slice(0,40))}${r.bestV?" · "+fmt(+r.bestV)+" C$":""}</td></tr>`).join("")||`<tr><td colspan="6">Noch keine Einträge.</td></tr>`}</table></div>${canBoard?"":`<p class="note">Du kannst nur mitlesen. Mit Contributor-Rechten erscheinst du selbst in der Liste.</p>`}`); return }
   const li=levelInfo(S.xp);
   body.insertAdjacentHTML("beforeend",`<div class="kv" style="max-width:440px;font-size:14px"><span>Level</span><b>${li.L} · ${titleFor(li.L)}</b><span>Gefangen</span><b>${fmt(S.stats.caught)}</b><span>Perfect Catches</span><b>${fmt(S.stats.perfect)}</b><span>Verdient</span><b>${fmt(S.stats.earned)} C$</b><span>Bester Fang</span><b>${esc(S.stats.bestN||"–")}</b><span>Beste Serie</span><b>${S.stats.bestStreak}</b><span>Aufträge</span><b>${S.bountyDone}</b><span>Bestiary</span><b>${Object.keys(S.dex).length}/${FISH.length}</b><span>Truhen</span><b>${S.stats.chests}</b><span>Verzauberungen</span><b>${S.stats.enchants}</b></div>
     ${S.titles.length?`<div class="row"><span class="note">Titel:</span>${["",...S.titles].map(x=>`<button class="btn ${S.title===x?"":"alt"}" data-title="${esc(x)}">${esc(x||"Standard")}</button>`).join("")}</div>`:""}
-    <label class="note" for="nickIn">Spielername (optional, sonst dein Profilname)</label>
-    <div class="row"><input id="nickIn" maxlength="20" value="${esc(S.nick)}" style="background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:800 14px var(--body);padding:8px 11px;-webkit-user-select:text;user-select:text"><button class="btn" id="nickSave">Speichern</button></div>
+    <div class="row"><span class="note">Account: <b style="color:var(--ink)">${esc(acctName()||"Gast")}</b>${isOnlineAcct()?"":" (offline)"}</span>${isOnlineAcct()?'<button class="btn alt" id="logoutBtn">Abmelden</button>':""}</div>
     <div class="row"><span class="note">Grafik:</span><button class="btn alt" data-q="2">Hoch</button><button class="btn alt" data-q="1">Mittel</button><button class="btn alt" data-q="0">Niedrig</button></div>
     <div class="row"><button class="btn alt" id="musBtn">Musik: ${S.settings.music?"an":"aus"}</button><button class="btn alt" id="sfxBtn">Geräusche: ${S.settings.sfx?"an":"aus"}</button></div>
     <p class="note">Inoffizielles Fanprojekt nach dem Roblox-Spiel Fisch, nicht mit dessen Entwicklern verbunden. Fischnamen und -werte stammen aus dem Official Fisch Wiki (fischipedia.org); Welt, Modelle, Musik und Balancing sind eigene Arbeit.</p>
-    <p class="note">Spielstand: ${myId&&db?"wird in der Cloud und im Browser gespeichert.":"wird in diesem Browser gespeichert."}</p>
+    <p class="note">Spielstand: ${myId&&db?"wird in deinem Account (Cloud) und im Browser gespeichert. Du kannst dich auf jedem Gerät einloggen.":"wird in diesem Browser gespeichert."}</p>
     <div class="row"><button class="btn alt" id="resetBtn">Spielstand zurücksetzen</button><span class="note" id="resetNote"></span></div>`);
   body.querySelectorAll("[data-title]").forEach(bt=>bt.onclick=()=>{ S.title=bt.dataset.title; markDirty(); boardDirty=true; refreshHUD(); renderPanel() });
   body.querySelectorAll("[data-q]").forEach(bt=>{ const q=+bt.dataset.q; if((S.settings.q??2)===q) bt.className="btn"; bt.onclick=()=>{ S.settings.qLocked=true; setQuality(q); renderPanel() } });
-  $("nickSave").onclick=()=>{ S.nick=$("nickIn").value.replace(/[\u0000-\u001f]/g,"").trim().slice(0,20); markDirty(); boardDirty=true; pushPresence(true); updateAdminUI(); toast("Name gespeichert","#8fd3ff") };
+  if($("logoutBtn")) $("logoutBtn").onclick=async()=>{ dirty=true; await syncLoop(); await FDNET.logout(); location.reload() };
   $("musBtn").onclick=()=>{ S.settings.music=!S.settings.music; if(AU.music) AU.music.gain.value=S.settings.music?0.16:0; markDirty(); renderPanel() };
   $("sfxBtn").onclick=()=>{ S.settings.sfx=!S.settings.sfx; if(AU.sfx){ AU.sfx.gain.value=S.settings.sfx?0.7:0; AU.amb.gain.value=S.settings.sfx?0.22:0 } markDirty(); renderPanel() };
-  let armed=false; $("resetBtn").onclick=()=>{ if(!armed){ armed=true; $("resetNote").textContent="Nochmal klicken zum Bestätigen."; return } const keep=S.nick; S=freshState(); S.nick=keep; ensureBounties("Moosewood"); markDirty(); boardDirty=true; spawnHome(); curSea=1; updateSeaVis(); syncChests(); refreshHUD(); renderQuests(); closeModal(); toast("Neuer Spielstand","#fff") } }
+  let armed=false; $("resetBtn").onclick=()=>{ if(!armed){ armed=true; $("resetNote").textContent="Nochmal klicken zum Bestätigen."; return } const keep=S.nick; S=freshState(); S.nick=keep; S.admin=adminOn(); ensureBounties("Moosewood"); markDirty(); boardDirty=true; spawnHome(); curSea=1; updateSeaVis(); syncChests(); refreshHUD(); renderQuests(); closeModal(); toast("Neuer Spielstand","#fff") } }
 async function initMultiplayer(){
   const use=window.claude&&typeof window.claude.use==="function"?window.claude.use.bind(window.claude):null; if(!use) return;
   const [r,d,u]=await Promise.all([use("room").catch(()=>null),use("db").catch(()=>null),use("user").catch(()=>null)]); room=r; db=d; user=u;
   if(user){ try{ const m=await user.me(); myId=m.id; myProfileName=m.name||"" }catch(e){} }
+  FDNET.onGW((gw,by)=>{ if(gw) Object.assign(GW,gw); onGWChanged(by); if(panel==="admin") renderPanel() });
+  FDNET.onSys((text,by)=>{ addChat(by||"Admin",text,false); bigMsg(by?`${by}:`:"Ansage",text,"#ff8a3a"); SFX.quest() });
+  FDNET.onAdmin((ok,fromHello)=>{ if(!fromHello){ if(ok){ S.admin=true; SFX.quest(); sysMsg("Admin-Modus aktiv. Tippe / im Chat für alle Befehle. Globale Befehle (Zeit, Wetter, Events, Admin-Wetter) gelten für alle. Dein Account ist jetzt aus der Rangliste ausgeblendet.") } else if(isLeif()&&!S.admin) sysMsg("Falscher Code.","#ff9a6a") } else S.admin=ok; updateAdminUI(); markDirty() });
   if(room){ joinedAt=Date.now(); room.onPeers(onPeersChange,()=>{ room=null; $("netdot").style.background="#7f93ab" }); room.onConnection(c=>{ $("netdot").style.background=c?"#6fe37b":"#ffb35a" }); pushPresence(true) }
   if(db){ try{ db.collection("board").orderBy("earned","desc").limit(50).onSnapshot(s=>{ board=s.docs.map(x=>({id:x.id,...x.data()})); resolveNames(); if(panel==="players"&&panelTab==="board") renderPanel() },()=>{}) }catch(e){}
     if(myId){ try{ const snap=await db.doc(`data/users/${myId}/save`).get(); if(snap.exists){ const o=snap.data(); if(o&&typeof o.json==="string"){ const cloud=JSON.parse(o.json);
-        if(cloud&&(cloud.v===3||cloud.v===4)&&(cloud.savedAt||0)>(S.savedAt||0)&&F.state==="idle"){ if(cloud.v===3){ cloud.v=4; cloud.pos=null } S=loadSave(cloud); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)) }catch(e){}
-          if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); curSea=seaAt(pl.x); updateSeaVis() } syncChests(); setRodLook(me,S.rod); colorBobber(bobber,S.rod); refreshHUD(); renderQuests(); toast("Cloud-Spielstand geladen","#8fd3ff"); pushPresence(true) } } } }catch(e){}
+        if(cloud&&cloud.v===SAVE_V&&(cloud.savedAt||0)>(S.savedAt||0)&&F.state==="idle"){ S=loadSave(cloud); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)) }catch(e){}
+          S.nick=FDNET.me.name; if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); curSea=seaAt(pl.x); updateSeaVis() } syncChests(); setRodLook(me,S.rod); colorBobber(bobber,S.rod); refreshHUD(); renderQuests(); toast("Cloud-Spielstand geladen","#8fd3ff"); pushPresence(true) } } } }catch(e){}
       if(user){ try{ const c=await user.can("data.write"); if(c===false) canBoard=false }catch(e){} } dirty=true; boardDirty=true } }
 }
 let writing=false;
 async function syncLoop(){ S.pos={x:Math.round(pl.x*10)/10,z:Math.round(pl.z*10)/10,ry:Math.round(pl.ry*100)/100,boat:pl.boat?1:0}; try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)) }catch(e){}
   if(db&&myId&&!writing){ writing=true;
     try{ if(dirty){ dirty=false; await db.doc(`data/users/${myId}/save`).set({json:JSON.stringify(S),savedAt:S.savedAt||Date.now()}) } }catch(e){}
-    try{ if(boardDirty&&canBoard&&!S.cheated){ boardDirty=false; const doc={earned:S.stats.earned,caught:S.stats.caught,bestV:S.stats.bestV,bestN:String(S.stats.bestN).slice(0,60),dex:Object.keys(S.dex).length,lvl:levelInfo(S.xp).L,t:Date.now(),title:String(S.title||"").slice(0,30),qr:["Nebelrute","Klippenbrecher","Frostfang","Tiefenkrone"].filter(n=>S.rods.includes(n)).length}; if(S.nick) doc.nick=S.nick; await db.doc(`board/${myId}`).set(doc) } }catch(e){ if(e&&e.code==="invalid_argument") canBoard=false }
+    try{ if(boardDirty&&canBoard&&!adminOn()){ boardDirty=false; const doc={earned:S.stats.earned,caught:S.stats.caught,bestV:S.stats.bestV,bestN:String(S.stats.bestN).slice(0,60),dex:Object.keys(S.dex).length,lvl:levelInfo(S.xp).L,t:Date.now(),title:String(S.title||"").slice(0,30),qr:["Nebelrute","Klippenbrecher","Frostfang","Tiefenkrone"].filter(n=>S.rods.includes(n)).length}; if(S.nick) doc.nick=S.nick; await db.doc(`board/${myId}`).set(doc) } }catch(e){ if(e&&e.code==="invalid_argument") canBoard=false }
     writing=false } }
 setInterval(syncLoop,15000); document.addEventListener("visibilitychange",()=>{ if(document.hidden){ dirty=true; syncLoop() } });
 
@@ -2485,13 +2550,20 @@ function updateLife(dt,t,W){
 /* ---------- admin / test tools (only for the player named "leif") ---------- */
 const ADMIN_HASH=1669084274;
 const ADM={instant:false,autoReel:false,speed:1,nextFish:"",nextMut:"",sticky:false,fps:false};
-const isLeif=()=>String(S.nick||"").trim().toLowerCase()==="leif";
-const adminOn=()=>!!S.admin&&isLeif();
+const acctName=()=>(window.FDNET&&FDNET.me&&FDNET.me.name)||S.nick||"";
+const isLeif=()=>String(acctName()).trim().toLowerCase()==="leif";
+const isOnlineAcct=()=>!!(window.FDNET&&FDNET.me);
+const adminOn=()=>isLeif()&&(isOnlineAcct()?!!FDNET.me.admin:!!S.admin);
+/* global world changes (time, weather, season, events, admin weathers) go through the server so every player sees them */
+function gwSet(patch){ if(isOnlineAcct()&&FDNET.send({t:"gw",patch})) return true;
+  const now=nowMs(); for(const k in patch){ if(k==="event"){ GW.event=patch.event; GW.evUntil=patch.event?now+10*60e3:0 } else if(k==="aw"){ GW.aw=patch.aw; GW.awUntil=patch.aw?now+(patch.dur||120)*1000:0 } else if(k==="reset"){ Object.assign(GW,{off:0,weather:null,aurora:null,season:null,event:null,evUntil:0,aw:null,awUntil:0}) } else if(k!=="dur") GW[k]=patch[k] } onGWChanged(null); return false }
+let lastAW=null;
+function onGWChanged(by){ const W=world(); if(W.aw!==lastAW){ if(W.aw){ const A=AW[W.aw]; bigMsg(A.n.toUpperCase()+"!",A.d,A.col); flash(A.col+"66"); SFX.portal(); addChat("Welt",`${A.n} beginnt${by?` (ausgelöst von ${by})`:""}. Noch ${Math.ceil(W.awLeft/60000)} min.`,false) } else if(lastAW){ toast(`${AW[lastAW].n} ist vorbei.`,"#bfe6ff") } lastAW=W.aw } skyT=0; hudT=0 }
 function updateAdminUI(){ const on=adminOn(); document.querySelectorAll(".admbtn").forEach(b=>b.style.display=on?"":"none");
-  if(!on){ ADM.instant=ADM.autoReel=ADM.sticky=ADM.fps=false; ADM.speed=1; ADM.nextFish=ADM.nextMut=""; ADMIN_W.off=0; ADMIN_W.weather=ADMIN_W.aurora=ADMIN_W.season=null; ADMIN_W.event=undefined; if(panel==="admin") closeModal() } }
+  if(!on){ ADM.instant=ADM.autoReel=ADM.sticky=ADM.fps=false; ADM.speed=1; ADM.nextFish=ADM.nextMut=""; if(panel==="admin") closeModal() } }
 function adminFish(){ if(!adminOn()||!ADM.nextFish||!FISHBY[ADM.nextFish]) return null; const f=FISHBY[ADM.nextFish]; if(!ADM.sticky) ADM.nextFish=""; return f }
 function xpForLevel(L){ let x=0; for(let i=1;i<L;i++) x+=xpNeed(i); return x }
-function setClock(h){ const C=CYCLE, ph=((h-6+24)%24)/24; ADMIN_W.off=((ph*C)-(Date.now()%C)+C)%C }
+function setClock(h){ const C=CYCLE, ph=((h-6+24)%24)/24; gwSet({off:((ph*C)-(nowMs()%C)+C)%C}) }
 function sysMsg(t,col="#ff8a3a"){ addChat("Admin",t,true); if(TOUCH||!modalOpen()) toast(t,col) }
 function adminGive(n,mut,wMul){ const f=FISHBY[n]; const w=Math.round(f.bw*wMul*100)/100; const it={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),n,w,m:mut||"",sh:false,sp:false,bonus:0,fav:false};
   S.fish.push(it); const d=S.dex[n]||{c:0,bw:0,first:Date.now()}; d.c++; d.bw=Math.max(d.bw,w); S.dex[n]=d; S.stats.caught++; S.stats.rarest=Math.max(S.stats.rarest,rIdx(f.r)); S.dexLoc[f.l]=(S.dexLoc[f.l]||0)+1;
@@ -2528,11 +2600,15 @@ const CMDS={
     ADM.nextFish=f.n; ADM.nextMut=P.mut?(findIn(Object.keys(MUT),P.mut)||""):""; ADM.sticky=P.sticky!==undefined&&onoff(P.sticky,false); return `Nächster Biss: ${f.n}${ADM.nextMut?" · "+ADM.nextMut:""}${ADM.sticky?" (dauerhaft)":""}` }},
   tp:{u:"to:Ankerheim | to:aldo | x:0 z:0",d:"Teleportieren",f:P=>{ closeModal(); if(P.x!==undefined&&P.z!==undefined){ const x=pn(P.x), z=pn(P.z); const w=terrainAt(x,z)<-1.2; if(w&&S.boat<1) S.boat=3; travelTo(x,z,w); pl.y=w?0.5:groundAt(x,z); return `Teleport nach ${Math.round(x)}, ${Math.round(z)}` }
     const T=tpTargets(); const q=pv(P,"to"); const t=findIn(T,q,x=>x.n)||findIn(T,q,x=>x.alias||x.n); if(!t) throw new Error("Ziel nicht gefunden. Beispiele: Moosewood, Vertigo, Mahlstrom1, aldo, truhe-summit"); t.go(); return `Teleport: ${t.alias||t.n}` }},
-  time:{u:"h:0 | real",d:"Uhrzeit festlegen",f:P=>{ const v=pv(P,"h","set"); if(!v||/^(real|echt)$/i.test(v)){ ADMIN_W.off=0; return "Echtzeit" } const h=pn(String(v).replace(/:.*$/,"")); setClock(((h%24)+24)%24); return `Uhrzeit: ${h}:00` }},
-  weather:{u:"set:rain | clear | fog | wind | aurora | real",d:"Wetter festlegen",f:P=>{ const v=String(pv(P,"set")||"").toLowerCase(); if(!v||v==="real"||v==="echt"){ ADMIN_W.weather=null; ADMIN_W.aurora=null; return "Echtes Wetter" }
-    if(v==="aurora"||v==="polarlicht"){ ADMIN_W.weather="Clear"; ADMIN_W.aurora=true; if(world().day) setClock(0); return "Polarlicht (nachts)" } const w=WMAP[v]; if(!w) throw new Error("Wetter: clear, rain, fog, wind, aurora, real"); ADMIN_W.weather=w; ADMIN_W.aurora=false; return `Wetter: ${WEATHER_DE[w]}` }},
-  season:{u:"set:winter | real",d:"Jahreszeit festlegen",f:P=>{ const v=String(pv(P,"set")||"").toLowerCase(); if(!v||v==="real"||v==="echt"){ ADMIN_W.season=null; return "Echte Jahreszeit" } const s=SMAP[v]; if(!s) throw new Error("Jahreszeit: spring, summer, autumn, winter, real"); ADMIN_W.season=s; return `Jahreszeit: ${SEASON_DE[s]}` }},
-  event:{u:"name:Megalodon Hunt | off | real",d:"Event starten",f:P=>{ const v=pv(P,"name"); if(!v||/^(real|echt)$/i.test(v)){ ADMIN_W.event=undefined; return "Echte Events" } if(/^(off|aus|kein)$/i.test(v)){ ADMIN_W.event=null; return "Kein Event" } const e=findIn(EVENTS,v,x=>x.n); if(!e) throw new Error("Event nicht gefunden."); ADMIN_W.event=e; return `Event: ${e.n} (${e.l})` }},
+  say:{u:"text:Hallo alle!",d:"Nachricht an alle Spieler",f:P=>{ const t=String(pv(P,"text")||"").trim(); if(!t) throw new Error("Text fehlt."); if(!(isOnlineAcct()&&FDNET.send({t:"sys",text:t}))) sysMsg(t); return "" }},
+  aw:{u:"set:blood | star | storm | off  dur:120",d:"Admin-Wetter für alle (Blutmond, Sternenfall, Leviathans Zorn)",f:P=>{ const v=String(pv(P,"set","name")||"").toLowerCase(); if(!v||/^(off|aus|real)$/.test(v)){ gwSet({aw:null}); return "Admin-Wetter beendet" }
+    const k=findIn(Object.keys(AW),v)||Object.keys(AW).find(k=>AW[k].n.toLowerCase().includes(v)); if(!k) throw new Error("Admin-Wetter: blood (Blutmond), star (Sternenfall), storm (Leviathans Zorn), off"); const dur=Math.max(20,Math.min(600,pn(P.dur,120))); gwSet({aw:k,dur}); return `${AW[k].n} für ${Math.round(dur/60*10)/10} min (für alle)` }},
+  world:{u:"reset",d:"Alle globalen Admin-Einstellungen zurücksetzen",f:()=>{ gwSet({reset:true}); return "Welt wieder normal (für alle)" }},
+  time:{u:"h:0 | real",d:"Uhrzeit festlegen (für alle)",f:P=>{ const v=pv(P,"h","set"); if(!v||/^(real|echt)$/i.test(v)){ gwSet({off:0}); return "Echtzeit" } const h=pn(String(v).replace(/:.*$/,"")); setClock(((h%24)+24)%24); return `Uhrzeit: ${h}:00` }},
+  weather:{u:"set:rain | clear | fog | wind | aurora | real",d:"Wetter festlegen (für alle)",f:P=>{ const v=String(pv(P,"set")||"").toLowerCase(); if(!v||v==="real"||v==="echt"){ gwSet({weather:null,aurora:null}); return "Echtes Wetter" }
+    if(v==="aurora"||v==="polarlicht"){ gwSet({weather:"Clear",aurora:true}); if(world().realDay) setClock(0); return "Polarlicht (nachts)" } const w=WMAP[v]; if(!w) throw new Error("Wetter: clear, rain, fog, wind, aurora, real"); gwSet({weather:w,aurora:false}); return `Wetter: ${WEATHER_DE[w]}` }},
+  season:{u:"set:winter | real",d:"Jahreszeit festlegen (für alle)",f:P=>{ const v=String(pv(P,"set")||"").toLowerCase(); if(!v||v==="real"||v==="echt"){ gwSet({season:null}); return "Echte Jahreszeit" } const s=SMAP[v]; if(!s) throw new Error("Jahreszeit: spring, summer, autumn, winter, real"); gwSet({season:s}); return `Jahreszeit: ${SEASON_DE[s]}` }},
+  event:{u:"name:Megalodon Hunt | off | real",d:"Hunt/Event starten (für alle, 10 min)",f:P=>{ const v=pv(P,"name"); if(!v||/^(real|echt)$/i.test(v)){ gwSet({event:null}); return "Echte Events" } if(/^(off|aus|kein)$/i.test(v)){ gwSet({event:false}); return "Kein Event" } const e=findIn(EVENTS,v,x=>x.n); if(!e) throw new Error("Event nicht gefunden."); gwSet({event:e.n}); return `Event: ${e.n} (${e.l})` }},
   speed:{u:"x:4",d:"Lauf- und Bootstempo",f:P=>{ ADM.speed=Math.max(0.25,Math.min(10,pn(pv(P,"x"),1))); return `Tempo ×${ADM.speed}` }},
   instant:{u:"set:on | off",d:"Sofort-Biss",f:P=>{ ADM.instant=onoff(pv(P,"set"),ADM.instant); return `Sofort-Biss: ${ADM.instant?"an":"aus"}` }},
   autoreel:{u:"set:on | off",d:"Automatisch einholen",f:P=>{ ADM.autoReel=onoff(pv(P,"set"),ADM.autoReel); return `Auto-Einholen: ${ADM.autoReel?"an":"aus"}` }},
@@ -2556,10 +2632,12 @@ const CMDS={
   dex:{u:"set:all | clear",d:"Bestiary",f:P=>{ const v=String(pv(P,"set")||"all").toLowerCase(); if(v==="clear"||v==="leer"){ S.dex={}; S.dexRewards={}; return "Bestiary geleert" } FISH.forEach(f=>{ if(!S.dex[f.n]) S.dex[f.n]={c:1,bw:f.bw,first:Date.now()} }); checkStory(); return `Bestiary: ${FISH.length} Arten` }},
   tmap:{u:"",d:"Schatzkarte erzeugen",f:()=>{ S.tmap=makeTreasureMap(); if(!S.tmap) throw new Error("Keine besuchte Insel in dieser See."); return `Schatzkarte: ${S.tmap.loc}` }},
   chests:{u:"reset | open",d:"Truhen",f:P=>{ const v=String(pv(P,"set")||"reset").toLowerCase(); if(v==="open"){ CHESTS.forEach(c=>S.chests[c.id]=1); syncChests(); return "Alle Truhen geöffnet" } S.chests={}; syncChests(); return `${CHESTS.length} Truhen zurückgesetzt` }},
-  admin:{u:"off",d:"Admin-Modus beenden",f:P=>{ if(/^(off|aus)$/i.test(pv(P,"set")||"")){ S.admin=false; updateAdminUI(); return "Admin-Modus beendet" } openModal("admin") }},
+  admin:{u:"off",d:"Admin-Modus beenden",f:P=>{ if(/^(off|aus)$/i.test(pv(P,"set")||"")){ S.admin=false; if(isOnlineAcct()) FDNET.send({t:"unadmin"}); updateAdminUI(); return "Admin-Modus beendet" } openModal("admin") }},
 };
 function runCommand(v,fromPanel){ const {cmd,P}=parseCmd(v);
-  if(cmd==="admin"&&!adminOn()){ if(isLeif()&&hashStr(String(P.code||"").trim())===ADMIN_HASH){ S.admin=true; S.cheated=true; markDirty(); updateAdminUI(); SFX.quest(); sysMsg("Admin-Modus aktiv. Tippe /help für alle Befehle. Dieser Spielstand zählt nicht mehr für die Rangliste."); return }
+  if(cmd==="admin"&&!adminOn()){ const code=String(P.code||"").trim();
+    if(isLeif()&&isOnlineAcct()){ if(!FDNET.send({t:"unlock",code})) sysMsg("Keine Verbindung zum Server.","#ff9a6a"); return }
+    if(isLeif()&&hashStr(code)===ADMIN_HASH){ S.admin=true; S.cheated=true; markDirty(); updateAdminUI(); SFX.quest(); sysMsg("Admin-Modus aktiv (offline). Tippe /help für alle Befehle."); return }
     sysMsg("Unbekannter Befehl.","#ff9a6a"); return }
   if(!adminOn()){ sysMsg("Unbekannter Befehl.","#ff9a6a"); return }
   const C=CMDS[cmd]; if(!C){ sysMsg(`Unbekannter Befehl /${cmd}. Tippe /help.`,"#ff9a6a"); return }
@@ -2581,9 +2659,11 @@ function panelAdmin(body){ $("sheetTitle").textContent="Admin · Testmodus";
     return }
   if(tab==="world"){ const W=world();
     row("Uhrzeit",[btn("Morgen 7:00","/time h:7"),btn("Mittag 12:00","/time h:12"),btn("Abend 19:00","/time h:19"),btn("Nacht 0:00","/time h:0"),btn("Echtzeit","/time real")],`Jetzt: ${String(Math.floor(W.hour)).padStart(2,"0")}:${String(Math.floor((W.hour%1)*60)).padStart(2,"0")} · ${W.day?"Tag":"Nacht"}`);
-    row("Wetter",[...[["Klar","clear","Clear"],["Regen","rain","Rain"],["Nebel","fog","Foggy"],["Wind","wind","Windy"]].map(([l,c,w])=>btn(l,"/weather set:"+c,ADMIN_W.weather===w&&!ADMIN_W.aurora)),btn("Polarlicht","/weather set:aurora",!!ADMIN_W.aurora),btn("Echt","/weather set:real")]);
-    row("Jahreszeit",[...SEASONS.map(s=>btn(SEASON_DE[s],"/season set:"+s.toLowerCase(),ADMIN_W.season===s)),btn("Echt","/season set:real")]);
-    row("Event",[btn("Kein Event","/event off",ADMIN_W.event===null),btn("Echt","/event real"),...EVENTS.map(e=>btn(e.n,"/event name:"+e.n,ADMIN_W.event&&ADMIN_W.event.n===e.n))]);
+    row("Wetter",[...[["Klar","clear","Clear"],["Regen","rain","Rain"],["Nebel","fog","Foggy"],["Wind","wind","Windy"]].map(([l,c,w])=>btn(l,"/weather set:"+c,GW.weather===w&&!GW.aurora)),btn("Polarlicht","/weather set:aurora",!!GW.aurora),btn("Echt","/weather set:real")]);
+    row("Admin-Wetter (für alle, 2 min)",[...Object.entries(AW).map(([k,a])=>btn(a.n,"/aw set:"+k,W.aw===k)),btn("Beenden","/aw off")],"Super seltene, super schwere Fische erscheinen nur während dieser Wetter.");
+    row("Jahreszeit",[...SEASONS.map(s=>btn(SEASON_DE[s],"/season set:"+s.toLowerCase(),GW.season===s)),btn("Echt","/season set:real")]);
+    row("Event / Hunt (für alle)",[btn("Kein Event","/event off",GW.event===false),btn("Echt","/event real"),...EVENTS.map(e=>btn(e.n,"/event name:"+e.n,GW.event===e.n))]);
+    row("Welt",[btn("Alles zurücksetzen","/world reset")],"Uhrzeit, Wetter, Jahreszeit, Events und Admin-Wetter gelten für alle Spieler gleichzeitig.");
     row("Reisen · Erste See",ISL.filter(I=>I.sea===1).map(I=>btn(I.n,"/tp to:"+I.n)));
     row("Reisen · Zweite See",ISL.filter(I=>I.sea===2).map(I=>btn(I.n,"/tp to:"+I.n)));
     row("Reisen · Tiefsee, Flöße, Mahlstrom",[...DEEPZ.map(Z=>btn(Z.n,"/tp to:"+Z.n)),btn("Meeresfloß","/tp to:Meeresfloß"),btn("Sturmfloß","/tp to:Sturmfloß"),btn("Mahlstrom → 2. See","/tp to:Mahlstrom1"),btn("Mahlstrom → 1. See","/tp to:Mahlstrom2")]);
@@ -2617,6 +2697,45 @@ function panelAdmin(body){ $("sheetTitle").textContent="Admin · Testmodus";
     row(`${L.npc} (${s})`,["found:Gefunden","accept:Annehmen","step:Schritt erfüllen","done:Sofort abschließen","reset:Zurücksetzen"].map(x=>{ const [a,l]=x.split(":"); return btn(l,`/quest id:${id} do:${a}`) })) }
   row("Truhen",[btn("Alle zurücksetzen","/chests reset"),btn("Alle als geöffnet","/chests open")]);
 }
+/* chat autocomplete for admin commands: type "/" */
+const SUG={list:[],sel:0};
+function sugValues(cmd,key){ const E=x=>x;
+  if(key==="fish") return FISH.map(f=>[f.n,f.r+" · "+f.l]);
+  if(key==="mut") return Object.keys(MUT).map(m=>[m,"×"+MUT[m].v]);
+  if(key==="to") return tpTargets().map(t=>[t.n,t.alias||""]);
+  if(key==="name"&&cmd==="event") return EVENTS.map(e=>[e.n,e.l]).concat([["off","kein Event"],["real","echte Events"]]);
+  if(key==="name"&&cmd==="rods") return RODS.map(r=>[r.n,r.price?fmt(r.price)+" C$":"Quest"]);
+  if(key==="name"&&cmd==="bait") return BAITS.map(b=>[b.n,b.r]);
+  if(key==="name"&&cmd==="potion") return Object.entries(POTIONS).map(([k,p])=>[k,p.n]);
+  if((key==="set"||key==="name")&&cmd==="aw") return Object.entries(AW).map(([k,a])=>[k,a.n]).concat([["off","beenden"]]);
+  if(key==="set"&&cmd==="weather") return ["clear","rain","fog","wind","aurora","real"].map(x=>[x,""]);
+  if(key==="set"&&cmd==="season") return ["spring","summer","autumn","winter","real"].map(x=>[x,""]);
+  if(key==="id"&&cmd==="quest") return Object.entries(LQ).map(([k,L])=>[k,L.npc]);
+  if(key==="do"&&cmd==="quest") return ["found","accept","step","done","reset"].map(x=>[x,""]);
+  if(key==="id"&&cmd==="ench") return ENCH.map(e=>[e.id,e.n]);
+  if(key==="h"&&cmd==="time") return ["0","6","12","18","real"].map(x=>[x,x==="real"?"Echtzeit":x+":00 Uhr"]);
+  return null }
+function updateSug(){ const box=$("cmdSug"), v=$("chatin").value; SUG.list=[];
+  if(!v.startsWith("/")||!isLeif()){ box.classList.remove("on"); return }
+  const avail=adminOn()?Object.entries(CMDS):[["admin",{u:"code:",d:"Admin-Modus freischalten"}]];
+  const sp=v.indexOf(" "); let html="";
+  if(sp<0){ const q=v.slice(1).toLowerCase(); SUG.list=avail.filter(([k])=>k.startsWith(q)).map(([k,c])=>({ins:"/"+k+" ",b:"/"+k,s:c.u+(c.u?" · ":"")+c.d})); }
+  else { const cmd=v.slice(1,sp).toLowerCase(), C=avail.find(([k])=>k===cmd); if(!C){ box.classList.remove("on"); return }
+    const m=v.match(/([a-zäöü]+):([^:]*)$/i); const vals=m?sugValues(cmd,m[1].toLowerCase()):null;
+    if(vals){ const q=m[2].trim().toLowerCase(); const base=v.slice(0,v.length-m[2].length); SUG.list=vals.filter(([n])=>n.toLowerCase().includes(q)).sort((a,b)=>(b[0].toLowerCase().startsWith(q))-(a[0].toLowerCase().startsWith(q))).slice(0,40).map(([n,s])=>({ins:base+n+" ",b:n,s})) }
+    html=`<div class="hd">/${esc(cmd)} ${esc(C[1].u)} · ${esc(C[1].d)}</div>` }
+  if(SUG.sel>=SUG.list.length) SUG.sel=0;
+  box.innerHTML=html+SUG.list.map((x,i)=>`<div data-i="${i}" class="${i===SUG.sel?"sel":""}"><b>${esc(x.b)}</b><span>${esc(x.s||"")}</span></div>`).join("");
+  box.classList.toggle("on",!!(html||SUG.list.length)); const s=box.querySelector(".sel"); if(s) s.scrollIntoView({block:"nearest"}) }
+function applySug(i){ const x=SUG.list[i]; if(!x) return false; $("chatin").value=x.ins; SUG.sel=0; updateSug(); $("chatin").focus(); return true }
+$("chatin").addEventListener("input",()=>{ SUG.sel=0; updateSug() });
+$("chatin").addEventListener("keydown",e=>{ if(!$("cmdSug").classList.contains("on")||!SUG.list.length) return;
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ SUG.sel=(SUG.sel+(e.key==="ArrowDown"?1:-1)+SUG.list.length)%SUG.list.length; updateSug(); e.preventDefault(); e.stopImmediatePropagation(); return }
+  if(e.key==="Tab"){ applySug(SUG.sel); e.preventDefault(); e.stopImmediatePropagation(); return }
+  if(e.key==="Enter"){ const v=$("chatin").value; const x=SUG.list[SUG.sel]; if(x&&!v.includes(" ")&&x.ins.trim()!==v.trim()){ applySug(SUG.sel); e.preventDefault(); e.stopImmediatePropagation() } } },true);
+$("chatin").addEventListener("blur",()=>setTimeout(()=>$("cmdSug").classList.remove("on"),150));
+$("chatin").addEventListener("focus",updateSug);
+$("cmdSug").addEventListener("pointerdown",e=>{ const d=e.target.closest("[data-i]"); if(d){ e.preventDefault(); applySug(+d.dataset.i) } });
 addEventListener("keydown",e=>{ if(e.key==="F9"&&adminOn()&&!typing()){ e.preventDefault(); modalOpen()&&panel==="admin"?closeModal():openModal("admin") } });
 { const el=document.createElement("div"); el.id="fps"; el.style.cssText="position:absolute;z-index:40;left:50%;bottom:4px;transform:translateX(-50%);font:800 12px var(--body);color:#9dffae;background:rgba(0,0,0,.55);padding:2px 8px;border-radius:8px;pointer-events:none;display:none"; document.getElementById("app").appendChild(el);
   let n=0; const loop=()=>{ n++; requestAnimationFrame(loop) }; requestAnimationFrame(loop); setInterval(()=>{ el.style.display=ADM.fps?"block":"none"; if(ADM.fps) el.textContent=`${n} FPS · ${renderer.info.render.calls} Draw Calls · ${Math.round(pl.x)}, ${Math.round(pl.z)}`; n=0 },1000) }
@@ -2689,11 +2808,26 @@ function setQuality(level){ // 2 high, 1 medium, 0 low
 function perfCheck(dt){ if(!PERF.started||S.settings.qLocked) return; PERF.n++; PERF.t+=dt; if(PERF.t<4) return; const fps=PERF.n/PERF.t; PERF.n=0; PERF.t=0;
   if(fps<28&&PERF.stage<2){ PERF.stage++; setQuality(2-PERF.stage); toast(`Grafik automatisch reduziert (${Math.round(fps)} FPS). Einstellbar unter Spieler → Profil.`,"#8fd3ff") } else if(PERF.stage>=2||fps>=28) PERF.started=false }
 if(TOUCH){ $("reelHelp").textContent="Angel-Knopf oder Bildschirm halten = Balken nach rechts"; }
+/* ---------- accounts: name + password, every name exists only once ---------- */
+function accountGate(lt,lb){ return new Promise(async resolve=>{
+  const done=(who)=>{ $("acct").style.display="none"; if(who){ loadLocal(who.id,who.name); $("accWho").innerHTML=`Angemeldet als <b>${esc(who.name)}</b> · <a id="accOut">Abmelden</a>`; $("accOut").onclick=async()=>{ await FDNET.logout(); location.reload() } }
+    else { loadLocal(null,"Gast"); $("accWho").textContent="Offline als Gast · kein Multiplayer, Spielstand nur in diesem Browser" } resolve() };
+  if(!window.FDNET||!FDNET.online){ done(null); return }
+  lt.textContent="Verbinde…"; FDNET.fetchGW().then(g=>{ if(g) onGWChanged(null) });
+  const who=await FDNET.resume(); if(who){ done(who); return }
+  lt.textContent="Melde dich an oder erstelle einen Account"; lb.parentElement.style.display="none"; $("acct").style.display="flex"; $("accName").value=FDNET.lastName(); (FDNET.lastName()?$("accPass"):$("accName")).focus();
+  const go=async kind=>{ const n=$("accName").value.trim(), p=$("accPass").value; $("accMsg").textContent=""; $("accLogin").disabled=$("accReg").disabled=true;
+    try{ const w=await FDNET.auth(kind,n,p); lb.parentElement.style.display=""; done(w) }catch(e){ $("accMsg").textContent=e.message||"Fehler"; $("accLogin").disabled=$("accReg").disabled=false } };
+  $("accLogin").onclick=()=>go("login"); $("accReg").onclick=()=>go("register");
+  $("accGuest").onclick=()=>{ lb.parentElement.style.display=""; done(null) };
+  ["accName","accPass"].forEach(id=>$(id).addEventListener("keydown",e=>e.stopPropagation())) }) }
 /* ---------- boot ---------- */
 async function boot(){
   const lt=$("loadtxt"), lb=$("loadbar").firstElementChild;
   await buildWorld((msg,p)=>{ lt.textContent=msg; lb.style.width=p+"%" });
   resizeGL();
+  await accountGate(lt,lb);
+  setRodLook(me,S.rod); colorBobber(bobber,S.rod);
   if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); cam.yaw=pl.ry } else spawnHome();
   curSea=seaAt(pl.x); updateSeaVis(); syncChests(); updateAdminUI();
   ensureBounties(locationAt(pl.x,pl.z)); refreshHUD(); renderQuests(); updateSky();
@@ -2707,6 +2841,7 @@ async function boot(){
 }
 boot().catch(e=>{ const el=$("loaderr"); el.style.display="block"; el.textContent="Fehler: "+e.message; console.error(e) });
 
+if(/[?&]debug\b/.test(location.search)) window.__fd={doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,get peers(){return peers},scene,renderer};
 
 </script>
 </body></html>
