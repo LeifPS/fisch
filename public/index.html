@@ -515,6 +515,13 @@ const TOUCH=matchMedia("(pointer:coarse)").matches;
 
 /* ---------- fish: Fisch-wiki data (first sea) + own second-sea fauna ---------- */
 const NEWFISH=[
+  // Geisterriff (secret, only at night)
+  ["Geisterhering","Common","Geisterriff","","","Night","","Worm",1.2,160,0.8,100,80,0,70],
+  ["Nebelmaul","Uncommon","Geisterriff","","","Night","","Minnow",14,320,9,60,60,0,120],
+  ["Laternenrochen","Rare","Geisterriff","","","Night","","Squid",60,1100,40,14,35,0,380],
+  ["Phantomhai","Legendary","Geisterriff","","","Night","","Shark Head",800,6200,300,0.2,10,-35,2600],
+  ["Seelenlaterne","Mythical","Geisterriff","","Foggy","Night","","Geisterköder",40,14000,20,0.03,5,-55,7000],
+  ["Kapitän Morrows Schatten","Secret","Geisterriff","","","Night","","Geisterköder",2500,52000,900,0.12,-20,-80,22000],
   // Nebelinsel (hidden, first sea)
   ["Mist Perch","Common","Nebelinsel","","Foggy","","","Worm",2,95,1.2,100,85,0,45],
   ["Veil Carp","Uncommon","Nebelinsel","","Foggy","","","Bagel",7,200,5,60,65,0,85],
@@ -604,7 +611,7 @@ const MUT=Object.fromEntries(MUTS.map(m=>[m.n,m])); MUT.Shiny={n:"Shiny",v:1.85,
 [["Luminescent",6.5,"#b8ff6a"],["Mother Nature",3,"#6fe37b"],["Solarblaze",3.5,"#ffb23a"],["Brined",3.5,"#9dffcf"],["King's Blessing",5.5,"#ffd24a"],["Atlantean",4,"#2fd0c0"],
  ["Rainbow Cluster",5,"#ff7ad9"],["Oscar",6.4,"#ffe9a0"],["Tryhard",10,"#ff3a3a"],["Blutmond",8,"#ff2a3a"],["Kosmisch",9,"#b58bff"],["Sturmgeboren",7,"#5fd8ff"],
  ["Nebelhauch",4,"#dfe6ee"],["Eiszahn",4.5,"#bfefff"],["Tiefgeboren",5,"#3a6aff"]].forEach(([n,v,col])=>{ MUT[n]={n,v,c:col,special:1} });
-const BAITS=DATA.bait.map(b=>({n:b[0],r:b[1],pl:b[2],ul:b[3],res:b[4],lure:b[5]})); const BAIT=Object.fromEntries(BAITS.map(b=>[b.n,b]));
+const BAITS=DATA.bait.map(b=>({n:b[0],r:b[1],pl:b[2],ul:b[3],res:b[4],lure:b[5]})); BAITS.push({n:"Geisterköder",r:"Mythical",pl:70,ul:90,res:10,lure:25}); const BAIT=Object.fromEntries(BAITS.map(b=>[b.n,b]));
 const RARITY=["Common","Uncommon","Unusual","Rare","Legendary","Mythical","Exotic","Secret","Limited","Apex","Divine"];
 const RCOL={Common:"#dfe6ee",Uncommon:"#7ee07a",Unusual:"#d6ec6a",Rare:"#52a8ff",Legendary:"#ffb23a",Mythical:"#ff5a93",Exotic:"#c78bff",Secret:"#e8e8e8",Limited:"#4a6aff",Apex:"#ff4040",Divine:"#ffd6ff"};
 const RDE={Common:"Gewöhnlich",Uncommon:"Ungewöhnlich",Unusual:"Besonders",Rare:"Selten",Legendary:"Legendär",Mythical:"Mythisch",Exotic:"Exotisch",Secret:"Geheim",Limited:"Limitiert",Apex:"Apex",Divine:"Göttlich"};
@@ -702,6 +709,10 @@ const ISLE=[
   {n:"Frostzinnen",x:SEA2X+1000,z:-3200,r:420,peak:120,biome:"spires",sea:2,d:"Eisnadeln, die in den Himmel stechen."},
   {n:"Atlantische Ruinen",x:SEA2X-2100,z:-2600,r:440,peak:16,biome:"ruins",sea:2,d:"Die versunkene Stadt ragt wieder aus dem Meer."},
   {n:"Hexenturm",x:SEA2X+5200,z:-4200,r:120,peak:12,biome:"witch",sea:2,hidden:1,d:"Ein schiefer Turm am Rand der Welt."},
+  {n:"Geisterriff",x:-6400,z:6900,r:80,peak:6,biome:"ghost",sea:1,hidden:1,d:"Ein Riff, an dem nachts ein Schiff aus Licht ankert."},
+  {n:"Möwenbank",x:2600,z:-8200,r:48,peak:3,biome:"sandbar",sea:1,hidden:1,sandbar:1,d:"Sand, den keine Karte kennt."},
+  {n:"Treibholzbank",x:-8500,z:-2800,r:48,peak:3,biome:"sandbar",sea:1,hidden:1,sandbar:1,d:"Sand, den keine Karte kennt."},
+  {n:"Sonnenbank",x:8200,z:3600,r:48,peak:3,biome:"sandbar",sea:1,hidden:1,sandbar:1,d:"Sand, den keine Karte kennt."},
 ];
 const DEEPZ=[
   {n:"Desolate Deep",x:-2200,z:6200,r:420,col:"#0d2a45",sea:1,d:"Ein finsterer Tiefseegraben."},
@@ -711,7 +722,7 @@ const DEEPZ=[
 ];
 const RAFTS=[{n:"Ocean",x:-600,z:3500},{n:"Sturmsee",x:SEA2X+300,z:-1500}];
 const PORTALS=[{from:1,x:0,z:9500,to:{x:SEA2X-4300,z:400},r:260},{from:2,x:SEA2X-4800,z:300,to:{x:120,z:9000},r:260}];
-const ALL_LOC=[...ISLE.map(i=>i.n),...DEEPZ.map(z=>z.n),"Ocean","Sturmsee",...Object.values(AW_LOC)];
+const ALL_LOC=[...ISLE.filter(i=>!i.sandbar).map(i=>i.n),...DEEPZ.map(z=>z.n),"Ocean","Sturmsee",...Object.values(AW_LOC)];
 const LOCDESC=Object.fromEntries([...ISLE,...DEEPZ].map(i=>[i.n,i.d])); LOCDESC.Ocean="Offenes Meer der ersten See. Hier ziehen Hunts und Wanderungen vorbei."; LOCDESC.Sturmsee="Die offene Zweite See. Stürme und große Räuber."; LOCDESC.Blutmond="Nur während des Blutmonds, überall auf See."; LOCDESC.Sternenfall="Nur während des Sternenfalls, überall auf See."; LOCDESC["Leviathans Zorn"]="Nur während Leviathans Zorn, überall auf See.";
 const SEAOF=l=>{ const i=ISLE.find(x=>x.n===l)||DEEPZ.find(x=>x.n===l); return i?i.sea:(l==="Sturmsee"?2:1) };
 const SEA1_R=10200, SEA2_R=7000;
@@ -738,7 +749,7 @@ const CRATES={
   "Aquatic Tackle Box":{price:900,loc:"The Depths",items:{"Chitin Pellets":33,"Phosphor Jelly":33,"Trench Grubs":33}},
   "Hafenkiste":{price:2500,loc:"Ankerheim",items:{"Night Shrimp":20,"Shark Head":18,"Truffle Worm":14,"Weird Algae":14,"Luminous Larva":10,"Sapphire Krill":12,"Phosphor Jelly":6,"Mist Worms":6}},
 };
-const BAIT_SHOP={"Worm":[8,"Moosewood"],"Bagel":[10,"Moosewood"],"Insect":[10,"Moosewood"],"Flakes":[12,"Moosewood"],"Minnow":[25,"Roslit Bay"],"Shrimp":[25,"Roslit Bay"],"Squid":[40,"Sunstone Island"],"Seaweed":[20,"Terrapin Island"],"Coal":[45,"Roslit Volcano"],"Fish Head":[90,"Forsaken Shores"],"Deep Coral":[140,"Grand Reef"],
+const BAIT_SHOP={"Geisterköder":[900,"Geisterriff"],"Worm":[8,"Moosewood"],"Bagel":[10,"Moosewood"],"Insect":[10,"Moosewood"],"Flakes":[12,"Moosewood"],"Minnow":[25,"Roslit Bay"],"Shrimp":[25,"Roslit Bay"],"Squid":[40,"Sunstone Island"],"Seaweed":[20,"Terrapin Island"],"Coal":[45,"Roslit Volcano"],"Fish Head":[90,"Forsaken Shores"],"Deep Coral":[140,"Grand Reef"],
   "Coral":[160,"Korallenkrone"],"Super Flakes":[180,"Ankerheim"],"Shark Head":[450,"Ankerheim"],"Truffle Worm":[600,"Atlantische Ruinen"],"Night Shrimp":[400,"Frostzinnen"],"Luminous Flakes":[500,"Abgrund der Stille"]};
 const POTIONS={
   luck:{n:"Glückstrank",d:"Glück +60 % für 5 Minuten",price:2500,min:5,val:60,col:"#6fe37b"},
@@ -802,7 +813,7 @@ function world(now=nowMs()){ const real=now; now+=GW.off||0;
 
 /* ---------- save state ---------- */
 let SAVE_KEY="fischerdock-v3-guest"; const SAVE_V=5;
-function freshState(){return{v:SAVE_V,money:100,xp:0,rods:["Flimsy Rod"],rod:"Flimsy Rod",bait:{Worm:5},baitEq:"Worm",fish:[],dex:{},dexLoc:{},bag:0,boat:0,bell:false,radar:false,
+function freshState(){return{v:SAVE_V,money:100,xp:0,rods:["Flimsy Rod"],rod:"Flimsy Rod",bait:{Worm:5},baitEq:"Worm",fish:[],dex:{},dexLoc:{},bag:0,boat:0,bell:false,radar:false,bottle:null,
   story:0,bounties:[],bountyDone:0,visited:{Moosewood:1},dexRewards:{},relics:0,ench:{},mastery:{},buffs:{},tmap:null,chests:{},found:{},lq:{},titles:[],title:"",
   stats:{earned:0,caught:0,perfect:0,bestV:0,bestN:"",streak:0,bestStreak:0,snaps:0,sold:0,shadow:0,event:0,rarest:0,reef:0,chests:0,enchants:0,digs:0,foggy:0,nightLeg:0,exoticPlus:0,snowCaught:0,frozen:0},
   pos:null,nick:"",savedAt:0,settings:{music:true,sfx:true,radar:true}}}
@@ -895,7 +906,7 @@ const STORY=[
   {t:"Event-Jäger",d:"Fange einen Hunt-Fisch. Hunts ziehen durch ein Gebiet auf der Karte; wer dort angelt, hat manchmal Glück.",goal:1,prog:()=>S.stats.event,rw:{c:6000}},
   {t:"Hinab in die Tiefe",d:"Kaufe die Tauchglocke in der Werft (ab Level 20).",goal:1,prog:()=>S.bell?1:0,rw:{c:5000}},
   {t:"Der tiefe Grund",d:"Fange einen Fisch in The Depths.",goal:1,prog:()=>S.dexLoc["The Depths"]?1:0,rw:{c:10000,relic:2}},
-  {t:"Gerüchte",d:"Irgendwo leben drei verborgene Meister: im Nebel ganz im Osten, in einer Lagune hinter Klippen, auf einem eisigen Gipfel. Finde einen von ihnen.",goal:1,prog:()=>Object.keys(S.found).length?1:0,rw:{c:8000,relic:1}},
+  {t:"Gerüchte",d:"Die Leute im Hafen erzählen von Meistern, die sich vor der Welt verstecken. Hör dich um, schau dort, wo sonst keiner hinschaut. Finde einen von ihnen.",goal:1,prog:()=>Object.keys(S.found).length?1:0,rw:{c:8000,relic:1}},
   {t:"Die Zweite See",d:"Erreiche Level 25 und fahre mit dem Hochseeboot in den Mahlstrom weit im Süden.",goal:1,prog:()=>S.visited["Ankerheim"]?1:0,rw:{c:25000,relic:2}},
   {t:"Neue Gewässer",d:"Entdecke 12 Arten in der Zweiten See.",goal:12,prog:secondSeaSpecies,rw:{c:40000}},
   {t:"Legende der Meere",d:"Erhalte eine legendäre Rute von einem der verborgenen Meister.",goal:1,prog:()=>["aldo","mara","tenzin","ysolde"].filter(lqDone).length,rw:{c:100000,relic:3}},
@@ -1039,6 +1050,8 @@ const PAL={
   ash:{sand:"#2c282a",grass:"#393335",grass2:"#282329",rock:"#1b171a",hi:"#57504f",gcol:"#555"},
   spires:{sand:"#dce5eb",grass:"#eef5fa",grass2:"#e0ebf2",rock:"#9bc6e3",hi:"#ffffff",gcol:"#dde8ee"},
   ruins:{sand:"#e8dcbc",grass:"#8bb46e",grass2:"#7aa460",rock:"#c6bda1",hi:"#b8c89a",gcol:"#9cc47a"},
+  ghost:{sand:"#6a7a86",grass:"#4a5a66",grass2:"#3e4c58",rock:"#34404a",hi:"#8fb0c4",gcol:"#555"},
+  sandbar:{sand:"#f6e6b4",grass:"#f2dfa8",grass2:"#eed89c",rock:"#d8c490",hi:"#f2dfa8",gcol:"#555"},
   witch:{sand:"#474151",grass:"#3a3848",grass2:"#312d3e",rock:"#282531",hi:"#5a4a7a",gcol:"#555"},
 };
 const GRASSY=new Set(["forest","tropic","meadow","swamp","wreck","cliffring","ancient","jungle","desert","altar","harbor","ruins","fog"]);
@@ -1112,7 +1125,7 @@ function pondAt(x,z){ for(const I of nearIsl(x,z)){ const p=I.pond; if(p&&Math.h
 function waterAt(x,z){ if(platformAt(x,z)>-50) return null; const p=pondAt(x,z); const t=terrainAt(x,z); if(p&&t<p.y-0.25) return {kind:"fresh",y:p.y}; if(t<-0.35) return {kind:"sea",y:0}; return null }
 const seaAt=(x)=>x>SEA2X/2?2:1;
 function locationAt(x,z){
-  let best=null,bd=1e9; for(const I of ISL){ const d=Math.hypot(x-I.x,z-I.z); if(d<I.r*1.35+160&&d/I.r<bd){ bd=d/I.r; best=I.n } } if(best) return best;
+  let best=null,bd=1e9; for(const I of ISL){ if(I.sandbar) continue; const d=Math.hypot(x-I.x,z-I.z); if(d<I.r*1.35+160&&d/I.r<bd){ bd=d/I.r; best=I.n } } if(best) return best;
   for(const Z of DEEPZ){ if(Math.hypot(x-Z.x,z-Z.z)<Z.r) return Z.n } return seaAt(x)===2?"Sturmsee":"Ocean" }
 function spotAt(loc,x,z,kind){
   if(kind==="fresh") return "Freshwater";
@@ -1696,7 +1709,7 @@ function buildBirds(){ const wing=new THREE.PlaneGeometry(1.8,0.6); wing.transla
 function updateBirds(t,dt){ for(const b of birds){ b.a+=b.sp*dt; const x=b.I.x+Math.cos(b.a)*b.rad, z=b.I.z+Math.sin(b.a)*b.rad; b.g.position.set(x,b.h+Math.sin(t+b.ph)*2,z); b.g.rotation.y=-b.a; const f=Math.sin(t*9+b.ph)*0.6; b.l.rotation.x=f; b.r.rotation.x=f } }
 
 /* ---------- world objects ---------- */
-const NPCS=[]; const LABELS=[]; const LANTERNS=[]; const SWIRLS=[]; let lighthouseBeam=null; const FLAGS=[]; const FLOATERS=[];
+let LBOARD=null; const NPCS=[]; const LABELS=[]; const LANTERNS=[]; const SWIRLS=[]; let lighthouseBeam=null; const FLAGS=[]; const FLOATERS=[];
 const CHESTS=[]; const SPINNERS=[]; const EYES=[]; const GEYSERS=[]; const ISLETS=[]; const PORTAL_FX=[]; const WITCHLIGHTS=[];
 const lanternMat=new THREE.MeshStandardMaterial({color:"#ffe7a0",emissive:new THREE.Color("#ffb347"),emissiveIntensity:0.2});
 const windowMat=new THREE.MeshStandardMaterial({color:"#3a4a5e",emissive:new THREE.Color("#ffc873"),emissiveIntensity:0.0,roughness:.3});
@@ -1765,10 +1778,10 @@ function buildIsland(I){
     stall(sx,sy,sz,Math.PI/2-sa+Math.PI,I.sea===2?"#2f5f9d":"#e0453a","#f6efe0"); I.excl.push({x:sx,z:sz,r:9});
     const outfits=[{shirt:"#2f8f5b",hat:"straw",apron:"#f0e6d2",skin:SKINS[0]},{shirt:"#c9502f",hat:"cap",skin:SKINS[2]},{shirt:"#3a6fb0",hat:"straw",skin:SKINS[1],apron:"#e6dccb"},{shirt:"#8a4fb8",hat:"captain",skin:SKINS[3]}];
     npc(outfits[I.seed%4],sx+Math.cos(sa)*1.2,sz+Math.sin(sa)*1.2,Math.PI/2-sa,"merchant",I.n,"Händler");
-  } else { const D=dock(I,I.hutAng,16,3.6); I.dock=D }
+  } else if(!I.sandbar&&I.biome!=="ghost"){ const D=dock(I,I.hutAng,16,3.6); I.dock=D }
   const lbl=textSprite(I.n,{size:72,scale:0.16}); lbl.position.set(I.x,Math.max(I.peak,6)+30,I.z); lbl.userData.loc=I.n; lbl.userData.hid=!!I.hidden; lbl.userData.range=I.r*1.5+140; addObj(lbl,I.x); LABELS.push(lbl);
   ({Moosewood:buildMoosewood,"Terrapin Island":buildTerrapin,"Sunstone Island":buildSunstone,"Snowcap Island":buildSnowcap,"Castaway Cliffs":buildCastaway,"Keepers Altar":buildAltarNPC,
-    Nebelinsel:buildNebel,Ankerheim:buildAnkerheim,"Atlantische Ruinen":buildRuins,Aschefelder:buildAsh,Frostzinnen:buildSpires,Korallenkrone:buildReefcrown,Hexenturm:buildWitch,
+    Nebelinsel:buildNebel,Geisterriff:buildGhost,"Möwenbank":buildSandbar,"Treibholzbank":buildSandbar,"Sonnenbank":buildSandbar,Ankerheim:buildAnkerheim,"Atlantische Ruinen":buildRuins,Aschefelder:buildAsh,Frostzinnen:buildSpires,Korallenkrone:buildReefcrown,Hexenturm:buildWitch,
     "Roslit Volcano":I=>{ const a=I.hutAng+Math.PI, x=I.x+Math.cos(a)*I.r*0.2, z=I.z+Math.sin(a)*I.r*0.2; npc({shirt:"#1a1a1a",hat:"bandana",hatCol:"#ff3a3a",skin:SKINS[1],pants:"#2a2a2a",hair:"#ff3a3a"},x,z,faceAng(x,z,I.x,I.z),"lq","Roslit Volcano","RoRed","rgba(140,20,20,.92)",{lq:"rored"}) },
     "Forsaken Shores":I=>chest("wreck",I.x+Math.cos(I.hutAng+Math.PI)*I.r*0.62,I.z+Math.sin(I.hutAng+Math.PI)*I.r*0.62,I.n),
     "Crystal Cove":I=>chest("crystal",I.x+Math.cos(I.hutAng+2.4)*I.r*0.35,I.z+Math.sin(I.hutAng+2.4)*I.r*0.35,I.n,2),
@@ -1812,6 +1825,13 @@ function buildMoosewood(I){
   for(let k=0;k<4;k++){ const a=va+(k-1.5)*0.5, x=I.x+Math.cos(a)*I.r*0.12, z=I.z+Math.sin(a)*I.r*0.12; if(hasAsset("bench")){ const o=assetObj("bench"); o.position.set(x,groundAt(x,z),z); o.rotation.y=Math.PI/2-a; addObj(o,x); addCollider(x,z,1.2) } }
   for(let k=0;k<8;k++){ const a=va+(k-3.5)*0.22, x=I.x+Math.cos(a)*I.r*0.36, z=I.z+Math.sin(a)*I.r*0.36; const y=groundAt(x,z); lampPost(x,y,z,Math.PI/2-a) }
   sign(I.x+Math.cos(va)*I.r*0.3+3,I.z+Math.sin(va)*I.r*0.3,Math.PI/2-va,"Moosewood");
+  if(hasAsset("leaderboard")&&I.dock){ const D=I.dock, bx=D.sx-Math.cos(D.ang)*13+Math.cos(D.ang+Math.PI/2)*11, bz=D.sz-Math.sin(D.ang)*13+Math.sin(D.ang+Math.PI/2)*11; const by=addPad(I.real||I,bx,bz,4,groundAt(bx,bz));
+    const o=assetObj("leaderboard",9); o.position.set(bx,by,bz); o.rotation.y=Math.PI/2-D.ang; addObj(o,bx); addCollider(bx,bz,2.4);
+    const c=document.createElement("canvas"); c.width=768; c.height=640; const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=4;
+    const mat=new THREE.MeshBasicMaterial({map:tex,toneMapped:false}); let face=null; o.traverse(m=>{ if(m.isMesh&&m.material.name==="kit_board_face") face=m });
+    if(face){ face.material=mat; face.geometry=face.geometry.clone(); const g=face.geometry; g.computeBoundingBox(); const bb=g.boundingBox, p=g.attributes.position; const uv=new Float32Array(p.count*2);
+      const ax=(bb.max.x-bb.min.x)>(bb.max.z-bb.min.z)?"x":"z"; for(let i=0;i<p.count;i++){ const u=ax==="x"?(p.getX(i)-bb.min.x)/(bb.max.x-bb.min.x):(p.getZ(i)-bb.min.z)/(bb.max.z-bb.min.z); uv[i*2]=u; uv[i*2+1]=(p.getY(i)-bb.min.y)/(bb.max.y-bb.min.y) }
+      g.setAttribute("uv",new THREE.BufferAttribute(uv,2)); LBOARD={c,tex,flip:false} } }
   villager(I,-0.3,0.4,{shirt:"#c9502f",hat:"straw",skin:SKINS[1],apron:"#f0e6d2"},"Bäuerin Greta",["Man sagt, im Osten, weit hinter Castaway, hängt ein Nebel, der sich nie verzieht. Dort lebt ein Einsiedler.","Mein Mann hat mal einen Mistwhale gesehen. Im Nebel, nachts. Seitdem angelt er nicht mehr."]);
   villager(I,0.3,0.3,{shirt:"#3a6fb0",hat:"cap",skin:SKINS[3]},"Matrose Jens",["Die Klippen von Castaway sind ein Ring. Ein Schmuggler hat mir erzählt, auf der Rückseite gibt es eine schmale Lücke.","Weit im Süden dreht sich ein riesiger Mahlstrom. Mit dem Hochseeboot und Level 25 kommst du hindurch, in die Zweite See."]);
   villager(I,0.05,0.18,{shirt:"#8a4fb8",hat:"beanie",hatCol:"#3a6fb0",skin:SKINS[0]},"Lotte",["Auf dem Gipfel von Snowcap brennt nachts ein Licht. Wer steigt schon da hoch?","Relikte fängst du manchmal. Am Keepers Altar ganz im Norden verzaubert man damit Ruten."]);
@@ -1885,6 +1905,17 @@ function buildAsh(I){ const r=rng(I.seed+3); const cy=rawH(I,I.x,I.z);
   const a=I.hutAng+2.1; chest("ash",I.x+Math.cos(a)*I.r*0.2,I.z+Math.sin(a)*I.r*0.2,I.n,3) }
 function buildSpires(I){ const a=I.hutAng+Math.PI*0.9; chest("spires",I.x+Math.cos(a)*I.r*0.4,I.z+Math.sin(a)*I.r*0.4,I.n,3) }
 function buildReefcrown(I){ chest("crown",I.x,I.z,I.n,2); addMesh(new THREE.CylinderGeometry(.2,.3,7,6),stdMat({color:"#6b4428"}),I.x+3,4,I.z+2,0,false) }
+/* ---------- secrets: the ghost ship reef (night only) and nameless sandbars ---------- */
+const GHOSTMAT=new THREE.MeshStandardMaterial({color:"#9ff6ff",emissive:new THREE.Color("#3fd8ff"),emissiveIntensity:1.1,transparent:true,opacity:0.42,depthWrite:false,roughness:.4});
+const GHOSTS=[];
+function ghostify(o){ o.traverse(m=>{ if(m.isMesh){ m.material=GHOSTMAT; m.castShadow=false } }); return o }
+function buildGhost(I){ const a=I.hutAng; const sx=I.x+Math.cos(a)*I.r*1.45, sz=I.z+Math.sin(a)*I.r*1.45;
+  if(hasAsset("boat_sail")){ const ship=ghostify(assetObj("boat_sail",46)); ship.position.set(sx,-1.4,sz); ship.rotation.y=-a; addObj(ship,sx); FLOATERS.push({m:ship,base:-1.4,ph:2,amp:0.5}); GHOSTS.push({o:ship,x:sx,z:sz}) }
+  for(let k=0;k<5;k++){ const l=addMesh(new THREE.SphereGeometry(.45,10,8),glowMat("#8ff6ff",2.6),sx+(Math.random()-.5)*14,6+Math.random()*10,sz+(Math.random()-.5)*14,0,false); FLOATERS.push({m:l,base:l.position.y,ph:k*1.3,amp:1.4}) }
+  const nx=I.x+Math.cos(a)*I.r*0.42, nz=I.z+Math.sin(a)*I.r*0.42; const n=npc({shirt:"#2b3a52",hat:"tricorn",skin:"#cfe8ee",beard:"#dfeef2",pants:"#1a2230"},nx,nz,faceAng(nx,nz,sx,sz),"merchant",I.n,"Kapitän Morrow","rgba(20,80,100,.85)"); ghostify(n.ch.group);
+  chest("ghost",I.x+Math.cos(a+2.4)*I.r*0.3,I.z+Math.sin(a+2.4)*I.r*0.3,I.n,3) }
+function buildSandbar(I){ const r=rng(I.seed+9); for(let k=0;k<3;k++){ const a=r()*6.28, d=I.r*0.18*r(); const x=I.x+Math.cos(a)*d, z=I.z+Math.sin(a)*d; inst(GEO.gpalm?"gpalm":"palm",x,groundAt(x,z)-0.2,z,r()*6,0.85+r()*0.3,1); addCollider(x,z,0.9) }
+  chest("sb-"+I.n,I.x+4,I.z-3,I.n,3); for(let k=0;k<5;k++){ const a=r()*6.28, x=I.x+Math.cos(a)*I.r*0.6, z=I.z+Math.sin(a)*I.r*0.6; inst(GEO.grock1?"grock1":"rock",x,groundAt(x,z)-0.3,z,r()*6,0.6+r()*0.6,1) } }
 function buildWitch(I){ const x=I.x-2, z=I.z+1, y=groundAt(x,z); const parts=[];
   for(let k=0;k<5;k++) parts.push(P(new THREE.CylinderGeometry(3.4-k*0.25,3.6-k*0.25,5,10),k%2?"#4a4058":"#3a3248",Math.sin(k*0.9)*0.5*k*0.3,2.5+k*5,k*0.18,0.02*k,0,0.03*k));
   parts.push(P(new THREE.ConeGeometry(4.4,8,10),"#5a2a8a",0.9,31,0.9,0.08,0,0.1),P(new THREE.BoxGeometry(1.6,2.8,.3),"#1a1420",0,1.4,3.5));
@@ -1900,10 +1931,10 @@ function decorate(I){
     wreck:[["palm",.25],["gpalm",.15],["dead",.3],["grock1",.3]],cliffring:[["pine",.3],["gpine",.3],["oak",.2],["grock2",.2]],ancient:[["fern",.5],["jungle",.2],["grock3",.15],["rock",.15]],
     reef:[["palm",.5],["gpalm",.5]],jungle:[["jungle",.55],["fern",.3],["gbush",.15]],crystal:[["crystal",.7],["grock2",.3]],brine:[["salt",.7],["dead",.3]],altar:[["crystal",.3],["grock3",.35],["rock",.35]],
     fog:[["fogtree",.7],["dead",.2],["grock1",.1]],harbor:[["oak",.3],["gtree",.2],["bush",.15],["gautumn",.1],["bloom",.25]],reefcrown:[["gcoral",.55],["gpalm",.45]],ash:[["ashrock",.6],["dead",.25],["sparkcrystal",.15]],
-    spires:[["spire",.45],["icicle",.35],["gsnow",.2]],ruins:[["palm",.2],["gpalm",.2],["bush",.3],["fern",.3]],witch:[["fogtree",.6],["mushroom",.25],["dead",.15]]}[b];
+    spires:[["spire",.45],["icicle",.35],["gsnow",.2]],ghost:[["dead",.45],["grock1",.3],["grock3",.25],["rock",.1]],sandbar:[["rock",1]],ruins:[["palm",.2],["gpalm",.2],["bush",.3],["fern",.3]],witch:[["fogtree",.6],["mushroom",.25],["dead",.15]]}[b];
   const T=T0.filter(([t])=>GEO[t]);
   const dens={forest:.0048,tropic:.0035,meadow:.004,desert:.0025,swamp:.004,volcano:.002,snow:.005,wreck:.0025,cliffring:.004,ancient:.0045,reef:.004,jungle:.006,crystal:.004,brine:.003,altar:.003,
-    fog:.006,harbor:.0012,reefcrown:.004,ash:.003,spires:.0032,ruins:.0022,witch:.008}[b];
+    fog:.006,ghost:.004,sandbar:.0003,harbor:.0012,reefcrown:.004,ash:.003,spires:.0032,ruins:.0022,witch:.008}[b];
   const n=Math.round(Math.PI*I.r*I.r*dens*(LOW?0.5:1.25));
   for(let k=0;k<n;k++){ const a=r()*Math.PI*2, d=Math.sqrt(r())*I.r*0.95, x=I.x+Math.cos(a)*d, z=I.z+Math.sin(a)*d; const h=islandH(I,x,z); if(fbm(x*0.005+I.seed,z*0.005,2)<-0.12&&r()<0.85) continue;
     const ringOK = (b==="reef"||b==="reefcrown") ? h>0.8 : h>1.6; if(!ringOK) continue; if(excluded(I,x,z,3)) continue; if(I.pond&&Math.hypot(x-I.pond.x,z-I.pond.z)<I.pond.r+3) continue;
@@ -2267,7 +2298,7 @@ function travelTo(x,z,boat){ portalUntil=performance.now()+3000; bannerLock=perf
   if(sea!==prevSea) banner(sea===2?"Die Zweite See":"Die Erste See",sea===2?"Stürmischer, tiefer, reicher. Ankerheim liegt im Osten.":"Willkommen zurück. Moosewood liegt im Norden."); pushPresence(true) }
 function updateSeaVis(){ SEAG[1].visible=curSea===1; SEAG[2].visible=curSea===2; setWaterZones(curSea) }
 /* stream terrain detail + height map around a new position right away (teleports, boot) */
-function warmWorld(x,z){ fineTilesAround(x,z,LOW?260:380); updateHMap(x,z,true) }
+function warmWorld(x,z){ fineTilesAround(x,z,LOW?260:380); updateHMap(x,z,true); if(typeof cullIslands==="function") cullIslands() }
 
 /* ---------- fish areas: like Fisch, most fish live in their own patch of water. The Fish Radar makes them visible. ---------- */
 const AREAS=[], AREA_LOC={};
@@ -2502,7 +2533,8 @@ function catchFish(){
   const dbl=(AB.dbl&&Math.random()<AB.dbl)||(AB.dblNight&&!W.day&&Math.random()<AB.dblNight);
   if(dbl&&S.fish.length<bagCap()){ const it2=makeItem(f,rollWeight(f,G.fx.weight||0),ctx,G,bonus); S.fish.push(it2); S.stats.caught++; d.c++; setTimeout(()=>{ toast(`Doppelfang! Noch ein ${fishLabel(it2)} (${fmtKg(it2.w)})`,"#cfd8e3"); SFX.coin() },900) }
   // relics & treasure maps
-  if(Math.random()<(ri>=4?0.08:0.009)){ S.relics++; setTimeout(()=>{ bigMsg("Enchant-Relikt!","Am Altar kannst du damit eine Rute verzaubern.","#8fe8ff"); SFX.relic() },2400) }
+  if(!S.bottle&&Math.random()<0.007&&ISL.some(I=>I.sandbar&&!S.visited[I.n])){ const cand=ISL.filter(I=>I.sandbar&&!S.visited[I.n]); S.bottle=cand[Math.floor(Math.random()*cand.length)].n; setTimeout(()=>{ bigMsg("Flaschenpost!",bottleRiddle(S.bottle),"#bfe6ff"); SFX.quest(); addChat("Flaschenpost",bottleRiddle(S.bottle),false) },2600) }
+  else if(Math.random()<(ri>=4?0.08:0.009)){ S.relics++; setTimeout(()=>{ bigMsg("Enchant-Relikt!","Am Altar kannst du damit eine Rute verzaubern.","#8fe8ff"); SFX.relic() },2400) }
   else if(!S.tmap&&Math.random()<0.014+(AB.tmap||0)){ const m=makeTreasureMap(); if(m){ S.tmap=m; setTimeout(()=>{ bigMsg("Schatzkarte!",`Irgendwo auf ${m.loc} ist etwas vergraben. Folge dem roten Strahl.`,"#ff8a6a"); SFX.quest() },2400) } }
   roredTrack("catch",{f,rod,R});
   if(SEAOF(f.l)&&Object.values(AW_LOC).includes(f.l)&&ri>=6) setTimeout(()=>bigMsg(f.r==="Divine"?"GÖTTLICH!!!":"UNGLAUBLICH!",`${fishLabel(it)} aus dem ${f.l}`,RCOL[f.r]),1600);
@@ -2600,7 +2632,8 @@ function fishRow(it,actions){ const f=FISHBY[it.n], v=fishValue(it); const row=d
 function sellFish(filter){ let v=0,n=0; S.fish=S.fish.filter(it=>{ if(filter(it)){ v+=fishValue(it); n++; return false } return true }); if(!n) return 0; S.money+=v; S.stats.earned+=v; S.stats.sold+=n; markDirty(); boardDirty=true; refreshHUD(); SFX.coin(); checkStory(); return v }
 function panelBag(body){ $("sheetTitle").textContent="Rucksack"; setTabs([],null); const total=S.fish.reduce((s,it)=>s+fishValue(it),0);
   const bf=Object.entries(POTIONS).filter(([k])=>buffActive(k)).map(([k,p])=>`${p.n} (${Math.ceil((S.buffs[k]-Date.now())/60000)} min)`);
-  body.insertAdjacentHTML("beforeend",`<div class="row chips"><span class="chip">Enchant-Relikte <b>${S.relics}</b></span><span class="chip">Schatzkarte <b>${S.tmap?esc(S.tmap.loc):"keine"}</b></span>${bf.map(x=>`<span class="chip good">${esc(x)}</span>`).join("")}</div>`);
+  body.insertAdjacentHTML("beforeend",`<div class="row chips"><span class="chip">Enchant-Relikte <b>${S.relics}</b></span><span class="chip">Schatzkarte <b>${S.tmap?esc(S.tmap.loc):"keine"}</b></span>${S.bottle?`<span class="chip good" title="${esc(bottleRiddle(S.bottle))}">Flaschenpost <b>1</b></span>`:""}${bf.map(x=>`<span class="chip good">${esc(x)}</span>`).join("")}</div>`);
+  if(S.bottle) body.insertAdjacentHTML("beforeend",`<p class="note" style="color:#bfe6ff;font-style:italic">Flaschenpost: ${esc(bottleRiddle(S.bottle))}</p>`);
   body.insertAdjacentHTML("beforeend",`<p class="note">Mit „Hochhalten“ (oder Taste H) zeigst du allen Spielern einen Fisch. ${S.fish.length}/${bagCap()} Fische · Wert <b style="color:var(--cash)">${fmt(total)} C$</b>. Verkaufen kannst du bei jedem Händler (Stand am Steg jeder Insel, Flöße auf dem Meer). Mit ★ markierte Fische werden nicht mitverkauft.</p>`);
   if(!S.fish.length) body.insertAdjacentHTML("beforeend",`<p class="note">Noch leer.</p>`);
   [...S.fish].sort((a,b)=>fishValue(b)-fishValue(a)).forEach(it=>body.appendChild(fishRow(it,act=>{ const b=document.createElement("button"); b.className="btn "+(holdIt===it?"":"alt"); b.textContent=holdIt===it?"Ablegen":"Hochhalten"; b.title="Allen zeigen (Taste H)"; b.onclick=()=>{ if(holdIt===it) setHold(null); else { if(F.state!=="idle") return; setHold(it); closeModal() } renderPanel() }; act.appendChild(b) }))) }
@@ -2730,7 +2763,7 @@ function drawMini(){ const size=336, c=miniCtx, range=pl.boat?1500:700, sc=size/
   if(S.tmap){ c.strokeStyle="#ff3a2a"; c.lineWidth=5; const x=clamp(tx(S.tmap.x),10,size-10), y=clamp(tz(S.tmap.z),10,size-10); c.beginPath(); c.moveTo(x-9,y-9); c.lineTo(x+9,y+9); c.moveTo(x+9,y-9); c.lineTo(x-9,y+9); c.stroke() }
   if(radarOn()) for(const a of AREA_LOC[locationAt(pl.x,pl.z)]||[]){ if(!a.fish.length||a.fresh) continue; c.fillStyle=areaColor(a)+"66"; c.beginPath(); c.ellipse(tx(a.x),tz(a.z),a.r*sc,a.r*sc/a.asp,0,0,7); c.fill() }
   if(EZ&&seaAt(EZ.x)===curSea){ c.setLineDash([7,6]); c.fillStyle="rgba(255,90,60,.16)"; c.strokeStyle="#ff7b54"; c.lineWidth=3; c.beginPath(); c.arc(tx(EZ.x),tz(EZ.z),EZ.r*sc,0,7); c.fill(); c.stroke(); c.setLineDash([]) }
-  for(const n of NPCS){ if(n.type==="villager") continue; c.fillStyle={merchant:"#ffd24a",shipwright:"#5fd8ff",appraiser:"#c78bff",alchemist:"#6fe37b",altar:"#8fe8ff",lq:"#ff8a3a"}[n.type]||"#fff"; c.beginPath(); c.arc(tx(n.x),tz(n.z),n.type==="lq"?7:5,0,7); c.fill() }
+  for(const n of NPCS){ if(n.type==="villager") continue; { const I=ISLBY[n.loc]; if(I&&I.hidden&&!(ISG[I.n]&&ISG[I.n].visible)) continue } c.fillStyle={merchant:"#ffd24a",shipwright:"#5fd8ff",appraiser:"#c78bff",alchemist:"#6fe37b",altar:"#8fe8ff",lq:"#ff8a3a"}[n.type]||"#fff"; c.beginPath(); c.arc(tx(n.x),tz(n.z),n.type==="lq"?7:5,0,7); c.fill() }
   for(const p of peers){ if(p.sameTab) continue; const pr=p.presence||{}; if(typeof pr.x!=="number"||seaAt(pr.x)!==curSea) continue; c.fillStyle=typeof pr.col==="string"?pr.col:"#f90"; c.strokeStyle="#fff"; c.lineWidth=2; c.beginPath(); c.arc(tx(pr.x),tz(pr.z),7,0,7); c.fill(); c.stroke() }
   c.translate(size/2,size/2); c.rotate(Math.PI-pl.ry); c.fillStyle="#ffd24a"; c.strokeStyle="#000"; c.lineWidth=3; c.beginPath(); c.moveTo(0,-16); c.lineTo(11,11); c.lineTo(0,5); c.lineTo(-11,11); c.closePath(); c.fill(); c.stroke(); c.restore() }
 $("mini").addEventListener("click",()=>openModal("map")); $("radarBtn").addEventListener("click",e=>{ e.stopPropagation(); toggleRadar() });
@@ -2890,7 +2923,7 @@ async function initMultiplayer(){
   FDNET.onSys((text,by)=>{ addChat(by||"Admin",text,false); bigMsg(by?`${by}:`:"Ansage",text,"#ff8a3a"); SFX.quest() });
   FDNET.onAdmin((ok,fromHello)=>{ if(!fromHello){ if(ok){ S.admin=true; SFX.quest(); sysMsg("Admin-Modus aktiv. Tippe / im Chat für alle Befehle. Globale Befehle (Zeit, Wetter, Events, Admin-Wetter) gelten für alle. Dein Account ist jetzt aus der Rangliste ausgeblendet.") } else if(isLeif()&&!S.admin) sysMsg("Falscher Code.","#ff9a6a") } else S.admin=ok; updateAdminUI(); markDirty() });
   if(room){ joinedAt=Date.now(); room.onPeers(onPeersChange,()=>{ room=null; $("netdot").style.background="#7f93ab" }); room.onConnection(c=>{ $("netdot").style.background=c?"#6fe37b":"#ffb35a" }); pushPresence(true) }
-  if(db){ try{ db.collection("board").orderBy("earned","desc").limit(50).onSnapshot(s=>{ board=s.docs.map(x=>({id:x.id,...x.data()})); resolveNames(); if(panel==="players"&&panelTab==="board") renderPanel() },()=>{}) }catch(e){}
+  if(db){ try{ db.collection("board").orderBy("earned","desc").limit(50).onSnapshot(s=>{ board=s.docs.map(x=>({id:x.id,...x.data()})); resolveNames(); drawBoard3D(); if(panel==="players"&&panelTab==="board") renderPanel() },()=>{}) }catch(e){}
     if(myId){ try{ const snap=await db.doc(`data/users/${myId}/save`).get(); if(snap.exists){ const o=snap.data(); if(o&&typeof o.json==="string"){ const cloud=JSON.parse(o.json);
         if(cloud&&cloud.v===SAVE_V&&(cloud.savedAt||0)>(S.savedAt||0)&&F.state==="idle"){ S=loadSave(cloud); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)) }catch(e){}
           S.nick=FDNET.me.name; if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); curSea=seaAt(pl.x); updateSeaVis() } syncChests(); setRodLook(me,S.rod); colorBobber(bobber,S.rod); refreshHUD(); renderQuests(); toast("Cloud-Spielstand geladen","#8fd3ff"); pushPresence(true) } } } }catch(e){}
@@ -2979,7 +3012,27 @@ function placeCrabs(I){ crabIsl=I; const r=rng((Date.now()/60000|0)+I.seed); for
 const dolGeo=merge([P(new THREE.SphereGeometry(1,14,10),"#7d8fa3",0,0,0,0,0,0,2.4,0.75,0.75),P(new THREE.ConeGeometry(.5,1.2,4),"#6b7d91",-0.2,0.9,0,0,0,-0.35,1,1,0.3),P(new THREE.ConeGeometry(.9,1.2,4),"#6b7d91",-2.6,0,0,0,0,Math.PI/2,1,1,0.25),P(new THREE.SphereGeometry(.55,10,8),"#c9d4de",0.6,-0.35,0,0,0,0,2.4,0.5,0.9),P(new THREE.ConeGeometry(.3,1,6),"#7d8fa3",2.7,-0.1,0,0,0,-Math.PI/2)]);
 const DOLS=[0,1,2].map(i=>{ const m=new THREE.Mesh(dolGeo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.35})); m.visible=false; scene.add(m); return {m,side:i===0?-1:1,off:i*2.2,ph:i*1.7,on:0} });
 const jumpers=[]; let jumpT=3; const jumpMeshes=["Anchovy","Sardine","Mackerel","Salmon","Herring","Bream"].map(n=>FISHBY[n]?n:null).filter(Boolean).concat(FISH.filter(f=>f.r==="Common").slice(0,3).map(f=>f.n)).slice(0,4).map(n=>{ const m=makeFishMesh(n,""); m.visible=false; m.scale.setScalar(0.9); scene.add(m); return m });
-function updateLife(dt,t,W){
+/* ---------- secrets: message in a bottle → nameless sandbars ---------- */
+const DIRDE=["Norden","Nordosten","Osten","Südosten","Süden","Südwesten","Westen","Nordwesten"];
+function bottleRiddle(n){ const B=ISLBY[n]; if(!B) return ""; const I=ISL.filter(x=>!x.hidden&&x.sea===B.sea).reduce((a,b)=>Math.hypot(a.x-B.x,a.z-B.z)<Math.hypot(b.x-B.x,b.z-B.z)?a:b);
+  const ang=Math.atan2(B.x-I.x,-(B.z-I.z)); const dir=DIRDE[((Math.round(ang/(Math.PI/4))%8)+8)%8]; const mins=Math.max(1,Math.round((Math.hypot(B.x-I.x,B.z-I.z)-I.r)/40/60*2)/2);
+  return `„Von ${I.n} aus Richtung ${dir}, gut ${String(mins).replace(".",",")} Minuten mit dem Motorboot. Drei Palmen, kein Name, eine Truhe.“` }
+function findSandbar(I){ S.visited[I.n]=1; if(S.bottle===I.n) S.bottle=null; gainXP(900); markDirty(); banner(I.n,"Eine namenlose Sandbank. Hier war lange niemand mehr. · +900 XP"); SFX.quest(); flash("#ffffff55") }
+/* ---------- 3D leaderboard on Moosewood's harbour ---------- */
+function drawBoard3D(){ if(!LBOARD) return; const c=LBOARD.c, x=c.getContext("2d"), W=c.width, H=c.height; x.fillStyle="#1d2a24"; x.fillRect(0,0,W,H);
+  x.fillStyle="rgba(255,255,255,.04)"; for(let i=0;i<40;i++) x.fillRect(Math.random()*W,Math.random()*H,Math.random()*120,2);
+  x.textBaseline="middle"; x.fillStyle="#ffd24a"; x.font="700 58px Fredoka, sans-serif"; x.textAlign="center"; x.fillText("Beste Angler",W/2,56);
+  x.font="700 34px Fredoka, sans-serif"; const rows=[...board].sort((a,b)=>(b.earned||0)-(a.earned||0)).slice(0,8);
+  rows.forEach((r,i)=>{ const y=128+i*62; x.textAlign="left"; x.fillStyle=i===0?"#ffd24a":i===1?"#dfe6ee":i===2?"#e8a060":"#eaf2ea"; x.fillText(`${i+1}. ${String(names[r.id]||r.nick||"Fischer").slice(0,16)}`,34,y);
+    x.textAlign="right"; x.fillStyle="#9fe8a0"; x.fillText(`${fmt(+r.earned||0)} C$`,W-34,y); x.fillStyle="rgba(255,255,255,.12)"; x.fillRect(34,y+28,W-68,2) });
+  if(!rows.length){ x.textAlign="center"; x.fillStyle="#cfe0d4"; x.fillText("Noch leer – fang den ersten Fisch!",W/2,H/2) } LBOARD.tex.needsUpdate=true }
+/* ---------- whales breaching far out on the open sea ---------- */
+const WHALE={m:null,t:0,next:25,x:0,z:0,a:0};
+function updateWhale(dt,t){ const open=(lastLoc==="Ocean"||lastLoc==="Sturmsee"); WHALE.next-=dt; if(!WHALE.m&&FISHBY["Humpback Whale"]){ WHALE.m=makeFishMesh("Humpback Whale",""); WHALE.m.scale.setScalar(26); WHALE.m.visible=false; scene.add(WHALE.m) }
+  if(!WHALE.m) return; if(WHALE.t<=0&&WHALE.next<=0&&open){ WHALE.next=30+Math.random()*50; const a=Math.random()*6.28, d=260+Math.random()*420; WHALE.x=pl.x+Math.cos(a)*d; WHALE.z=pl.z+Math.sin(a)*d; if(terrainAt(WHALE.x,WHALE.z)>-8) return; WHALE.a=Math.random()*6.28; WHALE.t=0.001; WHALE.m.visible=true; splashFX(WHALE.x,0.3,WHALE.z,40,2.5) }
+  if(WHALE.t>0){ WHALE.t+=dt/3.2; const q=Math.min(1,WHALE.t); const y=Math.sin(q*Math.PI)*22-14; WHALE.m.position.set(WHALE.x+Math.cos(WHALE.a)*q*30,y,WHALE.z+Math.sin(WHALE.a)*q*30); WHALE.m.rotation.set(0,-WHALE.a,(0.5-q)*1.8+0.3);
+    if(q>0.72&&!WHALE.sp){ WHALE.sp=1; splashFX(WHALE.m.position.x,0.4,WHALE.m.position.z,80,4); SFX.splash(0.4) } if(q>=1){ WHALE.t=0; WHALE.sp=0; WHALE.m.visible=false } } }
+function updateLife(dt,t,W){ updateWhale(dt,t);
   // villagers & NPC attention
   for(const n of NPCS){ const dp=Math.hypot(n.x-pl.x,n.z-pl.z); if(dp>240||seaAt(n.x)!==curSea) continue;
     if(n.type!=="villager"){ if(dp<10){ const want=Math.atan2(pl.x-n.x,pl.z-n.z); let d=want-n.ch.group.rotation.y; d=Math.atan2(Math.sin(d),Math.cos(d)); n.ch.group.rotation.y+=d*clamp(dt*4,0,1) } n.ch.head.rotation.y=Math.sin(t*0.7+n.x)*0.15; continue }
@@ -3016,7 +3069,7 @@ function updateLife(dt,t,W){
   for(const s of SPINNERS) s.o.rotation.z+=s.sp*dt*(W.weather==="Windy"?3:1);
   for(const p of PORTAL_FX){ p.ring.rotation.z+=dt*0.4; if(p.Pt.from===curSea&&Math.hypot(p.Pt.x-pl.x,p.Pt.z-pl.z)<700&&Math.random()<dt*30){ const a=Math.random()*6.28, r=p.Pt.r*(0.3+Math.random()*0.7); GLOW.emit(p.Pt.x+Math.cos(a)*r,0.6,p.Pt.z+Math.sin(a)*r,-Math.sin(a)*6,6+Math.random()*10,Math.cos(a)*6,2,1.4,p.Pt.from===1?"#9fe8ff":"#ffd28a",-1,0.2) } }
   for(const c of CHESTS){ if(c.opening!==null&&c.opening!==undefined&&c.opening<1.2){ c.opening+=dt*1.4; c.lid.rotation.x=-1.9*smooth(Math.min(1,c.opening)); c.glow.visible=c.opening<1.15; if(Math.random()<dt*30) GLOW.emit(c.x,c.y+1.2,c.z,(Math.random()-.5)*2,3+Math.random()*3,(Math.random()-.5)*2,1,0.8,"#ffe27a",-2) }
-    else if(!S.chests[c.id]&&Math.abs(c.x-pl.x)<60&&Math.abs(c.z-pl.z)<60&&Math.random()<dt*2) GLOW.emit(c.x+(Math.random()-.5)*2,c.y+1.4,c.z+(Math.random()-.5)*2,0,1,0,1,0.5,"#ffe27a",-0.3) }
+    else if(c.tier<2&&!S.chests[c.id]&&Math.abs(c.x-pl.x)<60&&Math.abs(c.z-pl.z)<60&&Math.random()<dt*2) GLOW.emit(c.x+(Math.random()-.5)*2,c.y+1.4,c.z+(Math.random()-.5)*2,0,1,0,1,0.5,"#ffe27a",-0.3) }
   // treasure map marker
   const tm=S.tmap&&seaAt(S.tmap.x)===curSea; digBeam.visible=digX.visible=!!tm; if(tm){ const gy=groundAt(S.tmap.x,S.tmap.z); digBeam.position.set(S.tmap.x,gy+130,S.tmap.z); digX.position.set(S.tmap.x,gy+0.12,S.tmap.z); digBeam.material.opacity=0.16+Math.sin(t*3)*0.06 }
 }
@@ -3217,9 +3270,11 @@ addEventListener("keydown",e=>{ if(e.key==="F9"&&adminOn()&&!typing()){ e.preven
   let n=0; const loop=()=>{ n++; requestAnimationFrame(loop) }; requestAnimationFrame(loop); setInterval(()=>{ el.style.display=ADM.fps?"block":"none"; if(ADM.fps) el.textContent=`${n} FPS · ${renderer.info.render.calls} Draw Calls · ${Math.round(pl.x)}, ${Math.round(pl.z)}`; n=0 },1000) }
 /* ---------- main loop ---------- */
 let boltTimer=3, lightFlash=0, hemiBase=1;
-let tileT=0; const DETAIL_R=LOW?2200:3400;
+let tileT=0, DETAIL_R=LOW?2200:3400;
 function cullIslands(){ for(const I of ISL){ const g=ISG[I.n]; if(!g) continue; const d=Math.hypot(I.x-pl.x,I.z-pl.z)-I.r; let v=I.sea===curSea&&d<DETAIL_R;
-    if(I.hidden) v=v&&(S.visited[I.n]||d<(I.n==="Nebelinsel"?420:600)); g.visible=v } lodIslands(pl.x,pl.z); for(const n of NPCS){ const d=Math.hypot(n.x-pl.x,n.z-pl.z); n.ch.group.visible=d<(LOW?220:380) } }
+    if(I.hidden){ const W=world(); if(I.n==="Nebelinsel") v=v&&(!!S.visited[I.n]||(d<440&&(W.weather==="Foggy"||!W.day)));
+      else if(I.biome==="ghost") v=v&&!W.day&&d<(S.visited[I.n]?2600:1300); else v=v&&(!!S.visited[I.n]||d<(I.sandbar?560:600));
+      if(I.sandbar&&!S.visited[I.n]&&d<I.r*0.3) findSandbar(I) } g.visible=v } lodIslands(pl.x,pl.z); for(const n of NPCS){ const d=Math.hypot(n.x-pl.x,n.z-pl.z); n.ch.group.visible=d<(LOW?220:380) } }
 let lastT=performance.now(), T0=performance.now(), hudT=0, miniT=0, skyT=0, presT=0, hintT=0;
 const tipV=new THREE.Vector3(), camTarget=new THREE.Vector3();
 function frame(now){
@@ -3288,7 +3343,7 @@ function frame(now){
 /* ---------- adaptive quality ---------- */
 const PERF={n:0,t:0,stage:0,started:false};
 function setQuality(level){ // 2 high, 1 medium, 0 low
-  S.settings.q=level; if(level<2){ composer=null; renderer.shadowMap.enabled=false; sun.castShadow=false; renderer.setPixelRatio(Math.min(devicePixelRatio||1,level===1?1.25:1)); resizeGL() }
+  S.settings.q=level; DETAIL_R=level===0?1500:level===1?2400:3400; FINE_R=level===0?420:level===1?560:760; if(level<2){ composer=null; renderer.shadowMap.enabled=false; sun.castShadow=false; renderer.setPixelRatio(Math.min(devicePixelRatio||1,level===1?1.25:1)); resizeGL() }
   if(level===2&&!LOW){ location.reload() }
   for(const gm of Object.values(GRASS)) if(gm) gm.visible=level>0; markDirty() }
 function perfCheck(dt){ if(!PERF.started||S.settings.qLocked) return; PERF.n++; PERF.t+=dt; if(PERF.t<4) return; const fps=PERF.n/PERF.t; PERF.n=0; PERF.t=0;
@@ -3315,7 +3370,7 @@ async function boot(){
   await accountGate(lt,lb);
   setRodLook(me,S.rod); colorBobber(bobber,S.rod);
   if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); cam.yaw=pl.ry } else spawnHome();
-  genAreas(); updateRadarUI(); makeMyBoats(); setRodLook(me,S.rod);
+  genAreas(); updateRadarUI(); makeMyBoats(); setRodLook(me,S.rod); drawBoard3D();
   curSea=seaAt(pl.x); updateSeaVis(); warmWorld(pl.x,pl.z); cullIslands(); syncChests(); updateAdminUI();
   ensureBounties(locationAt(pl.x,pl.z)); refreshHUD(); renderQuests(); updateSky();
   cam.x=pl.x-Math.sin(cam.yaw)*20; cam.z=pl.z-Math.cos(cam.yaw)*20; cam.y=pl.y+10;
@@ -3328,7 +3383,7 @@ async function boot(){
 }
 boot().catch(e=>{ const el=$("loaderr"); el.style.display="block"; el.textContent="Fehler: "+e.message; console.error(e) });
 
-if(/[?&]debug\b/.test(location.search)) window.__fd={ASSETS,TSTAT,cullIslands,updateTiles,AREAS,eventZone,renderer,ISG,doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
+if(/[?&]debug\b/.test(location.search)) window.__fd={ASSETS,terrainAt,ISG,TSTAT,cullIslands,updateTiles,AREAS,eventZone,renderer,ISG,doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
 
 </script>
 </body></html>

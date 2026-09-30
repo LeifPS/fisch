@@ -83,6 +83,8 @@ const PAL={
   ash:{sand:"#2c282a",grass:"#393335",grass2:"#282329",rock:"#1b171a",hi:"#57504f",gcol:"#555"},
   spires:{sand:"#dce5eb",grass:"#eef5fa",grass2:"#e0ebf2",rock:"#9bc6e3",hi:"#ffffff",gcol:"#dde8ee"},
   ruins:{sand:"#e8dcbc",grass:"#8bb46e",grass2:"#7aa460",rock:"#c6bda1",hi:"#b8c89a",gcol:"#9cc47a"},
+  ghost:{sand:"#6a7a86",grass:"#4a5a66",grass2:"#3e4c58",rock:"#34404a",hi:"#8fb0c4",gcol:"#555"},
+  sandbar:{sand:"#f6e6b4",grass:"#f2dfa8",grass2:"#eed89c",rock:"#d8c490",hi:"#f2dfa8",gcol:"#555"},
   witch:{sand:"#474151",grass:"#3a3848",grass2:"#312d3e",rock:"#282531",hi:"#5a4a7a",gcol:"#555"},
 };
 const GRASSY=new Set(["forest","tropic","meadow","swamp","wreck","cliffring","ancient","jungle","desert","altar","harbor","ruins","fog"]);
@@ -156,7 +158,7 @@ function pondAt(x,z){ for(const I of nearIsl(x,z)){ const p=I.pond; if(p&&Math.h
 function waterAt(x,z){ if(platformAt(x,z)>-50) return null; const p=pondAt(x,z); const t=terrainAt(x,z); if(p&&t<p.y-0.25) return {kind:"fresh",y:p.y}; if(t<-0.35) return {kind:"sea",y:0}; return null }
 const seaAt=(x)=>x>SEA2X/2?2:1;
 function locationAt(x,z){
-  let best=null,bd=1e9; for(const I of ISL){ const d=Math.hypot(x-I.x,z-I.z); if(d<I.r*1.35+160&&d/I.r<bd){ bd=d/I.r; best=I.n } } if(best) return best;
+  let best=null,bd=1e9; for(const I of ISL){ if(I.sandbar) continue; const d=Math.hypot(x-I.x,z-I.z); if(d<I.r*1.35+160&&d/I.r<bd){ bd=d/I.r; best=I.n } } if(best) return best;
   for(const Z of DEEPZ){ if(Math.hypot(x-Z.x,z-Z.z)<Z.r) return Z.n } return seaAt(x)===2?"Sturmsee":"Ocean" }
 function spotAt(loc,x,z,kind){
   if(kind==="fresh") return "Freshwater";
@@ -740,7 +742,7 @@ function buildBirds(){ const wing=new THREE.PlaneGeometry(1.8,0.6); wing.transla
 function updateBirds(t,dt){ for(const b of birds){ b.a+=b.sp*dt; const x=b.I.x+Math.cos(b.a)*b.rad, z=b.I.z+Math.sin(b.a)*b.rad; b.g.position.set(x,b.h+Math.sin(t+b.ph)*2,z); b.g.rotation.y=-b.a; const f=Math.sin(t*9+b.ph)*0.6; b.l.rotation.x=f; b.r.rotation.x=f } }
 
 /* ---------- world objects ---------- */
-const NPCS=[]; const LABELS=[]; const LANTERNS=[]; const SWIRLS=[]; let lighthouseBeam=null; const FLAGS=[]; const FLOATERS=[];
+let LBOARD=null; const NPCS=[]; const LABELS=[]; const LANTERNS=[]; const SWIRLS=[]; let lighthouseBeam=null; const FLAGS=[]; const FLOATERS=[];
 const CHESTS=[]; const SPINNERS=[]; const EYES=[]; const GEYSERS=[]; const ISLETS=[]; const PORTAL_FX=[]; const WITCHLIGHTS=[];
 const lanternMat=new THREE.MeshStandardMaterial({color:"#ffe7a0",emissive:new THREE.Color("#ffb347"),emissiveIntensity:0.2});
 const windowMat=new THREE.MeshStandardMaterial({color:"#3a4a5e",emissive:new THREE.Color("#ffc873"),emissiveIntensity:0.0,roughness:.3});
@@ -809,10 +811,10 @@ function buildIsland(I){
     stall(sx,sy,sz,Math.PI/2-sa+Math.PI,I.sea===2?"#2f5f9d":"#e0453a","#f6efe0"); I.excl.push({x:sx,z:sz,r:9});
     const outfits=[{shirt:"#2f8f5b",hat:"straw",apron:"#f0e6d2",skin:SKINS[0]},{shirt:"#c9502f",hat:"cap",skin:SKINS[2]},{shirt:"#3a6fb0",hat:"straw",skin:SKINS[1],apron:"#e6dccb"},{shirt:"#8a4fb8",hat:"captain",skin:SKINS[3]}];
     npc(outfits[I.seed%4],sx+Math.cos(sa)*1.2,sz+Math.sin(sa)*1.2,Math.PI/2-sa,"merchant",I.n,"Händler");
-  } else { const D=dock(I,I.hutAng,16,3.6); I.dock=D }
+  } else if(!I.sandbar&&I.biome!=="ghost"){ const D=dock(I,I.hutAng,16,3.6); I.dock=D }
   const lbl=textSprite(I.n,{size:72,scale:0.16}); lbl.position.set(I.x,Math.max(I.peak,6)+30,I.z); lbl.userData.loc=I.n; lbl.userData.hid=!!I.hidden; lbl.userData.range=I.r*1.5+140; addObj(lbl,I.x); LABELS.push(lbl);
   ({Moosewood:buildMoosewood,"Terrapin Island":buildTerrapin,"Sunstone Island":buildSunstone,"Snowcap Island":buildSnowcap,"Castaway Cliffs":buildCastaway,"Keepers Altar":buildAltarNPC,
-    Nebelinsel:buildNebel,Ankerheim:buildAnkerheim,"Atlantische Ruinen":buildRuins,Aschefelder:buildAsh,Frostzinnen:buildSpires,Korallenkrone:buildReefcrown,Hexenturm:buildWitch,
+    Nebelinsel:buildNebel,Geisterriff:buildGhost,"Möwenbank":buildSandbar,"Treibholzbank":buildSandbar,"Sonnenbank":buildSandbar,Ankerheim:buildAnkerheim,"Atlantische Ruinen":buildRuins,Aschefelder:buildAsh,Frostzinnen:buildSpires,Korallenkrone:buildReefcrown,Hexenturm:buildWitch,
     "Roslit Volcano":I=>{ const a=I.hutAng+Math.PI, x=I.x+Math.cos(a)*I.r*0.2, z=I.z+Math.sin(a)*I.r*0.2; npc({shirt:"#1a1a1a",hat:"bandana",hatCol:"#ff3a3a",skin:SKINS[1],pants:"#2a2a2a",hair:"#ff3a3a"},x,z,faceAng(x,z,I.x,I.z),"lq","Roslit Volcano","RoRed","rgba(140,20,20,.92)",{lq:"rored"}) },
     "Forsaken Shores":I=>chest("wreck",I.x+Math.cos(I.hutAng+Math.PI)*I.r*0.62,I.z+Math.sin(I.hutAng+Math.PI)*I.r*0.62,I.n),
     "Crystal Cove":I=>chest("crystal",I.x+Math.cos(I.hutAng+2.4)*I.r*0.35,I.z+Math.sin(I.hutAng+2.4)*I.r*0.35,I.n,2),
@@ -856,6 +858,13 @@ function buildMoosewood(I){
   for(let k=0;k<4;k++){ const a=va+(k-1.5)*0.5, x=I.x+Math.cos(a)*I.r*0.12, z=I.z+Math.sin(a)*I.r*0.12; if(hasAsset("bench")){ const o=assetObj("bench"); o.position.set(x,groundAt(x,z),z); o.rotation.y=Math.PI/2-a; addObj(o,x); addCollider(x,z,1.2) } }
   for(let k=0;k<8;k++){ const a=va+(k-3.5)*0.22, x=I.x+Math.cos(a)*I.r*0.36, z=I.z+Math.sin(a)*I.r*0.36; const y=groundAt(x,z); lampPost(x,y,z,Math.PI/2-a) }
   sign(I.x+Math.cos(va)*I.r*0.3+3,I.z+Math.sin(va)*I.r*0.3,Math.PI/2-va,"Moosewood");
+  if(hasAsset("leaderboard")&&I.dock){ const D=I.dock, bx=D.sx-Math.cos(D.ang)*13+Math.cos(D.ang+Math.PI/2)*11, bz=D.sz-Math.sin(D.ang)*13+Math.sin(D.ang+Math.PI/2)*11; const by=addPad(I.real||I,bx,bz,4,groundAt(bx,bz));
+    const o=assetObj("leaderboard",9); o.position.set(bx,by,bz); o.rotation.y=Math.PI/2-D.ang; addObj(o,bx); addCollider(bx,bz,2.4);
+    const c=document.createElement("canvas"); c.width=768; c.height=640; const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=4;
+    const mat=new THREE.MeshBasicMaterial({map:tex,toneMapped:false}); let face=null; o.traverse(m=>{ if(m.isMesh&&m.material.name==="kit_board_face") face=m });
+    if(face){ face.material=mat; face.geometry=face.geometry.clone(); const g=face.geometry; g.computeBoundingBox(); const bb=g.boundingBox, p=g.attributes.position; const uv=new Float32Array(p.count*2);
+      const ax=(bb.max.x-bb.min.x)>(bb.max.z-bb.min.z)?"x":"z"; for(let i=0;i<p.count;i++){ const u=ax==="x"?(p.getX(i)-bb.min.x)/(bb.max.x-bb.min.x):(p.getZ(i)-bb.min.z)/(bb.max.z-bb.min.z); uv[i*2]=u; uv[i*2+1]=(p.getY(i)-bb.min.y)/(bb.max.y-bb.min.y) }
+      g.setAttribute("uv",new THREE.BufferAttribute(uv,2)); LBOARD={c,tex,flip:false} } }
   villager(I,-0.3,0.4,{shirt:"#c9502f",hat:"straw",skin:SKINS[1],apron:"#f0e6d2"},"Bäuerin Greta",["Man sagt, im Osten, weit hinter Castaway, hängt ein Nebel, der sich nie verzieht. Dort lebt ein Einsiedler.","Mein Mann hat mal einen Mistwhale gesehen. Im Nebel, nachts. Seitdem angelt er nicht mehr."]);
   villager(I,0.3,0.3,{shirt:"#3a6fb0",hat:"cap",skin:SKINS[3]},"Matrose Jens",["Die Klippen von Castaway sind ein Ring. Ein Schmuggler hat mir erzählt, auf der Rückseite gibt es eine schmale Lücke.","Weit im Süden dreht sich ein riesiger Mahlstrom. Mit dem Hochseeboot und Level 25 kommst du hindurch, in die Zweite See."]);
   villager(I,0.05,0.18,{shirt:"#8a4fb8",hat:"beanie",hatCol:"#3a6fb0",skin:SKINS[0]},"Lotte",["Auf dem Gipfel von Snowcap brennt nachts ein Licht. Wer steigt schon da hoch?","Relikte fängst du manchmal. Am Keepers Altar ganz im Norden verzaubert man damit Ruten."]);
@@ -929,6 +938,17 @@ function buildAsh(I){ const r=rng(I.seed+3); const cy=rawH(I,I.x,I.z);
   const a=I.hutAng+2.1; chest("ash",I.x+Math.cos(a)*I.r*0.2,I.z+Math.sin(a)*I.r*0.2,I.n,3) }
 function buildSpires(I){ const a=I.hutAng+Math.PI*0.9; chest("spires",I.x+Math.cos(a)*I.r*0.4,I.z+Math.sin(a)*I.r*0.4,I.n,3) }
 function buildReefcrown(I){ chest("crown",I.x,I.z,I.n,2); addMesh(new THREE.CylinderGeometry(.2,.3,7,6),stdMat({color:"#6b4428"}),I.x+3,4,I.z+2,0,false) }
+/* ---------- secrets: the ghost ship reef (night only) and nameless sandbars ---------- */
+const GHOSTMAT=new THREE.MeshStandardMaterial({color:"#9ff6ff",emissive:new THREE.Color("#3fd8ff"),emissiveIntensity:1.1,transparent:true,opacity:0.42,depthWrite:false,roughness:.4});
+const GHOSTS=[];
+function ghostify(o){ o.traverse(m=>{ if(m.isMesh){ m.material=GHOSTMAT; m.castShadow=false } }); return o }
+function buildGhost(I){ const a=I.hutAng; const sx=I.x+Math.cos(a)*I.r*1.45, sz=I.z+Math.sin(a)*I.r*1.45;
+  if(hasAsset("boat_sail")){ const ship=ghostify(assetObj("boat_sail",46)); ship.position.set(sx,-1.4,sz); ship.rotation.y=-a; addObj(ship,sx); FLOATERS.push({m:ship,base:-1.4,ph:2,amp:0.5}); GHOSTS.push({o:ship,x:sx,z:sz}) }
+  for(let k=0;k<5;k++){ const l=addMesh(new THREE.SphereGeometry(.45,10,8),glowMat("#8ff6ff",2.6),sx+(Math.random()-.5)*14,6+Math.random()*10,sz+(Math.random()-.5)*14,0,false); FLOATERS.push({m:l,base:l.position.y,ph:k*1.3,amp:1.4}) }
+  const nx=I.x+Math.cos(a)*I.r*0.42, nz=I.z+Math.sin(a)*I.r*0.42; const n=npc({shirt:"#2b3a52",hat:"tricorn",skin:"#cfe8ee",beard:"#dfeef2",pants:"#1a2230"},nx,nz,faceAng(nx,nz,sx,sz),"merchant",I.n,"Kapitän Morrow","rgba(20,80,100,.85)"); ghostify(n.ch.group);
+  chest("ghost",I.x+Math.cos(a+2.4)*I.r*0.3,I.z+Math.sin(a+2.4)*I.r*0.3,I.n,3) }
+function buildSandbar(I){ const r=rng(I.seed+9); for(let k=0;k<3;k++){ const a=r()*6.28, d=I.r*0.18*r(); const x=I.x+Math.cos(a)*d, z=I.z+Math.sin(a)*d; inst(GEO.gpalm?"gpalm":"palm",x,groundAt(x,z)-0.2,z,r()*6,0.85+r()*0.3,1); addCollider(x,z,0.9) }
+  chest("sb-"+I.n,I.x+4,I.z-3,I.n,3); for(let k=0;k<5;k++){ const a=r()*6.28, x=I.x+Math.cos(a)*I.r*0.6, z=I.z+Math.sin(a)*I.r*0.6; inst(GEO.grock1?"grock1":"rock",x,groundAt(x,z)-0.3,z,r()*6,0.6+r()*0.6,1) } }
 function buildWitch(I){ const x=I.x-2, z=I.z+1, y=groundAt(x,z); const parts=[];
   for(let k=0;k<5;k++) parts.push(P(new THREE.CylinderGeometry(3.4-k*0.25,3.6-k*0.25,5,10),k%2?"#4a4058":"#3a3248",Math.sin(k*0.9)*0.5*k*0.3,2.5+k*5,k*0.18,0.02*k,0,0.03*k));
   parts.push(P(new THREE.ConeGeometry(4.4,8,10),"#5a2a8a",0.9,31,0.9,0.08,0,0.1),P(new THREE.BoxGeometry(1.6,2.8,.3),"#1a1420",0,1.4,3.5));
@@ -944,10 +964,10 @@ function decorate(I){
     wreck:[["palm",.25],["gpalm",.15],["dead",.3],["grock1",.3]],cliffring:[["pine",.3],["gpine",.3],["oak",.2],["grock2",.2]],ancient:[["fern",.5],["jungle",.2],["grock3",.15],["rock",.15]],
     reef:[["palm",.5],["gpalm",.5]],jungle:[["jungle",.55],["fern",.3],["gbush",.15]],crystal:[["crystal",.7],["grock2",.3]],brine:[["salt",.7],["dead",.3]],altar:[["crystal",.3],["grock3",.35],["rock",.35]],
     fog:[["fogtree",.7],["dead",.2],["grock1",.1]],harbor:[["oak",.3],["gtree",.2],["bush",.15],["gautumn",.1],["bloom",.25]],reefcrown:[["gcoral",.55],["gpalm",.45]],ash:[["ashrock",.6],["dead",.25],["sparkcrystal",.15]],
-    spires:[["spire",.45],["icicle",.35],["gsnow",.2]],ruins:[["palm",.2],["gpalm",.2],["bush",.3],["fern",.3]],witch:[["fogtree",.6],["mushroom",.25],["dead",.15]]}[b];
+    spires:[["spire",.45],["icicle",.35],["gsnow",.2]],ghost:[["dead",.45],["grock1",.3],["grock3",.25],["rock",.1]],sandbar:[["rock",1]],ruins:[["palm",.2],["gpalm",.2],["bush",.3],["fern",.3]],witch:[["fogtree",.6],["mushroom",.25],["dead",.15]]}[b];
   const T=T0.filter(([t])=>GEO[t]);
   const dens={forest:.0048,tropic:.0035,meadow:.004,desert:.0025,swamp:.004,volcano:.002,snow:.005,wreck:.0025,cliffring:.004,ancient:.0045,reef:.004,jungle:.006,crystal:.004,brine:.003,altar:.003,
-    fog:.006,harbor:.0012,reefcrown:.004,ash:.003,spires:.0032,ruins:.0022,witch:.008}[b];
+    fog:.006,ghost:.004,sandbar:.0003,harbor:.0012,reefcrown:.004,ash:.003,spires:.0032,ruins:.0022,witch:.008}[b];
   const n=Math.round(Math.PI*I.r*I.r*dens*(LOW?0.5:1.25));
   for(let k=0;k<n;k++){ const a=r()*Math.PI*2, d=Math.sqrt(r())*I.r*0.95, x=I.x+Math.cos(a)*d, z=I.z+Math.sin(a)*d; const h=islandH(I,x,z); if(fbm(x*0.005+I.seed,z*0.005,2)<-0.12&&r()<0.85) continue;
     const ringOK = (b==="reef"||b==="reefcrown") ? h>0.8 : h>1.6; if(!ringOK) continue; if(excluded(I,x,z,3)) continue; if(I.pond&&Math.hypot(x-I.pond.x,z-I.pond.z)<I.pond.r+3) continue;

@@ -42,11 +42,25 @@ Im Cloudflare-Dashboard → Workers & Pages → fischerdock → Settings → Dom
 
 ## Gut zu wissen
 
-- **Spielstände** hängen am Browser (anonymer Schlüssel im localStorage). Browserdaten löschen = neuer Spieler.
-- **Spielername**: Jeder bekommt automatisch „Angler-1234“, änderbar unter Spieler → Profil.
-- **Admin**: nur wer im Profil „leif“ als Namen hat und einmal im Chat `/admin code:8283` eingibt. Danach gehen alle Admin-Werkzeuge auch per Chat-Befehl (`/help` zeigt alle). Admin-Spielstände erscheinen nicht in der Rangliste.
-- **Rangliste** wird von den Browsern gemeldet; wer sich auskennt, kann schummeln. Für ein Spiel unter Freunden ist das ok.
+- **Accounts**: Beim Start meldet man sich mit Name und Passwort an oder legt einen Account an. Jeder Name existiert nur einmal (wer zuerst kommt). Der Spielstand liegt auf dem Server, man kann also von jedem Gerät weiterspielen.
+- **Admin**: nur der Account „leif“, nach einmal `/admin code:8283` im Chat. Danach gehen alle Admin-Werkzeuge per Chat-Befehl (beim Tippen von `/` erscheinen Vorschläge, `/help` zeigt alle). Welt-Befehle (Uhrzeit, Wetter, Events, Admin-Wetter) wirken für **alle** Spieler. Admin-Spielstände erscheinen nicht in der Rangliste.
 - Alle Spieler landen in **einer** gemeinsamen Welt. Das reicht locker für einige Dutzend gleichzeitig.
-- Das Spiel aktualisieren: neue `public/index.html` einsetzen, wieder `npx wrangler deploy`.
+- Grafik: Handys starten automatisch in niedriger Qualität; unter Spieler → Profil lässt sich Hoch/Mittel/Niedrig einstellen.
+
+## Spiel ändern (für Entwickler)
+
+Der Quellcode liegt in `dev/src` (core.js = Daten & Regeln, world.js = 3D-Welt, game.js = Spiel & UI, head.html = Oberfläche).
+`python3 dev/build.py` baut daraus `public/index.html`. 3D-Modelle (Blender-Export) liegen in `public/assets`.
+
+## Was ist neu in v3
+
+- Riesige Welt: Inseln 4× größer, ca. 1 Minute Motorboot zwischen Nachbarinseln, echte Meeresweite
+- Fischgebiete wie in Fisch, sichtbar mit dem Fisch-Radar (Story-Belohnung, Taste R)
+- Hunts ohne Kreise: ein riesiger Schatten zieht durch ein Gebiet, dort beißt manchmal der Hunt-Fisch
+- 3 Admin-Wetter für alle (Blutmond, Sternenfall, Leviathans Zorn) mit super seltenen Fischen
+- Seltenheits-Ausrufezeichen mit Animation und Sound, auch bei Mitspielern sichtbar
+- Ruten-Fähigkeiten, Tryhard-Rod-Prüfung, Fisch hochhalten (H)
+- Blender-Modelle für Ruten, Boote, Häuser, Stege, Leuchtturm, Bäume; neue Figuren und Fische
+- Gut versteckte Secrets … (mehr wird nicht verraten)
 
 Inoffizielles Fanprojekt nach dem Roblox-Spiel Fisch, nicht mit dessen Entwicklern verbunden.

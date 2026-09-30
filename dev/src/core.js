@@ -14,6 +14,13 @@ const TOUCH=matchMedia("(pointer:coarse)").matches;
 
 /* ---------- fish: Fisch-wiki data (first sea) + own second-sea fauna ---------- */
 const NEWFISH=[
+  // Geisterriff (secret, only at night)
+  ["Geisterhering","Common","Geisterriff","","","Night","","Worm",1.2,160,0.8,100,80,0,70],
+  ["Nebelmaul","Uncommon","Geisterriff","","","Night","","Minnow",14,320,9,60,60,0,120],
+  ["Laternenrochen","Rare","Geisterriff","","","Night","","Squid",60,1100,40,14,35,0,380],
+  ["Phantomhai","Legendary","Geisterriff","","","Night","","Shark Head",800,6200,300,0.2,10,-35,2600],
+  ["Seelenlaterne","Mythical","Geisterriff","","Foggy","Night","","Geisterköder",40,14000,20,0.03,5,-55,7000],
+  ["Kapitän Morrows Schatten","Secret","Geisterriff","","","Night","","Geisterköder",2500,52000,900,0.12,-20,-80,22000],
   // Nebelinsel (hidden, first sea)
   ["Mist Perch","Common","Nebelinsel","","Foggy","","","Worm",2,95,1.2,100,85,0,45],
   ["Veil Carp","Uncommon","Nebelinsel","","Foggy","","","Bagel",7,200,5,60,65,0,85],
@@ -103,7 +110,7 @@ const MUT=Object.fromEntries(MUTS.map(m=>[m.n,m])); MUT.Shiny={n:"Shiny",v:1.85,
 [["Luminescent",6.5,"#b8ff6a"],["Mother Nature",3,"#6fe37b"],["Solarblaze",3.5,"#ffb23a"],["Brined",3.5,"#9dffcf"],["King's Blessing",5.5,"#ffd24a"],["Atlantean",4,"#2fd0c0"],
  ["Rainbow Cluster",5,"#ff7ad9"],["Oscar",6.4,"#ffe9a0"],["Tryhard",10,"#ff3a3a"],["Blutmond",8,"#ff2a3a"],["Kosmisch",9,"#b58bff"],["Sturmgeboren",7,"#5fd8ff"],
  ["Nebelhauch",4,"#dfe6ee"],["Eiszahn",4.5,"#bfefff"],["Tiefgeboren",5,"#3a6aff"]].forEach(([n,v,col])=>{ MUT[n]={n,v,c:col,special:1} });
-const BAITS=DATA.bait.map(b=>({n:b[0],r:b[1],pl:b[2],ul:b[3],res:b[4],lure:b[5]})); const BAIT=Object.fromEntries(BAITS.map(b=>[b.n,b]));
+const BAITS=DATA.bait.map(b=>({n:b[0],r:b[1],pl:b[2],ul:b[3],res:b[4],lure:b[5]})); BAITS.push({n:"Geisterköder",r:"Mythical",pl:70,ul:90,res:10,lure:25}); const BAIT=Object.fromEntries(BAITS.map(b=>[b.n,b]));
 const RARITY=["Common","Uncommon","Unusual","Rare","Legendary","Mythical","Exotic","Secret","Limited","Apex","Divine"];
 const RCOL={Common:"#dfe6ee",Uncommon:"#7ee07a",Unusual:"#d6ec6a",Rare:"#52a8ff",Legendary:"#ffb23a",Mythical:"#ff5a93",Exotic:"#c78bff",Secret:"#e8e8e8",Limited:"#4a6aff",Apex:"#ff4040",Divine:"#ffd6ff"};
 const RDE={Common:"Gewöhnlich",Uncommon:"Ungewöhnlich",Unusual:"Besonders",Rare:"Selten",Legendary:"Legendär",Mythical:"Mythisch",Exotic:"Exotisch",Secret:"Geheim",Limited:"Limitiert",Apex:"Apex",Divine:"Göttlich"};
@@ -201,6 +208,10 @@ const ISLE=[
   {n:"Frostzinnen",x:SEA2X+1000,z:-3200,r:420,peak:120,biome:"spires",sea:2,d:"Eisnadeln, die in den Himmel stechen."},
   {n:"Atlantische Ruinen",x:SEA2X-2100,z:-2600,r:440,peak:16,biome:"ruins",sea:2,d:"Die versunkene Stadt ragt wieder aus dem Meer."},
   {n:"Hexenturm",x:SEA2X+5200,z:-4200,r:120,peak:12,biome:"witch",sea:2,hidden:1,d:"Ein schiefer Turm am Rand der Welt."},
+  {n:"Geisterriff",x:-6400,z:6900,r:80,peak:6,biome:"ghost",sea:1,hidden:1,d:"Ein Riff, an dem nachts ein Schiff aus Licht ankert."},
+  {n:"Möwenbank",x:2600,z:-8200,r:48,peak:3,biome:"sandbar",sea:1,hidden:1,sandbar:1,d:"Sand, den keine Karte kennt."},
+  {n:"Treibholzbank",x:-8500,z:-2800,r:48,peak:3,biome:"sandbar",sea:1,hidden:1,sandbar:1,d:"Sand, den keine Karte kennt."},
+  {n:"Sonnenbank",x:8200,z:3600,r:48,peak:3,biome:"sandbar",sea:1,hidden:1,sandbar:1,d:"Sand, den keine Karte kennt."},
 ];
 const DEEPZ=[
   {n:"Desolate Deep",x:-2200,z:6200,r:420,col:"#0d2a45",sea:1,d:"Ein finsterer Tiefseegraben."},
@@ -210,7 +221,7 @@ const DEEPZ=[
 ];
 const RAFTS=[{n:"Ocean",x:-600,z:3500},{n:"Sturmsee",x:SEA2X+300,z:-1500}];
 const PORTALS=[{from:1,x:0,z:9500,to:{x:SEA2X-4300,z:400},r:260},{from:2,x:SEA2X-4800,z:300,to:{x:120,z:9000},r:260}];
-const ALL_LOC=[...ISLE.map(i=>i.n),...DEEPZ.map(z=>z.n),"Ocean","Sturmsee",...Object.values(AW_LOC)];
+const ALL_LOC=[...ISLE.filter(i=>!i.sandbar).map(i=>i.n),...DEEPZ.map(z=>z.n),"Ocean","Sturmsee",...Object.values(AW_LOC)];
 const LOCDESC=Object.fromEntries([...ISLE,...DEEPZ].map(i=>[i.n,i.d])); LOCDESC.Ocean="Offenes Meer der ersten See. Hier ziehen Hunts und Wanderungen vorbei."; LOCDESC.Sturmsee="Die offene Zweite See. Stürme und große Räuber."; LOCDESC.Blutmond="Nur während des Blutmonds, überall auf See."; LOCDESC.Sternenfall="Nur während des Sternenfalls, überall auf See."; LOCDESC["Leviathans Zorn"]="Nur während Leviathans Zorn, überall auf See.";
 const SEAOF=l=>{ const i=ISLE.find(x=>x.n===l)||DEEPZ.find(x=>x.n===l); return i?i.sea:(l==="Sturmsee"?2:1) };
 const SEA1_R=10200, SEA2_R=7000;
@@ -237,7 +248,7 @@ const CRATES={
   "Aquatic Tackle Box":{price:900,loc:"The Depths",items:{"Chitin Pellets":33,"Phosphor Jelly":33,"Trench Grubs":33}},
   "Hafenkiste":{price:2500,loc:"Ankerheim",items:{"Night Shrimp":20,"Shark Head":18,"Truffle Worm":14,"Weird Algae":14,"Luminous Larva":10,"Sapphire Krill":12,"Phosphor Jelly":6,"Mist Worms":6}},
 };
-const BAIT_SHOP={"Worm":[8,"Moosewood"],"Bagel":[10,"Moosewood"],"Insect":[10,"Moosewood"],"Flakes":[12,"Moosewood"],"Minnow":[25,"Roslit Bay"],"Shrimp":[25,"Roslit Bay"],"Squid":[40,"Sunstone Island"],"Seaweed":[20,"Terrapin Island"],"Coal":[45,"Roslit Volcano"],"Fish Head":[90,"Forsaken Shores"],"Deep Coral":[140,"Grand Reef"],
+const BAIT_SHOP={"Geisterköder":[900,"Geisterriff"],"Worm":[8,"Moosewood"],"Bagel":[10,"Moosewood"],"Insect":[10,"Moosewood"],"Flakes":[12,"Moosewood"],"Minnow":[25,"Roslit Bay"],"Shrimp":[25,"Roslit Bay"],"Squid":[40,"Sunstone Island"],"Seaweed":[20,"Terrapin Island"],"Coal":[45,"Roslit Volcano"],"Fish Head":[90,"Forsaken Shores"],"Deep Coral":[140,"Grand Reef"],
   "Coral":[160,"Korallenkrone"],"Super Flakes":[180,"Ankerheim"],"Shark Head":[450,"Ankerheim"],"Truffle Worm":[600,"Atlantische Ruinen"],"Night Shrimp":[400,"Frostzinnen"],"Luminous Flakes":[500,"Abgrund der Stille"]};
 const POTIONS={
   luck:{n:"Glückstrank",d:"Glück +60 % für 5 Minuten",price:2500,min:5,val:60,col:"#6fe37b"},
@@ -301,7 +312,7 @@ function world(now=nowMs()){ const real=now; now+=GW.off||0;
 
 /* ---------- save state ---------- */
 let SAVE_KEY="fischerdock-v3-guest"; const SAVE_V=5;
-function freshState(){return{v:SAVE_V,money:100,xp:0,rods:["Flimsy Rod"],rod:"Flimsy Rod",bait:{Worm:5},baitEq:"Worm",fish:[],dex:{},dexLoc:{},bag:0,boat:0,bell:false,radar:false,
+function freshState(){return{v:SAVE_V,money:100,xp:0,rods:["Flimsy Rod"],rod:"Flimsy Rod",bait:{Worm:5},baitEq:"Worm",fish:[],dex:{},dexLoc:{},bag:0,boat:0,bell:false,radar:false,bottle:null,
   story:0,bounties:[],bountyDone:0,visited:{Moosewood:1},dexRewards:{},relics:0,ench:{},mastery:{},buffs:{},tmap:null,chests:{},found:{},lq:{},titles:[],title:"",
   stats:{earned:0,caught:0,perfect:0,bestV:0,bestN:"",streak:0,bestStreak:0,snaps:0,sold:0,shadow:0,event:0,rarest:0,reef:0,chests:0,enchants:0,digs:0,foggy:0,nightLeg:0,exoticPlus:0,snowCaught:0,frozen:0},
   pos:null,nick:"",savedAt:0,settings:{music:true,sfx:true,radar:true}}}
@@ -394,7 +405,7 @@ const STORY=[
   {t:"Event-Jäger",d:"Fange einen Hunt-Fisch. Hunts ziehen durch ein Gebiet auf der Karte; wer dort angelt, hat manchmal Glück.",goal:1,prog:()=>S.stats.event,rw:{c:6000}},
   {t:"Hinab in die Tiefe",d:"Kaufe die Tauchglocke in der Werft (ab Level 20).",goal:1,prog:()=>S.bell?1:0,rw:{c:5000}},
   {t:"Der tiefe Grund",d:"Fange einen Fisch in The Depths.",goal:1,prog:()=>S.dexLoc["The Depths"]?1:0,rw:{c:10000,relic:2}},
-  {t:"Gerüchte",d:"Irgendwo leben drei verborgene Meister: im Nebel ganz im Osten, in einer Lagune hinter Klippen, auf einem eisigen Gipfel. Finde einen von ihnen.",goal:1,prog:()=>Object.keys(S.found).length?1:0,rw:{c:8000,relic:1}},
+  {t:"Gerüchte",d:"Die Leute im Hafen erzählen von Meistern, die sich vor der Welt verstecken. Hör dich um, schau dort, wo sonst keiner hinschaut. Finde einen von ihnen.",goal:1,prog:()=>Object.keys(S.found).length?1:0,rw:{c:8000,relic:1}},
   {t:"Die Zweite See",d:"Erreiche Level 25 und fahre mit dem Hochseeboot in den Mahlstrom weit im Süden.",goal:1,prog:()=>S.visited["Ankerheim"]?1:0,rw:{c:25000,relic:2}},
   {t:"Neue Gewässer",d:"Entdecke 12 Arten in der Zweiten See.",goal:12,prog:secondSeaSpecies,rw:{c:40000}},
   {t:"Legende der Meere",d:"Erhalte eine legendäre Rute von einem der verborgenen Meister.",goal:1,prog:()=>["aldo","mara","tenzin","ysolde"].filter(lqDone).length,rw:{c:100000,relic:3}},

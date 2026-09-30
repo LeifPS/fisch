@@ -210,7 +210,7 @@ function travelTo(x,z,boat){ portalUntil=performance.now()+3000; bannerLock=perf
   if(sea!==prevSea) banner(sea===2?"Die Zweite See":"Die Erste See",sea===2?"Stürmischer, tiefer, reicher. Ankerheim liegt im Osten.":"Willkommen zurück. Moosewood liegt im Norden."); pushPresence(true) }
 function updateSeaVis(){ SEAG[1].visible=curSea===1; SEAG[2].visible=curSea===2; setWaterZones(curSea) }
 /* stream terrain detail + height map around a new position right away (teleports, boot) */
-function warmWorld(x,z){ fineTilesAround(x,z,LOW?260:380); updateHMap(x,z,true) }
+function warmWorld(x,z){ fineTilesAround(x,z,LOW?260:380); updateHMap(x,z,true); if(typeof cullIslands==="function") cullIslands() }
 
 /* ---------- fish areas: like Fisch, most fish live in their own patch of water. The Fish Radar makes them visible. ---------- */
 const AREAS=[], AREA_LOC={};
@@ -445,7 +445,8 @@ function catchFish(){
   const dbl=(AB.dbl&&Math.random()<AB.dbl)||(AB.dblNight&&!W.day&&Math.random()<AB.dblNight);
   if(dbl&&S.fish.length<bagCap()){ const it2=makeItem(f,rollWeight(f,G.fx.weight||0),ctx,G,bonus); S.fish.push(it2); S.stats.caught++; d.c++; setTimeout(()=>{ toast(`Doppelfang! Noch ein ${fishLabel(it2)} (${fmtKg(it2.w)})`,"#cfd8e3"); SFX.coin() },900) }
   // relics & treasure maps
-  if(Math.random()<(ri>=4?0.08:0.009)){ S.relics++; setTimeout(()=>{ bigMsg("Enchant-Relikt!","Am Altar kannst du damit eine Rute verzaubern.","#8fe8ff"); SFX.relic() },2400) }
+  if(!S.bottle&&Math.random()<0.007&&ISL.some(I=>I.sandbar&&!S.visited[I.n])){ const cand=ISL.filter(I=>I.sandbar&&!S.visited[I.n]); S.bottle=cand[Math.floor(Math.random()*cand.length)].n; setTimeout(()=>{ bigMsg("Flaschenpost!",bottleRiddle(S.bottle),"#bfe6ff"); SFX.quest(); addChat("Flaschenpost",bottleRiddle(S.bottle),false) },2600) }
+  else if(Math.random()<(ri>=4?0.08:0.009)){ S.relics++; setTimeout(()=>{ bigMsg("Enchant-Relikt!","Am Altar kannst du damit eine Rute verzaubern.","#8fe8ff"); SFX.relic() },2400) }
   else if(!S.tmap&&Math.random()<0.014+(AB.tmap||0)){ const m=makeTreasureMap(); if(m){ S.tmap=m; setTimeout(()=>{ bigMsg("Schatzkarte!",`Irgendwo auf ${m.loc} ist etwas vergraben. Folge dem roten Strahl.`,"#ff8a6a"); SFX.quest() },2400) } }
   roredTrack("catch",{f,rod,R});
   if(SEAOF(f.l)&&Object.values(AW_LOC).includes(f.l)&&ri>=6) setTimeout(()=>bigMsg(f.r==="Divine"?"GÖTTLICH!!!":"UNGLAUBLICH!",`${fishLabel(it)} aus dem ${f.l}`,RCOL[f.r]),1600);
@@ -543,7 +544,8 @@ function fishRow(it,actions){ const f=FISHBY[it.n], v=fishValue(it); const row=d
 function sellFish(filter){ let v=0,n=0; S.fish=S.fish.filter(it=>{ if(filter(it)){ v+=fishValue(it); n++; return false } return true }); if(!n) return 0; S.money+=v; S.stats.earned+=v; S.stats.sold+=n; markDirty(); boardDirty=true; refreshHUD(); SFX.coin(); checkStory(); return v }
 function panelBag(body){ $("sheetTitle").textContent="Rucksack"; setTabs([],null); const total=S.fish.reduce((s,it)=>s+fishValue(it),0);
   const bf=Object.entries(POTIONS).filter(([k])=>buffActive(k)).map(([k,p])=>`${p.n} (${Math.ceil((S.buffs[k]-Date.now())/60000)} min)`);
-  body.insertAdjacentHTML("beforeend",`<div class="row chips"><span class="chip">Enchant-Relikte <b>${S.relics}</b></span><span class="chip">Schatzkarte <b>${S.tmap?esc(S.tmap.loc):"keine"}</b></span>${bf.map(x=>`<span class="chip good">${esc(x)}</span>`).join("")}</div>`);
+  body.insertAdjacentHTML("beforeend",`<div class="row chips"><span class="chip">Enchant-Relikte <b>${S.relics}</b></span><span class="chip">Schatzkarte <b>${S.tmap?esc(S.tmap.loc):"keine"}</b></span>${S.bottle?`<span class="chip good" title="${esc(bottleRiddle(S.bottle))}">Flaschenpost <b>1</b></span>`:""}${bf.map(x=>`<span class="chip good">${esc(x)}</span>`).join("")}</div>`);
+  if(S.bottle) body.insertAdjacentHTML("beforeend",`<p class="note" style="color:#bfe6ff;font-style:italic">Flaschenpost: ${esc(bottleRiddle(S.bottle))}</p>`);
   body.insertAdjacentHTML("beforeend",`<p class="note">Mit „Hochhalten“ (oder Taste H) zeigst du allen Spielern einen Fisch. ${S.fish.length}/${bagCap()} Fische · Wert <b style="color:var(--cash)">${fmt(total)} C$</b>. Verkaufen kannst du bei jedem Händler (Stand am Steg jeder Insel, Flöße auf dem Meer). Mit ★ markierte Fische werden nicht mitverkauft.</p>`);
   if(!S.fish.length) body.insertAdjacentHTML("beforeend",`<p class="note">Noch leer.</p>`);
   [...S.fish].sort((a,b)=>fishValue(b)-fishValue(a)).forEach(it=>body.appendChild(fishRow(it,act=>{ const b=document.createElement("button"); b.className="btn "+(holdIt===it?"":"alt"); b.textContent=holdIt===it?"Ablegen":"Hochhalten"; b.title="Allen zeigen (Taste H)"; b.onclick=()=>{ if(holdIt===it) setHold(null); else { if(F.state!=="idle") return; setHold(it); closeModal() } renderPanel() }; act.appendChild(b) }))) }
@@ -673,7 +675,7 @@ function drawMini(){ const size=336, c=miniCtx, range=pl.boat?1500:700, sc=size/
   if(S.tmap){ c.strokeStyle="#ff3a2a"; c.lineWidth=5; const x=clamp(tx(S.tmap.x),10,size-10), y=clamp(tz(S.tmap.z),10,size-10); c.beginPath(); c.moveTo(x-9,y-9); c.lineTo(x+9,y+9); c.moveTo(x+9,y-9); c.lineTo(x-9,y+9); c.stroke() }
   if(radarOn()) for(const a of AREA_LOC[locationAt(pl.x,pl.z)]||[]){ if(!a.fish.length||a.fresh) continue; c.fillStyle=areaColor(a)+"66"; c.beginPath(); c.ellipse(tx(a.x),tz(a.z),a.r*sc,a.r*sc/a.asp,0,0,7); c.fill() }
   if(EZ&&seaAt(EZ.x)===curSea){ c.setLineDash([7,6]); c.fillStyle="rgba(255,90,60,.16)"; c.strokeStyle="#ff7b54"; c.lineWidth=3; c.beginPath(); c.arc(tx(EZ.x),tz(EZ.z),EZ.r*sc,0,7); c.fill(); c.stroke(); c.setLineDash([]) }
-  for(const n of NPCS){ if(n.type==="villager") continue; c.fillStyle={merchant:"#ffd24a",shipwright:"#5fd8ff",appraiser:"#c78bff",alchemist:"#6fe37b",altar:"#8fe8ff",lq:"#ff8a3a"}[n.type]||"#fff"; c.beginPath(); c.arc(tx(n.x),tz(n.z),n.type==="lq"?7:5,0,7); c.fill() }
+  for(const n of NPCS){ if(n.type==="villager") continue; { const I=ISLBY[n.loc]; if(I&&I.hidden&&!(ISG[I.n]&&ISG[I.n].visible)) continue } c.fillStyle={merchant:"#ffd24a",shipwright:"#5fd8ff",appraiser:"#c78bff",alchemist:"#6fe37b",altar:"#8fe8ff",lq:"#ff8a3a"}[n.type]||"#fff"; c.beginPath(); c.arc(tx(n.x),tz(n.z),n.type==="lq"?7:5,0,7); c.fill() }
   for(const p of peers){ if(p.sameTab) continue; const pr=p.presence||{}; if(typeof pr.x!=="number"||seaAt(pr.x)!==curSea) continue; c.fillStyle=typeof pr.col==="string"?pr.col:"#f90"; c.strokeStyle="#fff"; c.lineWidth=2; c.beginPath(); c.arc(tx(pr.x),tz(pr.z),7,0,7); c.fill(); c.stroke() }
   c.translate(size/2,size/2); c.rotate(Math.PI-pl.ry); c.fillStyle="#ffd24a"; c.strokeStyle="#000"; c.lineWidth=3; c.beginPath(); c.moveTo(0,-16); c.lineTo(11,11); c.lineTo(0,5); c.lineTo(-11,11); c.closePath(); c.fill(); c.stroke(); c.restore() }
 $("mini").addEventListener("click",()=>openModal("map")); $("radarBtn").addEventListener("click",e=>{ e.stopPropagation(); toggleRadar() });
@@ -833,7 +835,7 @@ async function initMultiplayer(){
   FDNET.onSys((text,by)=>{ addChat(by||"Admin",text,false); bigMsg(by?`${by}:`:"Ansage",text,"#ff8a3a"); SFX.quest() });
   FDNET.onAdmin((ok,fromHello)=>{ if(!fromHello){ if(ok){ S.admin=true; SFX.quest(); sysMsg("Admin-Modus aktiv. Tippe / im Chat für alle Befehle. Globale Befehle (Zeit, Wetter, Events, Admin-Wetter) gelten für alle. Dein Account ist jetzt aus der Rangliste ausgeblendet.") } else if(isLeif()&&!S.admin) sysMsg("Falscher Code.","#ff9a6a") } else S.admin=ok; updateAdminUI(); markDirty() });
   if(room){ joinedAt=Date.now(); room.onPeers(onPeersChange,()=>{ room=null; $("netdot").style.background="#7f93ab" }); room.onConnection(c=>{ $("netdot").style.background=c?"#6fe37b":"#ffb35a" }); pushPresence(true) }
-  if(db){ try{ db.collection("board").orderBy("earned","desc").limit(50).onSnapshot(s=>{ board=s.docs.map(x=>({id:x.id,...x.data()})); resolveNames(); if(panel==="players"&&panelTab==="board") renderPanel() },()=>{}) }catch(e){}
+  if(db){ try{ db.collection("board").orderBy("earned","desc").limit(50).onSnapshot(s=>{ board=s.docs.map(x=>({id:x.id,...x.data()})); resolveNames(); drawBoard3D(); if(panel==="players"&&panelTab==="board") renderPanel() },()=>{}) }catch(e){}
     if(myId){ try{ const snap=await db.doc(`data/users/${myId}/save`).get(); if(snap.exists){ const o=snap.data(); if(o&&typeof o.json==="string"){ const cloud=JSON.parse(o.json);
         if(cloud&&cloud.v===SAVE_V&&(cloud.savedAt||0)>(S.savedAt||0)&&F.state==="idle"){ S=loadSave(cloud); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)) }catch(e){}
           S.nick=FDNET.me.name; if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); curSea=seaAt(pl.x); updateSeaVis() } syncChests(); setRodLook(me,S.rod); colorBobber(bobber,S.rod); refreshHUD(); renderQuests(); toast("Cloud-Spielstand geladen","#8fd3ff"); pushPresence(true) } } } }catch(e){}
@@ -922,7 +924,27 @@ function placeCrabs(I){ crabIsl=I; const r=rng((Date.now()/60000|0)+I.seed); for
 const dolGeo=merge([P(new THREE.SphereGeometry(1,14,10),"#7d8fa3",0,0,0,0,0,0,2.4,0.75,0.75),P(new THREE.ConeGeometry(.5,1.2,4),"#6b7d91",-0.2,0.9,0,0,0,-0.35,1,1,0.3),P(new THREE.ConeGeometry(.9,1.2,4),"#6b7d91",-2.6,0,0,0,0,Math.PI/2,1,1,0.25),P(new THREE.SphereGeometry(.55,10,8),"#c9d4de",0.6,-0.35,0,0,0,0,2.4,0.5,0.9),P(new THREE.ConeGeometry(.3,1,6),"#7d8fa3",2.7,-0.1,0,0,0,-Math.PI/2)]);
 const DOLS=[0,1,2].map(i=>{ const m=new THREE.Mesh(dolGeo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.35})); m.visible=false; scene.add(m); return {m,side:i===0?-1:1,off:i*2.2,ph:i*1.7,on:0} });
 const jumpers=[]; let jumpT=3; const jumpMeshes=["Anchovy","Sardine","Mackerel","Salmon","Herring","Bream"].map(n=>FISHBY[n]?n:null).filter(Boolean).concat(FISH.filter(f=>f.r==="Common").slice(0,3).map(f=>f.n)).slice(0,4).map(n=>{ const m=makeFishMesh(n,""); m.visible=false; m.scale.setScalar(0.9); scene.add(m); return m });
-function updateLife(dt,t,W){
+/* ---------- secrets: message in a bottle → nameless sandbars ---------- */
+const DIRDE=["Norden","Nordosten","Osten","Südosten","Süden","Südwesten","Westen","Nordwesten"];
+function bottleRiddle(n){ const B=ISLBY[n]; if(!B) return ""; const I=ISL.filter(x=>!x.hidden&&x.sea===B.sea).reduce((a,b)=>Math.hypot(a.x-B.x,a.z-B.z)<Math.hypot(b.x-B.x,b.z-B.z)?a:b);
+  const ang=Math.atan2(B.x-I.x,-(B.z-I.z)); const dir=DIRDE[((Math.round(ang/(Math.PI/4))%8)+8)%8]; const mins=Math.max(1,Math.round((Math.hypot(B.x-I.x,B.z-I.z)-I.r)/40/60*2)/2);
+  return `„Von ${I.n} aus Richtung ${dir}, gut ${String(mins).replace(".",",")} Minuten mit dem Motorboot. Drei Palmen, kein Name, eine Truhe.“` }
+function findSandbar(I){ S.visited[I.n]=1; if(S.bottle===I.n) S.bottle=null; gainXP(900); markDirty(); banner(I.n,"Eine namenlose Sandbank. Hier war lange niemand mehr. · +900 XP"); SFX.quest(); flash("#ffffff55") }
+/* ---------- 3D leaderboard on Moosewood's harbour ---------- */
+function drawBoard3D(){ if(!LBOARD) return; const c=LBOARD.c, x=c.getContext("2d"), W=c.width, H=c.height; x.fillStyle="#1d2a24"; x.fillRect(0,0,W,H);
+  x.fillStyle="rgba(255,255,255,.04)"; for(let i=0;i<40;i++) x.fillRect(Math.random()*W,Math.random()*H,Math.random()*120,2);
+  x.textBaseline="middle"; x.fillStyle="#ffd24a"; x.font="700 58px Fredoka, sans-serif"; x.textAlign="center"; x.fillText("Beste Angler",W/2,56);
+  x.font="700 34px Fredoka, sans-serif"; const rows=[...board].sort((a,b)=>(b.earned||0)-(a.earned||0)).slice(0,8);
+  rows.forEach((r,i)=>{ const y=128+i*62; x.textAlign="left"; x.fillStyle=i===0?"#ffd24a":i===1?"#dfe6ee":i===2?"#e8a060":"#eaf2ea"; x.fillText(`${i+1}. ${String(names[r.id]||r.nick||"Fischer").slice(0,16)}`,34,y);
+    x.textAlign="right"; x.fillStyle="#9fe8a0"; x.fillText(`${fmt(+r.earned||0)} C$`,W-34,y); x.fillStyle="rgba(255,255,255,.12)"; x.fillRect(34,y+28,W-68,2) });
+  if(!rows.length){ x.textAlign="center"; x.fillStyle="#cfe0d4"; x.fillText("Noch leer – fang den ersten Fisch!",W/2,H/2) } LBOARD.tex.needsUpdate=true }
+/* ---------- whales breaching far out on the open sea ---------- */
+const WHALE={m:null,t:0,next:25,x:0,z:0,a:0};
+function updateWhale(dt,t){ const open=(lastLoc==="Ocean"||lastLoc==="Sturmsee"); WHALE.next-=dt; if(!WHALE.m&&FISHBY["Humpback Whale"]){ WHALE.m=makeFishMesh("Humpback Whale",""); WHALE.m.scale.setScalar(26); WHALE.m.visible=false; scene.add(WHALE.m) }
+  if(!WHALE.m) return; if(WHALE.t<=0&&WHALE.next<=0&&open){ WHALE.next=30+Math.random()*50; const a=Math.random()*6.28, d=260+Math.random()*420; WHALE.x=pl.x+Math.cos(a)*d; WHALE.z=pl.z+Math.sin(a)*d; if(terrainAt(WHALE.x,WHALE.z)>-8) return; WHALE.a=Math.random()*6.28; WHALE.t=0.001; WHALE.m.visible=true; splashFX(WHALE.x,0.3,WHALE.z,40,2.5) }
+  if(WHALE.t>0){ WHALE.t+=dt/3.2; const q=Math.min(1,WHALE.t); const y=Math.sin(q*Math.PI)*22-14; WHALE.m.position.set(WHALE.x+Math.cos(WHALE.a)*q*30,y,WHALE.z+Math.sin(WHALE.a)*q*30); WHALE.m.rotation.set(0,-WHALE.a,(0.5-q)*1.8+0.3);
+    if(q>0.72&&!WHALE.sp){ WHALE.sp=1; splashFX(WHALE.m.position.x,0.4,WHALE.m.position.z,80,4); SFX.splash(0.4) } if(q>=1){ WHALE.t=0; WHALE.sp=0; WHALE.m.visible=false } } }
+function updateLife(dt,t,W){ updateWhale(dt,t);
   // villagers & NPC attention
   for(const n of NPCS){ const dp=Math.hypot(n.x-pl.x,n.z-pl.z); if(dp>240||seaAt(n.x)!==curSea) continue;
     if(n.type!=="villager"){ if(dp<10){ const want=Math.atan2(pl.x-n.x,pl.z-n.z); let d=want-n.ch.group.rotation.y; d=Math.atan2(Math.sin(d),Math.cos(d)); n.ch.group.rotation.y+=d*clamp(dt*4,0,1) } n.ch.head.rotation.y=Math.sin(t*0.7+n.x)*0.15; continue }
@@ -959,7 +981,7 @@ function updateLife(dt,t,W){
   for(const s of SPINNERS) s.o.rotation.z+=s.sp*dt*(W.weather==="Windy"?3:1);
   for(const p of PORTAL_FX){ p.ring.rotation.z+=dt*0.4; if(p.Pt.from===curSea&&Math.hypot(p.Pt.x-pl.x,p.Pt.z-pl.z)<700&&Math.random()<dt*30){ const a=Math.random()*6.28, r=p.Pt.r*(0.3+Math.random()*0.7); GLOW.emit(p.Pt.x+Math.cos(a)*r,0.6,p.Pt.z+Math.sin(a)*r,-Math.sin(a)*6,6+Math.random()*10,Math.cos(a)*6,2,1.4,p.Pt.from===1?"#9fe8ff":"#ffd28a",-1,0.2) } }
   for(const c of CHESTS){ if(c.opening!==null&&c.opening!==undefined&&c.opening<1.2){ c.opening+=dt*1.4; c.lid.rotation.x=-1.9*smooth(Math.min(1,c.opening)); c.glow.visible=c.opening<1.15; if(Math.random()<dt*30) GLOW.emit(c.x,c.y+1.2,c.z,(Math.random()-.5)*2,3+Math.random()*3,(Math.random()-.5)*2,1,0.8,"#ffe27a",-2) }
-    else if(!S.chests[c.id]&&Math.abs(c.x-pl.x)<60&&Math.abs(c.z-pl.z)<60&&Math.random()<dt*2) GLOW.emit(c.x+(Math.random()-.5)*2,c.y+1.4,c.z+(Math.random()-.5)*2,0,1,0,1,0.5,"#ffe27a",-0.3) }
+    else if(c.tier<2&&!S.chests[c.id]&&Math.abs(c.x-pl.x)<60&&Math.abs(c.z-pl.z)<60&&Math.random()<dt*2) GLOW.emit(c.x+(Math.random()-.5)*2,c.y+1.4,c.z+(Math.random()-.5)*2,0,1,0,1,0.5,"#ffe27a",-0.3) }
   // treasure map marker
   const tm=S.tmap&&seaAt(S.tmap.x)===curSea; digBeam.visible=digX.visible=!!tm; if(tm){ const gy=groundAt(S.tmap.x,S.tmap.z); digBeam.position.set(S.tmap.x,gy+130,S.tmap.z); digX.position.set(S.tmap.x,gy+0.12,S.tmap.z); digBeam.material.opacity=0.16+Math.sin(t*3)*0.06 }
 }
@@ -1160,9 +1182,11 @@ addEventListener("keydown",e=>{ if(e.key==="F9"&&adminOn()&&!typing()){ e.preven
   let n=0; const loop=()=>{ n++; requestAnimationFrame(loop) }; requestAnimationFrame(loop); setInterval(()=>{ el.style.display=ADM.fps?"block":"none"; if(ADM.fps) el.textContent=`${n} FPS · ${renderer.info.render.calls} Draw Calls · ${Math.round(pl.x)}, ${Math.round(pl.z)}`; n=0 },1000) }
 /* ---------- main loop ---------- */
 let boltTimer=3, lightFlash=0, hemiBase=1;
-let tileT=0; const DETAIL_R=LOW?2200:3400;
+let tileT=0, DETAIL_R=LOW?2200:3400;
 function cullIslands(){ for(const I of ISL){ const g=ISG[I.n]; if(!g) continue; const d=Math.hypot(I.x-pl.x,I.z-pl.z)-I.r; let v=I.sea===curSea&&d<DETAIL_R;
-    if(I.hidden) v=v&&(S.visited[I.n]||d<(I.n==="Nebelinsel"?420:600)); g.visible=v } lodIslands(pl.x,pl.z); for(const n of NPCS){ const d=Math.hypot(n.x-pl.x,n.z-pl.z); n.ch.group.visible=d<(LOW?220:380) } }
+    if(I.hidden){ const W=world(); if(I.n==="Nebelinsel") v=v&&(!!S.visited[I.n]||(d<440&&(W.weather==="Foggy"||!W.day)));
+      else if(I.biome==="ghost") v=v&&!W.day&&d<(S.visited[I.n]?2600:1300); else v=v&&(!!S.visited[I.n]||d<(I.sandbar?560:600));
+      if(I.sandbar&&!S.visited[I.n]&&d<I.r*0.3) findSandbar(I) } g.visible=v } lodIslands(pl.x,pl.z); for(const n of NPCS){ const d=Math.hypot(n.x-pl.x,n.z-pl.z); n.ch.group.visible=d<(LOW?220:380) } }
 let lastT=performance.now(), T0=performance.now(), hudT=0, miniT=0, skyT=0, presT=0, hintT=0;
 const tipV=new THREE.Vector3(), camTarget=new THREE.Vector3();
 function frame(now){
@@ -1231,7 +1255,7 @@ function frame(now){
 /* ---------- adaptive quality ---------- */
 const PERF={n:0,t:0,stage:0,started:false};
 function setQuality(level){ // 2 high, 1 medium, 0 low
-  S.settings.q=level; if(level<2){ composer=null; renderer.shadowMap.enabled=false; sun.castShadow=false; renderer.setPixelRatio(Math.min(devicePixelRatio||1,level===1?1.25:1)); resizeGL() }
+  S.settings.q=level; DETAIL_R=level===0?1500:level===1?2400:3400; FINE_R=level===0?420:level===1?560:760; if(level<2){ composer=null; renderer.shadowMap.enabled=false; sun.castShadow=false; renderer.setPixelRatio(Math.min(devicePixelRatio||1,level===1?1.25:1)); resizeGL() }
   if(level===2&&!LOW){ location.reload() }
   for(const gm of Object.values(GRASS)) if(gm) gm.visible=level>0; markDirty() }
 function perfCheck(dt){ if(!PERF.started||S.settings.qLocked) return; PERF.n++; PERF.t+=dt; if(PERF.t<4) return; const fps=PERF.n/PERF.t; PERF.n=0; PERF.t=0;
@@ -1258,7 +1282,7 @@ async function boot(){
   await accountGate(lt,lb);
   setRodLook(me,S.rod); colorBobber(bobber,S.rod);
   if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); cam.yaw=pl.ry } else spawnHome();
-  genAreas(); updateRadarUI(); makeMyBoats(); setRodLook(me,S.rod);
+  genAreas(); updateRadarUI(); makeMyBoats(); setRodLook(me,S.rod); drawBoard3D();
   curSea=seaAt(pl.x); updateSeaVis(); warmWorld(pl.x,pl.z); cullIslands(); syncChests(); updateAdminUI();
   ensureBounties(locationAt(pl.x,pl.z)); refreshHUD(); renderQuests(); updateSky();
   cam.x=pl.x-Math.sin(cam.yaw)*20; cam.z=pl.z-Math.cos(cam.yaw)*20; cam.y=pl.y+10;
@@ -1271,4 +1295,4 @@ async function boot(){
 }
 boot().catch(e=>{ const el=$("loaderr"); el.style.display="block"; el.textContent="Fehler: "+e.message; console.error(e) });
 
-if(/[?&]debug\b/.test(location.search)) window.__fd={ASSETS,TSTAT,cullIslands,updateTiles,AREAS,eventZone,renderer,ISG,doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
+if(/[?&]debug\b/.test(location.search)) window.__fd={ASSETS,terrainAt,ISG,TSTAT,cullIslands,updateTiles,AREAS,eventZone,renderer,ISG,doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
