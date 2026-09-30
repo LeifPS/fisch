@@ -199,6 +199,9 @@ table.lb td.n{text-align:right}
 .pbar{height:8px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden}
 .pbar i{display:block;height:100%;background:var(--good)}
 .rar{font-family:var(--display);font-weight:600;font-size:12px;letter-spacing:.4px}
+.rar.dv{background:linear-gradient(90deg,#fff,#ffb8f0,#fff3a0,#fff);-webkit-background-clip:text;background-clip:text;color:transparent!important;text-shadow:0 0 8px rgba(255,200,255,.6)}
+.rar.sc{text-shadow:0 0 6px rgba(255,255,255,.7),1px 0 0 rgba(255,0,80,.6),-1px 0 0 rgba(0,220,255,.6)}
+.abil{color:#ffe9a0!important;background:rgba(255,210,74,.08);border-radius:8px;padding:4px 7px;margin:4px 0}
 .ex{background:linear-gradient(90deg,#ff6b6b,#ffd36b,#7dff8a,#6bd6ff,#c78bff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .fishrow{display:grid;grid-template-columns:70px 1fr auto;gap:10px;align-items:center;background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:12px;padding:6px 8px}
 .fishrow canvas{width:70px;height:40px}
@@ -573,17 +576,35 @@ const NEWFISH=[
   ["Pale Leviathan","Legendary","Abgrund der Stille","","","Night","","Shark Head",5000,7400,2000,0.1,5,-50,3000],
   ["The Unseen","Secret","Abgrund der Stille","","","Night","","Phosphor Jelly",900,48000,300,0.12,-20,-75,20000],
   ["Abyssal Sovereign","Exotic","Abgrund der Stille","","","Night","","Shark Head",80000,150000,20000,3,-60,-85,40000,1],
+  // admin weathers: only while the weather is active, anywhere on the sea. Super rare, super hard.
+  ["Blutmond-Karpfen","Legendary","Blutmond","","","","","Worm",38,9500,18,60,5,-35,3200],
+  ["Karmesin-Aal","Mythical","Blutmond","","","","","Squid",70,18500,35,25,-10,-55,5600],
+  ["Vampirhai","Exotic","Blutmond","","","","","Shark Head",1100,46000,450,8,-35,-72,13000],
+  ["Blutmond-Leviathan","Divine","Blutmond","","","","","",30000,260000,12000,1,-80,-86,64000],
+  ["Sternenschuppe","Legendary","Sternenfall","","","","","Flakes",6,9800,3,60,15,-30,3200],
+  ["Kometenrochen","Mythical","Sternenfall","","","","","Shrimp",220,19500,100,25,-5,-55,5800],
+  ["Nebula-Qualle","Exotic","Sternenfall","","","","","Luminous Flakes",40,48000,20,8,-30,-72,13500],
+  ["Sternenwal","Divine","Sternenfall","","","","","",120000,280000,60000,1,-85,-87,66000],
+  ["Sturmbrecher","Legendary","Leviathans Zorn","","","","","Minnow",180,9200,90,60,0,-35,3200],
+  ["Blitzmuräne","Mythical","Leviathans Zorn","","","","","Night Shrimp",45,19000,22,25,-15,-58,5700],
+  ["Donnerschlund","Exotic","Leviathans Zorn","","","","","Shark Head",4000,47000,1800,8,-40,-74,13200],
+  ["Leviathan des Zorns","Divine","Leviathans Zorn","","","","","",400000,300000,150000,1,-90,-88,70000],
 ];
+const AW_LOC={blood:"Blutmond",star:"Sternenfall",storm:"Leviathans Zorn"};
 const FISH=DATA.fish.concat(NEWFISH).map(f=>({n:f[0],r:f[1],l:f[2],sub:f[3],w:split(f[4]),t:f[5],s:split(f[6]),b:split(f[7]),bw:f[8],bv:f[9],wr:f[10],c:f[11],res:f[12],ps:f[13],xp:f[14],hard:!!f[15]}));
 const FISHBY=Object.fromEntries(FISH.map(f=>[f.n,f]));
 const MUTS=DATA.muts.map(m=>({n:m[0],v:m[1],w:m[2],c:m[3]}));
 const MUT=Object.fromEntries(MUTS.map(m=>[m.n,m])); MUT.Shiny={n:"Shiny",v:1.85,c:"#fff0bc"}; MUT.Sparkling={n:"Sparkling",v:1.85,c:"#fff0bc"}; MUT.Aurora={n:"Aurora",v:6.5,c:"#8affc9"};
+// mutations from rod abilities, admin weathers and secrets (not rolled randomly)
+[["Luminescent",6.5,"#b8ff6a"],["Mother Nature",3,"#6fe37b"],["Solarblaze",3.5,"#ffb23a"],["Brined",3.5,"#9dffcf"],["King's Blessing",5.5,"#ffd24a"],["Atlantean",4,"#2fd0c0"],
+ ["Rainbow Cluster",5,"#ff7ad9"],["Oscar",6.4,"#ffe9a0"],["Tryhard",10,"#ff3a3a"],["Blutmond",8,"#ff2a3a"],["Kosmisch",9,"#b58bff"],["Sturmgeboren",7,"#5fd8ff"],
+ ["Nebelhauch",4,"#dfe6ee"],["Eiszahn",4.5,"#bfefff"],["Tiefgeboren",5,"#3a6aff"]].forEach(([n,v,col])=>{ MUT[n]={n,v,c:col,special:1} });
 const BAITS=DATA.bait.map(b=>({n:b[0],r:b[1],pl:b[2],ul:b[3],res:b[4],lure:b[5]})); const BAIT=Object.fromEntries(BAITS.map(b=>[b.n,b]));
-const RARITY=["Common","Uncommon","Unusual","Rare","Legendary","Mythical","Exotic","Secret","Limited","Apex"];
-const RCOL={Common:"#dfe6ee",Uncommon:"#7ee07a",Unusual:"#d6ec6a",Rare:"#52a8ff",Legendary:"#ffb23a",Mythical:"#ff5a93",Exotic:"#c78bff",Secret:"#39f3d2",Limited:"#b98cff",Apex:"#ff4040"};
-const RDE={Common:"Gewöhnlich",Uncommon:"Ungewöhnlich",Unusual:"Besonders",Rare:"Selten",Legendary:"Legendär",Mythical:"Mythisch",Exotic:"Exotisch",Secret:"Geheim",Limited:"Limitiert",Apex:"Apex"};
+const RARITY=["Common","Uncommon","Unusual","Rare","Legendary","Mythical","Exotic","Secret","Limited","Apex","Divine"];
+const RCOL={Common:"#dfe6ee",Uncommon:"#7ee07a",Unusual:"#d6ec6a",Rare:"#52a8ff",Legendary:"#ffb23a",Mythical:"#ff5a93",Exotic:"#c78bff",Secret:"#e8e8e8",Limited:"#4a6aff",Apex:"#ff4040",Divine:"#ffd6ff"};
+const RDE={Common:"Gewöhnlich",Uncommon:"Ungewöhnlich",Unusual:"Besonders",Rare:"Selten",Legendary:"Legendär",Mythical:"Mythisch",Exotic:"Exotisch",Secret:"Geheim",Limited:"Limitiert",Apex:"Apex",Divine:"Göttlich"};
 const rIdx=r=>Math.max(0,RARITY.indexOf(r));
-const rarHTML=r=>`<span class="rar ${r==="Exotic"?"ex":""}" style="color:${RCOL[r]||"#fff"}">${esc(r)}</span>`;
+const rarHTML=r=>`<span class="rar ${r==="Exotic"?"ex":r==="Divine"?"dv":r==="Secret"?"sc":""}" style="color:${RCOL[r]||"#fff"}">${esc(r)}</span>`;
 const EVENTS=[
   {n:"Megalodon Hunt",l:"Ancient Isle"},{n:"Livyatan Hunt",l:"Ancient Isle"},{n:"Shark Hunt",l:"Ocean"},{n:"Orca Migration",l:"Ocean"},
   {n:"Blue Whale Migration",l:"Ocean"},{n:"Narwhal Migration",l:"Ocean"},{n:"Humpback Whale Migration",l:"Ocean"},{n:"Sei Whale Migration",l:"Ocean"},
@@ -615,7 +636,41 @@ RODS.push(
   {n:"Frostfang",price:0,quest:"tenzin",loc:"Snowcap Island",lure:65,luck:320,ctrl:.22,res:40,mw:0,mc:"#bfefff",c1:"#e8fbff",c2:"#3a9ad8",passive:"Eishauch: Alle 4 s friert der Fisch im Minispiel 1 s lang ein."},
   {n:"Tiefenkrone",price:0,quest:"ysolde",loc:"Hexenturm",lure:95,luck:520,ctrl:.3,res:60,mw:0,mc:"#7b3cff",c1:"#ffd24a",c2:"#2a0a5a",passive:"Krone der Tiefe: 15 % Doppelfang, +10 % Mutationschance, Eishauch."},
 );
+RODS.push({n:"Tryhard Rod",price:0,quest:"rored",loc:"Roslit Volcano",lure:80,luck:399,ctrl:-0.37,res:-500,mw:0,mc:"#ff3a3a",c1:"#1a1a1a",c2:"#ff3a3a"});
 const ROD=Object.fromEntries(RODS.map(r=>[r.n,r]));
+/* rod abilities (almost every rod from 10k on has one, some are tiny). Values follow the Fischipedia wiki where known, the rest is own balancing.
+   mut:[name,chance,cond] · dbl:chance · prog:+progress · slash:[seconds,progress] · freeze:seconds · val:+value · heavy:factor · tmap/relic:chance · every:[n,valueBonus] · luckIf:[cond,luck] */
+const ROD_ABIL={
+  "Fortune Rod":{n:"Gierig",d:"5 % Chance auf die Mutation Greedy.",mut:["Greedy",0.05]},
+  "Rapid Rod":{n:"Flink",d:"Einholen 8 % schneller.",prog:0.08},
+  "Magnet Rod":{n:"Schrottsammler",d:"3 % Chance, eine Schatzkarte mitzuangeln.",tmap:0.03},
+  "Scurvy Rod":{n:"Piratenglück",d:"6 % Chance auf eine Schatzkarte, Fänge 5 % wertvoller.",tmap:0.06,val:0.05},
+  "Wildflower Rod":{n:"Blütenzauber",d:"8 % Chance auf Mother Nature.",mut:["Mother Nature",0.08]},
+  "Reinforced Rod":{n:"Verstärkt",d:"Schwere Fische bremsen nur halb so stark.",heavy:0.5},
+  "Nocturnal Rod":{n:"Nachtauge",d:"Nachts 10 % Chance auf Luminescent und +40 % Glück.",mut:["Luminescent",0.1,"night"],luckIf:["night",40]},
+  "Phoenix Rod":{n:"Sonnenfeuer",d:"Tagsüber 10 % Chance auf Solarblaze.",mut:["Solarblaze",0.1,"day"]},
+  "Midas Rod":{n:"Goldene Berührung",d:"15 % Chance auf die Mutation Midas.",mut:["Midas",0.15]},
+  "Aurora Rod":{n:"Polarschein",d:"Bei Polarlicht 30 % Aurora-Mutation, sonst 3 %.",mut:["Aurora",0.03],auroraMut:0.3},
+  "Brine-Infused Rod":{n:"Salzkruste",d:"12 % Chance auf Brined.",mut:["Brined",0.12]},
+  "Mythical Rod":{n:"Mythos",d:"6 % Mythical-Mutation, 8 % Doppelfang.",mut:["Mythical",0.06],dbl:0.08},
+  "Kings Rod":{n:"Königssegen",d:"10 % Chance auf King's Blessing, Control +5 %.",mut:["King's Blessing",0.1],ctrl:0.05},
+  "Trident Rod":{n:"Dreizack",d:"Jeder 3. Fang ist 50 % mehr wert, 8 % Atlantean.",every:[3,0.5],mut:["Atlantean",0.08]},
+  "Rainbow Cluster Rod":{n:"Regenbogen",d:"12 % Chance auf Rainbow Cluster.",mut:["Rainbow Cluster",0.12]},
+  "Rod Of The Depths":{n:"Tiefenruf",d:"In Tiefseezonen +60 % Glück und 15 % Tiefgeboren.",mut:["Tiefgeboren",0.15,"deep"],luckIf:["deep",60]},
+  "Great Rod of Oscar":{n:"Oscar",d:"10 % Oscar-Mutation, alle Fänge +20 % Wert.",mut:["Oscar",0.1],val:0.2},
+  "Anchor Rod":{n:"Anker",d:"Der Fortschritt fällt nie unter 10 %.",anchor:0.1},
+  "Coralline Rod":{n:"Riffseele",d:"12 % Chance auf Coral.",mut:["Coral",0.12]},
+  "Obsidian Rod":{n:"Glutklinge",d:"Alle 5 s ein Hieb: +8 % Fortschritt. 10 % Scorched.",slash:[5,0.08],mut:["Scorched",0.1]},
+  "Glacial Rod":{n:"Gletscherhauch",d:"Alle 5 s friert der Fisch kurz ein.",freeze:5},
+  "Atlantean Rod":{n:"Erbe Atlantis",d:"12 % Atlantean, 8 % Doppelfang.",mut:["Atlantean",0.12],dbl:0.08},
+  "Silent Rod":{n:"Stille",d:"12 % Shrouded, nachts 10 % Doppelfang.",mut:["Shrouded",0.12],dblNight:0.1},
+  "Nebelrute":{n:"Nebel",d:"20 % Doppelfang, 10 % Nebelhauch.",dbl:0.2,mut:["Nebelhauch",0.1]},
+  "Klippenbrecher":{n:"Schmugglerglück",d:"Perfect Catches verdoppeln den Wert.",perfectVal:1},
+  "Frostfang":{n:"Eishauch",d:"Alle 4 s friert der Fisch 1 s ein. 10 % Eiszahn.",freeze:4,mut:["Eiszahn",0.1]},
+  "Tiefenkrone":{n:"Krone der Tiefe",d:"15 % Doppelfang, +10 % Mutationschance, Eishauch.",dbl:0.15,mutPlus:0.1,freeze:4},
+  "Tryhard Rod":{n:"Tryhard",d:"Jeder Fang bekommt die Mutation Tryhard (×10). Einholen +165 %. Dafür fast keine Resilience.",mut:["Tryhard",1],prog:1.65},
+};
+const abilOf=n=>ROD_ABIL[n]||null;
 
 /* ---------- world layout ---------- */
 const SEA2X=6000;
@@ -651,8 +706,8 @@ const DEEPZ=[
 ];
 const RAFTS=[{n:"Ocean",x:-80,z:780},{n:"Sturmsee",x:SEA2X+60,z:-420}];
 const PORTALS=[{from:1,x:0,z:1800,to:{x:SEA2X-110,z:260},r:70},{from:2,x:SEA2X-1000,z:80,to:{x:40,z:1650},r:70}];
-const ALL_LOC=[...ISLE.map(i=>i.n),...DEEPZ.map(z=>z.n),"Ocean","Sturmsee"];
-const LOCDESC=Object.fromEntries([...ISLE,...DEEPZ].map(i=>[i.n,i.d])); LOCDESC.Ocean="Offenes Meer der ersten See. Hier ziehen Hunts und Wanderungen vorbei."; LOCDESC.Sturmsee="Die offene Zweite See. Stürme und große Räuber.";
+const ALL_LOC=[...ISLE.map(i=>i.n),...DEEPZ.map(z=>z.n),"Ocean","Sturmsee",...Object.values(AW_LOC)];
+const LOCDESC=Object.fromEntries([...ISLE,...DEEPZ].map(i=>[i.n,i.d])); LOCDESC.Ocean="Offenes Meer der ersten See. Hier ziehen Hunts und Wanderungen vorbei."; LOCDESC.Sturmsee="Die offene Zweite See. Stürme und große Räuber."; LOCDESC.Blutmond="Nur während des Blutmonds, überall auf See."; LOCDESC.Sternenfall="Nur während des Sternenfalls, überall auf See."; LOCDESC["Leviathans Zorn"]="Nur während Leviathans Zorn, überall auf See.";
 const SEAOF=l=>{ const i=ISLE.find(x=>x.n===l)||DEEPZ.find(x=>x.n===l); return i?i.sea:(l==="Sturmsee"?2:1) };
 const SEA1_R=1950, SEA2_R=1350;
 
@@ -760,10 +815,12 @@ function buffActive(k){ return S.buffs&&S.buffs[k]&&S.buffs[k]>Date.now() }
 function gearStats(W){
   W=W||world(); const r=ROD[S.rod]||ROD["Flimsy Rod"]; const b=S.baitEq&&S.bait[S.baitEq]>0?BAIT[S.baitEq]:null; const L=levelInfo(S.xp).L;
   const M=masteryOf(r.n).L; const e=ENCHBY[S.ench[r.n]]; const fx=e?e.fx:{}; const mega=buffActive("mega");
+  const AB=abilOf(r.n)||{};
   let luck=r.luck+(b?b.ul:0)+(L-1)+M*4+(fx.luck||0)+(buffActive("luck")?60:0)+(mega?120:0);
+  if(AB.luckIf&&AB.luckIf[0]==="night"&&!W.day) luck+=AB.luckIf[1];
   if(fx.rainLuck&&W.weather==="Rain") luck+=fx.rainLuck; if(fx.nightLuck&&!W.day) luck+=fx.nightLuck; if(W.aurora) luck+=100;
   const lure=r.lure+(b?b.lure:0)+M*2+(fx.lure||0)+(buffActive("lure")?45:0)+(mega?40:0);
-  return {rod:r,bait:b,lure,luck,ctrl:r.ctrl+M*0.005+(fx.ctrl||0),res:r.res+(b?b.res:0)+M*2+(fx.res||0),mw:r.mw,lvlLuck:L-1,M,ench:e,fx,
+  return {rod:r,bait:b,lure,luck,AB,ctrl:r.ctrl+M*0.005+(fx.ctrl||0)+(AB.ctrl||0),res:r.res+(b?b.res:0)+M*2+(fx.res||0),mw:r.mw,lvlLuck:L-1,M,ench:e,fx,
     xpMul:1+(fx.xp||0)+(buffActive("xp")?0.5:0)+(mega?0.5:0)};
 }
 const bagCap=()=>BAGS[S.bag]||20;
@@ -854,6 +911,10 @@ const LQ={
     steps:[{d:"Besitze Nebelrute, Klippenbrecher und Frostfang.",goal:3,k:"qrods"},{d:"Entdecke 60 Arten der Zweiten See.",goal:60,k:"sea2dex"},
       {d:"Fange den Abyssal Sovereign im Abgrund der Stille (nachts).",goal:1,k:"fish:Abyssal Sovereign"},{d:"Bring mir 10 Enchant-Relikte und 1.000.000 C$.",goal:1,k:"final",give:"final"}]},
 };
+LQ.rored={npc:"RoRed",loc:"Roslit Volcano",rod:"Tryhard Rod",title:"Tryhard",
+  intro:"„Du willst die Tryhard Rod? Dann zeig mir, dass du keine Ausrüstung brauchst. Nur Können. Mit der Flimsy Rod.“",
+  steps:[{d:"Erreiche Level 60.",goal:60,k:"level"},{d:"Schaffe 10 Perfect Catches in Folge mit der Flimsy Rod (ein Fehler setzt zurück).",goal:10,k:"flimsyPerfect"},
+    {d:"Schaffe 25-mal in Folge Perfect Cast und Perfect Catch mit der Flimsy Rod.",goal:25,k:"flimsyPP"},{d:"Fange einen Megalodon mit einer Flimsy Rod, die die Verzauberung Hasty trägt.",goal:1,k:"tryMeg"}]};
 function lqProgress(id){ const q=S.lq[id]; if(!q) return 0; const st=LQ[id].steps[q.step]; if(!st) return 0; const k=st.k;
   if(k==="relics") return Math.min(st.goal,S.relics); if(k==="money") return Math.min(st.goal,S.money);
   if(k==="dexpages"){ let n=0; for(const l of ["Castaway Cliffs","Forsaken Shores"]){ const a=FISH.filter(f=>f.l===l&&(f.r!=="Apex"||EVSET.has(f.sub))); if(a.filter(f=>S.dex[f.n]).length>=a.length*0.8) n++ } return n }
@@ -862,6 +923,7 @@ function lqProgress(id){ const q=S.lq[id]; if(!q) return 0; const st=LQ[id].step
   if(k==="qrods") return ["Nebelrute","Klippenbrecher","Frostfang"].filter(n=>S.rods.includes(n)).length;
   if(k==="sea2dex") return secondSeaSpecies();
   if(k==="final") return (S.relics>=10&&S.money>=1000000)?1:0;
+  if(k==="level") return levelInfo(S.xp).L;
   return q.cnt||0 }
 
 /* ---------- bounties ---------- */
@@ -1040,16 +1102,16 @@ function collide(x,z,rad){ const cx=Math.floor(x/CELL), cz=Math.floor(z/CELL); f
 
 /* ---------- sky ---------- */
 const skyU={uTop:{value:new THREE.Color()},uHorizon:{value:new THREE.Color()},uBottom:{value:new THREE.Color()},uSunDir:{value:new THREE.Vector3(0,1,0)},uMoonDir:{value:new THREE.Vector3(0,-1,0)},
-  uSunCol:{value:new THREE.Color(1,.95,.8)},uNight:{value:0},uTime:U.time,uAurora:{value:0},uTint:{value:new THREE.Color(0,0,0)}};
+  uSunCol:{value:new THREE.Color(1,.95,.8)},uNight:{value:0},uTime:U.time,uAurora:{value:0},uTint:{value:new THREE.Color(0,0,0)},uMoonCol:{value:new THREE.Color(0.92,0.95,1)},uMoonSize:{value:0}};
 const sky=new THREE.Mesh(new THREE.SphereGeometry(6000,40,20),new THREE.ShaderMaterial({uniforms:skyU,side:THREE.BackSide,depthWrite:false,fog:false,
   vertexShader:`varying vec3 vDir; void main(){ vDir=position; vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position=p.xyww; }`,
-  fragmentShader:`uniform vec3 uTop,uHorizon,uBottom,uSunDir,uMoonDir,uSunCol,uTint; uniform float uNight,uTime,uAurora; varying vec3 vDir;
+  fragmentShader:`uniform vec3 uTop,uHorizon,uBottom,uSunDir,uMoonDir,uSunCol,uTint,uMoonCol; uniform float uNight,uTime,uAurora,uMoonSize; varying vec3 vDir;
   float hsh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float nse(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hsh(i),hsh(i+vec2(1,0)),f.x),mix(hsh(i+vec2(0,1)),hsh(i+vec2(1,1)),f.x),f.y);}
   void main(){ vec3 d=normalize(vDir); float y=d.y; vec3 col= y>0.? mix(uHorizon,uTop,pow(clamp(y,0.,1.),0.5)) : mix(uHorizon,uBottom,clamp(-y*5.,0.,1.));
     col+=uTint*smoothstep(-0.05,0.4,y);
     float sd=max(dot(d,uSunDir),0.); col+=uSunCol*(smoothstep(0.9985,0.9992,sd)*8.+pow(sd,14.)*0.45+pow(sd,3.)*0.08)*(1.-uNight*0.9);
-    float md=max(dot(d,uMoonDir),0.); col+=vec3(0.92,0.95,1.)*smoothstep(0.9990,0.9994,md)*uNight*2.2+vec3(.25,.35,.6)*pow(md,30.)*uNight*.35;
+    float md=max(dot(d,uMoonDir),0.); float ms=0.9990-uMoonSize*0.004; col+=uMoonCol*smoothstep(ms,ms+0.0004+uMoonSize*0.0008,md)*uNight*2.2+mix(vec3(.25,.35,.6),uMoonCol*0.9,uMoonSize)*pow(md,30.-uMoonSize*22.)*uNight*(.35+uMoonSize*0.6);
     vec3 sp=d*260.; vec3 cell=floor(sp); float h=fract(sin(dot(cell,vec3(12.9898,78.233,45.164)))*43758.5453);
     vec3 f=fract(sp)-.5; float st=step(0.9975,h)*smoothstep(0.35,0.05,length(f))*smoothstep(0.,0.25,y)*uNight*(0.6+0.4*sin(uTime*2.+h*90.));
     col+=vec3(st)*1.4;
@@ -1481,6 +1543,7 @@ function buildIsland(I){
   const lbl=textSprite(I.n,{size:72,scale:0.16}); lbl.position.set(I.x,Math.max(I.peak,6)+30,I.z); lbl.userData.loc=I.n; lbl.userData.hid=!!I.hidden; lbl.userData.range=I.r*1.5+140; addObj(lbl,I.x); LABELS.push(lbl);
   ({Moosewood:buildMoosewood,"Terrapin Island":buildTerrapin,"Sunstone Island":buildSunstone,"Snowcap Island":buildSnowcap,"Castaway Cliffs":buildCastaway,"Keepers Altar":buildAltarNPC,
     Nebelinsel:buildNebel,Ankerheim:buildAnkerheim,"Atlantische Ruinen":buildRuins,Aschefelder:buildAsh,Frostzinnen:buildSpires,Korallenkrone:buildReefcrown,Hexenturm:buildWitch,
+    "Roslit Volcano":I=>{ const a=I.hutAng+Math.PI, x=I.x+Math.cos(a)*I.r*0.2, z=I.z+Math.sin(a)*I.r*0.2; npc({shirt:"#1a1a1a",hat:"bandana",hatCol:"#ff3a3a",skin:SKINS[1],pants:"#2a2a2a",hair:"#ff3a3a"},x,z,faceAng(x,z,I.x,I.z),"lq","Roslit Volcano","RoRed","rgba(140,20,20,.92)",{lq:"rored"}) },
     "Forsaken Shores":I=>chest("wreck",I.x+Math.cos(I.hutAng+Math.PI)*I.r*0.62,I.z+Math.sin(I.hutAng+Math.PI)*I.r*0.62,I.n),
     "Crystal Cove":I=>chest("crystal",I.x+Math.cos(I.hutAng+2.4)*I.r*0.35,I.z+Math.sin(I.hutAng+2.4)*I.r*0.35,I.n,2),
     "Lost Jungle":I=>chest("jungle",I.x+Math.cos(I.hutAng+Math.PI)*I.r*0.2,I.z+Math.sin(I.hutAng+Math.PI)*I.r*0.2,I.n,2),
@@ -1681,6 +1744,72 @@ const shadowGeo=(()=>{ const s=new THREE.Shape(); s.moveTo(1,0); s.quadraticCurv
 const shadowMat=new THREE.MeshBasicMaterial({color:0x06131f,transparent:true,opacity:.42,depthWrite:false});
 const glowRingGeo=new THREE.RingGeometry(0.7,1,32); glowRingGeo.rotateX(-Math.PI/2);
 
+/* ---------- bite marks: animated "!" above the bobber, fancier the rarer the fish (visible to everyone) ---------- */
+const MARKSTYLE=[ // by rarity index
+  {t:"!",g:["#ffffff","#cfd8e3"],s:1.5,life:1.25},                                   // Common
+  {t:"!",g:["#e9ffe6","#7ee07a"],s:1.6,life:1.3},                                    // Uncommon
+  {t:"!",g:["#fbffd8","#c9e04a"],s:1.8,life:1.4,wob:1},                              // Unusual
+  {t:"!",g:["#e2f2ff","#2f86ff"],s:2.1,life:1.7,glow:"#52a8ff",spark:"#9fd4ff"},     // Rare
+  {t:"!!",g:["#fff6c8","#ff9d1a"],s:2.5,life:2.0,glow:"#ffb23a",rays:"#ffd24a",spark:"#ffe27a"}, // Legendary
+  {t:"!!",g:["#ffe0ec","#ff2f7a"],s:2.7,life:2.2,glow:"#ff5a93",rays:"#ff7ab0",ring:"#ff5a93",spark:"#ffb3cf",pulse:1}, // Mythical
+  {t:"!!!",g:["rainbow"],s:2.9,life:2.4,glow:"#c78bff",rays:"rainbow",ring:"#c78bff",spark:"#e0c8ff",pulse:1}, // Exotic
+  {t:"?!",g:["#ffffff","#8a8a9a"],s:2.8,life:2.4,dark:1,glitch:1,ring:"#e8e8e8",spark:"#ffffff"},             // Secret
+  {t:"!!!",g:["#dfe6ff","#3a5aff"],s:3.0,life:2.4,glow:"#4a6aff",rays:"#7a90ff",ring:"#4a6aff",spark:"#aabaff",pulse:1}, // Limited
+  {t:"!!!",g:["#ffe0d8","#ff2020"],s:3.2,life:2.6,glow:"#ff4040",rays:"#ff5a3a",ring:"#ff4040",spark:"#ffb09a",pulse:1,shake:1}, // Apex
+  {t:"!!!",g:["#ffffff","#ffb8f0"],s:3.4,life:3.0,glow:"#ffd6ff",rays:"#fff0a0",ring:"#ffe27a",spark:"#fff6d0",pulse:1,beam:1,halo:1}, // Divine
+];
+const MTEX={};
+function markTextTex(i){ if(MTEX["t"+i]) return MTEX["t"+i]; const st=MARKSTYLE[i]; const c=document.createElement("canvas"); c.width=c.height=256; const x=c.getContext("2d");
+  const fs=st.t.length>2?150:st.t.length>1?176:200; x.font=`700 ${fs}px Fredoka, "Arial Black", sans-serif`; x.textAlign="center"; x.textBaseline="middle";
+  let fill; if(st.g[0]==="rainbow"){ fill=x.createLinearGradient(30,0,226,0); ["#ff4a4a","#ffb23a","#fff04a","#6fe37b","#4ad8ff","#7a6aff","#e05aff"].forEach((cc,k,a)=>fill.addColorStop(k/(a.length-1),cc)) }
+  else { fill=x.createLinearGradient(0,40,0,220); fill.addColorStop(0,st.g[0]); fill.addColorStop(1,st.g[1]) }
+  x.lineJoin="round"; if(st.glow){ x.shadowColor=st.glow; x.shadowBlur=26 } x.lineWidth=st.t.length>2?20:24; x.strokeStyle=st.dark?"#05050a":"#140c1e"; x.strokeText(st.t,128,136);
+  x.shadowBlur=0; x.fillStyle=fill; x.fillText(st.t,128,136); x.lineWidth=5; x.strokeStyle="rgba(255,255,255,.55)"; x.globalCompositeOperation="source-atop"; x.strokeText(st.t,126,130);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return MTEX["t"+i]=t }
+function raysTex(){ if(MTEX.rays) return MTEX.rays; const c=document.createElement("canvas"); c.width=c.height=256; const x=c.getContext("2d"); x.translate(128,128);
+  for(let k=0;k<14;k++){ x.rotate(Math.PI*2/14); const g=x.createLinearGradient(0,0,0,-128); g.addColorStop(0,"rgba(255,255,255,.9)"); g.addColorStop(1,"rgba(255,255,255,0)"); x.fillStyle=g; x.beginPath(); x.moveTo(0,0); x.lineTo(-11-(k%2)*6,-128); x.lineTo(11+(k%2)*6,-128); x.closePath(); x.fill() }
+  const t=new THREE.CanvasTexture(c); return MTEX.rays=t }
+function ringTex(){ if(MTEX.ring) return MTEX.ring; const c=document.createElement("canvas"); c.width=c.height=256; const x=c.getContext("2d"); const g=x.createRadialGradient(128,128,70,128,128,126); g.addColorStop(0,"rgba(255,255,255,0)"); g.addColorStop(0.75,"rgba(255,255,255,.95)"); g.addColorStop(1,"rgba(255,255,255,0)"); x.fillStyle=g; x.fillRect(0,0,256,256); return MTEX.ring=new THREE.CanvasTexture(c) }
+const MARKS=[];
+function spriteM(tex,col,add,op=1){ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:new THREE.Color(col||"#ffffff"),transparent:true,depthWrite:false,fog:false,opacity:op,blending:add?THREE.AdditiveBlending:THREE.NormalBlending,toneMapped:false})); s.renderOrder=9; return s }
+function spawnBiteMark(x,y,z,ri,scale=1){ ri=clamp(ri|0,0,MARKSTYLE.length-1); const st=MARKSTYLE[ri]; const g=new THREE.Group(); g.position.set(x,y,z); scene.add(g);
+  const m={g,ri,st,t:0,parts:{},scale};
+  if(st.rays){ const r=spriteM(raysTex(),st.rays==="rainbow"?"#ffffff":st.rays,true,0.85); g.add(r); m.parts.rays=r }
+  if(st.glow||st.dark){ const gl=spriteM(dotTex,st.dark?"#000000":st.glow,!st.dark,st.dark?0.75:0.9); g.add(gl); m.parts.glow=gl }
+  if(st.ring){ const r=spriteM(ringTex(),st.ring,true,1); g.add(r); m.parts.ring=r }
+  if(st.halo){ const h=spriteM(ringTex(),"#fff6c8",true,0.9); g.add(h); m.parts.halo=h }
+  const tx=spriteM(markTextTex(ri),"#ffffff",false,1); tx.renderOrder=12; g.add(tx); m.parts.txt=tx; if(m.parts.rays) m.parts.rays.renderOrder=8; if(m.parts.glow) m.parts.glow.renderOrder=7;
+  if(st.beam){ const b=new THREE.Mesh(new THREE.CylinderGeometry(1.2,2.6,160,20,1,true),new THREE.MeshBasicMaterial({color:0xfff0ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false})); b.position.set(x,80,z); scene.add(b); m.beam=b }
+  if(st.spark){ const n=ri>=6?70:ri>=4?45:ri>=3?20:0; for(let i=0;i<n;i++){ const a=Math.random()*6.28, s=3+Math.random()*7; GLOW.emit(x,y+1.5,z,Math.cos(a)*s,2+Math.random()*7,Math.sin(a)*s,0.9+Math.random()*0.7,0.6+Math.random()*0.8,st.spark,-5,1.5) } }
+  if(ri>=5) for(let i=0;i<24;i++){ const a=i/24*6.28; FX.emit(x,y-2.5,z,Math.cos(a)*7,3,Math.sin(a)*7,0.6,0.7,"#eaf8ff",-10) }
+  MARKS.push(m); return m }
+function updateBiteMarks(dt,t){ for(let i=MARKS.length-1;i>=0;i--){ const m=MARKS[i], st=m.st; m.t+=dt; const T=m.t, L=st.life;
+  const pop=T<0.16?smooth(T/0.16)*1.3:T<0.32?lerp(1.3,1,smooth((T-0.16)/0.16)):1; const fade=clamp((L-T)/0.35,0,1); const S=st.s*m.scale*1.45;
+  const pul=st.pulse?1+Math.sin(T*14)*0.07:1; const P=m.parts;
+  P.txt.scale.setScalar(S*pop*pul); P.txt.position.y=2.4+T*0.6+(st.wob?Math.sin(T*18)*0.12:0); P.txt.material.opacity=fade; P.txt.material.rotation=st.wob?Math.sin(T*16)*0.12*(1-T/L):0;
+  if(st.glitch){ const on=Math.random()<0.85; P.txt.material.opacity=fade*(on?1:0.25); P.txt.position.x=(Math.random()<0.2?(Math.random()-.5)*0.6:0); }
+  if(P.glow){ P.glow.scale.setScalar(S*2.6*pop*(1+Math.sin(T*9)*0.08)); P.glow.position.y=P.txt.position.y; P.glow.material.opacity=fade*(st.dark?0.7:0.45) }
+  if(P.rays){ P.rays.scale.setScalar(S*3.4*pop); P.rays.position.y=P.txt.position.y; P.rays.material.rotation=T*(m.ri>=6?1.6:0.9); P.rays.material.opacity=fade*0.5; if(st.rays==="rainbow") P.rays.material.color.setHSL((t*0.35)%1,0.9,0.65) }
+  if(P.ring){ const k=clamp(T/0.7,0,1); P.ring.scale.setScalar(S*(1+k*4)); P.ring.position.y=0.3; P.ring.material.opacity=(1-k)*0.9 }
+  if(P.halo){ P.halo.scale.setScalar(S*1.9*pop); P.halo.position.y=P.txt.position.y+S*0.75; P.halo.material.opacity=fade*0.8; P.halo.material.rotation=-T }
+  if(m.beam) m.beam.material.opacity=fade*0.22*clamp(T*3,0,1);
+  if(st.spark&&m.ri>=4&&Math.random()<dt*30*fade){ const p=m.g.position; GLOW.emit(p.x+(Math.random()-.5)*S*2,p.y+2+Math.random()*S*1.5,p.z+(Math.random()-.5)*S*2,0,1.5,0,0.8,0.5,st.spark,-0.5) }
+  if(T>=L){ scene.remove(m.g); if(m.beam){ scene.remove(m.beam); m.beam.geometry.dispose(); m.beam.material.dispose() } m.g.traverse(o=>{ if(o.material) o.material.dispose() }); MARKS.splice(i,1) } } }
+
+/* ---------- admin-weather effects: meteors (Sternenfall), lightning (Leviathans Zorn) ---------- */
+const METEORS=[]; { const p1=new THREE.PlaneGeometry(1,1); p1.translate(0,-0.5,0); const p2=p1.clone(); p2.rotateY(Math.PI/2); const geo=mergeGeometries([p1,p2]);
+  for(let i=0;i<14;i++){ const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xd8c8ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false})); m.visible=false; scene.add(m); METEORS.push({m,on:false}) } }
+const _mv=new THREE.Vector3(), _up=new THREE.Vector3(0,1,0);
+function updateMeteors(dt,on,px,pz,cam){ for(const M of METEORS){ if(!M.on){ if(on&&Math.random()<dt*0.9){ const a=Math.random()*6.28, d=120+Math.random()*700; M.x=px+Math.cos(a)*d; M.z=pz+Math.sin(a)*d; M.y=380+Math.random()*200; const da=Math.random()*6.28; M.vx=Math.cos(da)*60; M.vz=Math.sin(da)*60; M.vy=-(170+Math.random()*120); M.on=true; M.m.visible=true; M.hit=d<420&&Math.random()<0.5 } continue }
+    M.x+=M.vx*dt; M.y+=M.vy*dt; M.z+=M.vz*dt; M.m.position.set(M.x,M.y,M.z); _mv.set(M.vx,M.vy,M.vz).normalize(); M.m.quaternion.setFromUnitVectors(_up,_mv); M.m.scale.set(2.4,46,2.4); M.m.material.opacity=0.95;
+    if(Math.random()<dt*40) GLOW.emit(M.x,M.y,M.z,0,0,0,0.8,2.2,"#e0d0ff",0,0);
+    if(M.y<(M.hit?0:120)){ if(M.hit){ splashFX(M.x,0.3,M.z,40,2.2); burstFX(M.x,2,M.z,"#c8a8ff",50) } M.on=false; M.m.visible=false; M.m.material.opacity=0 } } }
+let boltMesh=null, boltT=0;
+function strikeLightning(px,pz){ if(boltMesh){ scene.remove(boltMesh); boltMesh.geometry.dispose() } const a=Math.random()*6.28, d=90+Math.random()*420, x=px+Math.cos(a)*d, z=pz+Math.sin(a)*d; const pts=[]; let cx=x, cz=z;
+  for(let y=420;y>0;y-=24){ pts.push(new THREE.Vector3(cx,y,cz)); cx+=(Math.random()-.5)*26; cz+=(Math.random()-.5)*26 } pts.push(new THREE.Vector3(cx,0,cz));
+  const g=new THREE.BufferGeometry().setFromPoints(pts); boltMesh=new THREE.Line(g,new THREE.LineBasicMaterial({color:0xe8f6ff,transparent:true,opacity:1,fog:false})); scene.add(boltMesh); boltT=0.35; splashFX(cx,0.3,cz,30,2); return {x:cx,z:cz,d} }
+function updateBolt(dt){ if(!boltMesh) return; boltT-=dt; boltMesh.material.opacity=Math.max(0,boltT/0.35)*(Math.random()<0.5?1:0.4); if(boltT<=0){ scene.remove(boltMesh); boltMesh.geometry.dispose(); boltMesh=null } }
+
 /* ---------- build everything ---------- */
 async function buildWorld(progress){
   const step=async (f,msg,pct)=>{ progress(msg,pct); await new Promise(r=>setTimeout(r,0)); f() };
@@ -1723,7 +1852,17 @@ function noiseHit(dur,freq,vol=0.3,type="lowpass",when=0,q=1){ const C=AU.ctx; i
 const SFX={
   cast(){ const f=noiseHit(0.35,400,0.25,"bandpass",0,2); if(f) f.frequency.exponentialRampToValueAtTime(2400,AU.ctx.currentTime+0.3) },
   splash(p=1){ noiseHit(0.45,900,0.35*p); noiseHit(0.2,2500,0.12*p,"highpass") },
-  bite(r=0){ tone(520,0.12,"sine",0.25); tone(780,0.16,"sine",0.22,0.09); if(r>=4){ tone(1040,0.3,"triangle",0.15,0.2) } },
+  bite(r=0,v=1){ const T=(f,d,ty,vo,w,sl)=>tone(f,d,ty,vo*v,w||0,null,sl||0);
+    if(r<=1){ T(620,0.09,"sine",0.22); T(880,0.12,"sine",0.2,0.08); return }
+    if(r===2){ T(660,0.09,"sine",0.22); T(880,0.1,"sine",0.2,0.07); T(1175,0.16,"sine",0.16,0.14); return }
+    if(r===3){ T(988,0.5,"sine",0.2); T(1480,0.6,"sine",0.12,0.04); T(1976,0.4,"sine",0.06,0.08); return }
+    if(r===4){ [784,988,1175,1568].forEach((f,i)=>T(f,0.35,"triangle",0.15,i*0.06)); T(2349,0.7,"sine",0.08,0.26); noiseHit(0.5,6000,0.05*v,"highpass",0.2); return }
+    if(r===5){ [523,659,784,1047].forEach(f=>{ T(f,0.9,"triangle",0.08); T(f*1.006,0.9,"sine",0.06) }); T(400,0.5,"sine",0.12,0,2.6); [1319,1568,2093].forEach((f,i)=>T(f,0.4,"sine",0.07,0.3+i*0.07)); return }
+    if(r===6){ const sc=[523,587,659,784,880,1047,1175,1319,1568,1760,2093]; sc.forEach((f,i)=>T(f,0.3,"sine",0.1,i*0.035)); T(2637,1,"triangle",0.06,0.4); noiseHit(0.8,7000,0.06*v,"highpass",0.3); return }
+    if(r===7){ T(110,1.4,"sawtooth",0.1,0,0.5); T(2637,1.2,"sine",0.05,0.1); T(2793,1.2,"sine",0.05,0.1); T(3322,0.6,"sine",0.04,0.5); return }
+    if(r===8||r===9){ T(70,1.2,"sine",0.35,0,0.5); noiseHit(0.7,300,0.35*v); [196,247,294,392].forEach(f=>T(f,1.1,"sawtooth",0.05,0.05)); T(784,0.8,"triangle",0.08,0.4); return }
+    [523,659,784,1047,1319].forEach((f,i)=>{ T(f,2.2,"sine",0.07,i*0.05); T(f*1.004,2.2,"sine",0.05,i*0.05); T(f*0.996,2.2,"triangle",0.03,i*0.05) }); T(2093,1.5,"sine",0.1,0.5); T(3136,1.2,"sine",0.05,0.7); noiseHit(1.5,9000,0.05*v,"highpass",0.4) },
+  thunder(d=300){ const v=clamp(1.4-d/500,0.25,1); noiseHit(2.2,180,0.5*v,"lowpass",d/340); noiseHit(0.4,900,0.25*v,"lowpass",d/340); tone(45,1.6,"sine",0.3*v,d/340,null,0.6) },
   tick(){ tone(1800+Math.random()*300,0.025,"square",0.03) },
   catch(r){ const base=[523,587,659,784,880,988,1047,1175,1319]; const n=3+Math.min(5,r); for(let i=0;i<n;i++) tone(base[i],0.35,"triangle",0.16,i*0.075); if(r>=4) tone(base[n]*2,0.8,"sine",0.12,n*0.075) },
   coin(){ tone(1319,0.09,"square",0.07); tone(1760,0.18,"square",0.07,0.07) },
@@ -1771,7 +1910,7 @@ addEventListener("keydown",e=>{
   if(e.key==="Enter"){ $("chatin").focus(); e.preventDefault(); return }
   if(e.code==="Space"){ e.preventDefault(); if(e.repeat) return; if(F.state==="reel"&&F.reel){ F.reel.hold=true } else if(F.state==="lure"&&!F.target){ shake() } else if(F.state==="idle") jump(); return }
   if(e.repeat) return;
-  ({b:toggleBoat,e:interact,i:()=>openModal("bag"),j:()=>openModal("dex"),q:()=>openModal("quests"),g:()=>openModal("gear"),m:()=>openModal("map"),p:()=>openModal("players")})[k]?.();
+  ({b:toggleBoat,e:interact,h:toggleHold,i:()=>openModal("bag"),j:()=>openModal("dex"),q:()=>openModal("quests"),g:()=>openModal("gear"),m:()=>openModal("map"),p:()=>openModal("players")})[k]?.();
   if(["arrowup","arrowdown","arrowleft","arrowright"].includes(k)) e.preventDefault();
 });
 addEventListener("keyup",e=>{ keys[e.key.toLowerCase()]=false; if(e.code==="Space"&&F.reel) F.reel.hold=false });
@@ -1907,8 +2046,12 @@ function eventZone(ev){ if(!ev) return null; const r=rng(ev.slot*131+7); const I
   for(let k=0;k<60;k++){ const a=r()*Math.PI*2, d=250+r()*1000, x=Math.cos(a)*d, z=Math.sin(a)*d; if(ISL.every(I=>Math.hypot(x-I.x,z-I.z)>I.r+150)&&DEEPZ.every(Z=>Math.hypot(x-Z.x,z-Z.z)>Z.r+90)) return {x,z,r:70} } return {x:420,z:420,r:70} }
 function fishContext(x,z,w){ const W=world(); let loc=locationAt(x,z); const deep=DEEPZ.some(Z=>Z.n===loc); if(deep&&!S.bell) loc=seaAt(x)===2?"Sturmsee":"Ocean";
   let spot=spotAt(loc,x,z,w.kind); const EZ=eventZone(W.event); const inEvent=!!(EZ&&W.event&&Math.hypot(x-EZ.x,z-EZ.z)<EZ.r&&(W.event.l===loc||W.event.l==="Ocean"&&loc==="Ocean"));
-  const SC=schoolFor(W,loc); const inSchool=!!(SC&&Math.hypot(x-SC.x,z-SC.z)<SC.r); return {W,loc,spot,inEvent,school:inSchool?SC:null,deepBlocked:deep&&!S.bell} }
-function rollAt(ctx,G){ if(ctx.school&&Math.random()<0.65) return ctx.school.f; if(ctx.inEvent&&Math.random()<0.5){ const ev=poolFor(ctx.loc,ctx.spot,ctx.W,true).filter(x=>x.isEv); if(ev.length) return ev[Math.floor(Math.random()*ev.length)].f } return rollFish(ctx.loc,ctx.spot,ctx.W,G,ctx.inEvent,ctx.school?40:0) }
+  const SC=schoolFor(W,loc); const inSchool=!!(SC&&Math.hypot(x-SC.x,z-SC.z)<SC.r); return {W,loc,spot,inEvent,school:inSchool?SC:null,deepBlocked:deep&&!S.bell,kind:w.kind,deep:deep&&!!S.bell} }
+function rollAW(W,G){ const loc=AW_LOC[W.aw]; let tot=0; const cand=FISH.filter(f=>f.l===loc).map(f=>{ let w=f.c*Math.max(0.3,1+G.luck/300); if(G.bait&&f.b.includes(G.bait.n)) w*=1.6; tot+=w; return [f,w] });
+  let r=Math.random()*(tot+380); for(const [f,w] of cand){ if((r-=w)<=0) return f } return null }
+function rollAt(ctx,G){ if(ctx.W.aw&&ctx.kind!=="fresh"){ const f=rollAW(ctx.W,G); if(f) return f }
+  const AB=G.AB||{}; const ex=AB.luckIf&&AB.luckIf[0]==="deep"&&ctx.deep?AB.luckIf[1]:0;
+  if(ctx.school&&Math.random()<0.65) return ctx.school.f; if(ctx.inEvent&&Math.random()<0.5){ const ev=poolFor(ctx.loc,ctx.spot,ctx.W,true).filter(x=>x.isEv); if(ev.length) return ev[Math.floor(Math.random()*ev.length)].f } return rollFish(ctx.loc,ctx.spot,ctx.W,G,ctx.inEvent,(ctx.school?40:0)+ex) }
 function spawnShadow(){
   const G=gearStats(); for(let k=0;k<12;k++){ const a=Math.random()*Math.PI*2, d=10+Math.random()*52, x=pl.x+Math.cos(a)*d, z=pl.z+Math.sin(a)*d; const w=waterAt(x,z); if(!w) continue;
     if(w.kind==="sea"&&terrainAt(x,z)>-1.3) continue; const ctx=fishContext(x,z,w); const f=rollAt(ctx,G); if(!f) return;
@@ -1950,7 +2093,7 @@ function startCharge(){
   if(pl.swim){ toast("Schwimmend kannst du nicht angeln.","#ffb35a"); return }
   if(pl.boat&&Math.abs(pl.boatSpeed)>3){ toast("Halte das Boot erst an (S).","#ffb35a"); return }
   if(S.fish.length>=bagCap()){ toast(`Rucksack voll (${bagCap()}). Verkaufe beim Händler oder rüste den Rucksack auf.`,"#ff6363"); SFX.fail(); return }
-  F.state="charge"; F.power=0; F.pdir=1; setHint("Loslassen zum Werfen"); pushPresence(true);
+  if(holdIt) setHold(null); F.state="charge"; F.power=0; F.pdir=1; setHint("Loslassen zum Werfen"); pushPresence(true);
 }
 function castGrade(p){ return p>=.93?"PERFECT!!":p>=.8?"Amazing!":p>=.62?"Great!":p>=.42?"Good!":p>=.22?"Fine.":"Meh.." }
 function releaseCast(){
@@ -1982,13 +2125,13 @@ const wBonus=()=>gearStats().fx.weight||0;
 function biteFrom(s){ const f=adminFish()||s.f; F.hooked={f,w:rollWeight(f,wBonus()),shadow:s,fromShadow:true}; doBite() }
 function randomBite(){ const G=gearStats(); const f=adminFish()||rollAt(F.ctx,G); if(!f){ cancelFishing(); toast("Hier beißt gerade nichts.","#ff9a6a"); return } F.hooked={f,w:rollWeight(f,G.fx.weight||0),shadow:null,fromShadow:false}; doBite() }
 function doBite(){ const f=F.hooked.f; $("shake").style.display="none"; F.state="bite"; SFX.bite(rIdx(f.r)); splashFX(F.bob.x,F.bob.y,F.bob.z,14,0.8);
-  floatText("!",rIdx(f.r)>=4?RCOL[f.r]:"#ff4b4b",1.0,2.4); if(F.hooked.shadow){ removeShadow(F.hooked.shadow); F.target=null }
+  spawnBiteMark(F.bob.x,F.bob.y,F.bob.z,rIdx(f.r)); if(rIdx(f.r)>=9) shakeCam(0.6); if(F.hooked.shadow){ removeShadow(F.hooked.shadow); F.target=null }
   setTimeout(startReel,520); pushPresence(true) }
 function startReel(){
   if(F.state!=="bite") return; const G=gearStats(), f=F.hooked.f, w=F.hooked.w;
   const barW=clamp(0.30+G.ctrl,0.08,1), diff=Math.max(0,(100-f.res)/100), eff=diff*(1-clamp(G.res,-150,95)/100);
-  let rate=0.135*Math.max(0.06,1+f.ps/100)*(1+(G.fx.prog||0)), heavy=1; if(G.mw>0&&w>G.mw){ heavy=clamp(Math.sqrt(G.mw/w),0.14,1); rate*=heavy }
-  F.reel={x:.5-barW/2,v:0,w:barW,fx:.5,ft:.5,fv:0,re:0,eff,rate,heavy,prog:.06,lock:1.1,perfect:true,hold:!!(keys[" "]||fishHeld||touches.size>0),t:0,dart:rIdx(f.r)>=3?0.35+0.1*rIdx(f.r):0,tick:0,freeze:(G.rod.n==="Frostfang"||G.rod.n==="Tiefenkrone")?4:0,frozen:0};
+  const AB=G.AB||{}; let rate=0.135*Math.max(0.06,1+f.ps/100)*(1+(G.fx.prog||0)+(AB.prog||0)), heavy=1; if(G.mw>0&&w>G.mw){ heavy=clamp(Math.sqrt(G.mw/w),0.14,1); if(AB.heavy) heavy=1-(1-heavy)*AB.heavy; rate*=heavy }
+  F.reel={x:.5-barW/2,v:0,w:barW,fx:.5,ft:.5,fv:0,re:0,eff,rate,heavy,prog:.06,lock:1.1,perfect:true,hold:!!(keys[" "]||fishHeld||touches.size>0),t:0,dart:rIdx(f.r)>=3?0.35+0.1*rIdx(f.r):0,tick:0,freeze:AB.freeze||0,freezeT:AB.freeze||0,frozen:0,slash:AB.slash?{t:AB.slash[0],p:AB.slash[1],c:AB.slash[0]}:null,anchor:AB.anchor||0};
   F.state="reel"; $("reel").style.display="block"; $("slider").style.width=(barW*100)+"%";
   const sz=fishSize(f); $("reelWho").textContent=sz>2.6?"Etwas RIESIGES hat angebissen!":sz>1.8?"Etwas Großes hat angebissen!":"Etwas hat angebissen!"; $("reelWho").style.color=rIdx(f.r)>=4?RCOL[f.r]:"#fff";
   const mods=[]; if(R_passive(G)) mods.push(R_passive(G)); if(f.ps) mods.push(`Fortschritt ${f.ps>0?"+":""}${f.ps}%`); if(heavy<1) mods.push(`zu schwer für die Rute (max ${fmtKg(G.mw)})`); $("reelMod").textContent=mods.join(" · ");
@@ -1996,7 +2139,8 @@ function startReel(){
 }
 function updateReel(dt){
   const R=F.reel; if(!R) return; R.t+=dt; R.re-=dt;
-  if(R.freeze){ R.freeze-=dt; if(R.freeze<=0){ R.freeze=4; R.frozen=1; tone(1600,0.25,"sine",0.08); sparkleFX(F.bob.x,F.bob.y+0.5,F.bob.z,"#bff4ff",14,2) } }
+  if(R.slash&&R.lock<=0){ R.slash.c-=dt; if(R.slash.c<=0){ R.slash.c=R.slash.t; R.prog+=R.slash.p; tone(220,0.25,"sawtooth",0.1,0,null,3); sparkleFX(F.bob.x,F.bob.y+0.5,F.bob.z,"#ff8a3a",20,2.5) } }
+  if(R.freeze){ R.freeze-=dt; if(R.freeze<=0){ R.freeze=R.freezeT; R.frozen=1; tone(1600,0.25,"sine",0.08); sparkleFX(F.bob.x,F.bob.y+0.5,F.bob.z,"#bff4ff",14,2) } }
   const frozen=R.frozen>0; if(frozen){ R.frozen-=dt; R.re+=dt } $("fishIcon").classList.toggle("ice",frozen);
   if(!frozen&&R.re<=0){ const jump=0.12+0.6*Math.min(1.4,R.eff); R.ft=clamp(R.fx+(Math.random()*2-1)*jump,0.03,0.97); R.re=(0.35+Math.random()*1.3)/(0.6+R.eff);
     if(R.dart&&Math.random()<R.dart*0.5){ R.ft=Math.random()<0.5?0.05+Math.random()*0.2:0.75+Math.random()*0.2; R.re*=0.6 } }
@@ -2007,20 +2151,42 @@ function updateReel(dt){
   $("slider").style.left=(R.x*100)+"%"; $("fishIcon").style.left=(R.fx*100)+"%"; const pi=$("prog").firstElementChild; pi.style.width=(clamp(R.prog,0,1)*100)+"%"; pi.classList.toggle("low",R.prog<0.2);
   $("reelPerf").textContent=R.perfect?"Perfect!":"";
   if(Math.random()<dt*4) splashFX(F.bob.x,F.bob.y,F.bob.z,3,0.5+R.eff*0.5);
-  if(ADM.autoReel) R.prog+=dt*0.9;
+  if(ADM.autoReel) R.prog+=dt*0.9; if(R.anchor&&R.lock<=0) R.prog=Math.max(R.prog,R.anchor);
   if(R.prog>=1) catchFish(); else if(R.prog<=0) loseFish();
 }
-function loseFish(){ F.reel=null; $("reel").style.display="none"; F.state="idle"; S.stats.snaps++; bobber.visible=false; myLine.visible=false;
+function roredTrack(ev,o){ const q=S.lq&&S.lq.rored; if(!q||q.done) return; const st=LQ.rored.steps[q.step]; if(!st) return; const streak=st.k==="flimsyPerfect"||st.k==="flimsyPP";
+  const breakIt=()=>{ if(q.cnt&&q.cnt<st.goal) toast(`RoRed: Serie gerissen bei ${q.cnt}. Nochmal von vorn!`,"#ff6363"); if(q.cnt<st.goal) q.cnt=0 };
+  if(ev==="lose"){ if(streak) breakIt(); renderQuests(); return }
+  const flimsy=o.rod.n==="Flimsy Rod", before=q.cnt||0;
+  if(st.k==="flimsyPerfect"){ if(flimsy&&o.R.perfect) q.cnt=before+1; else breakIt() }
+  if(st.k==="flimsyPP"){ if(flimsy&&o.R.perfect&&F.perfectCast) q.cnt=before+1; else breakIt() }
+  if(st.k==="tryMeg"&&flimsy&&o.f.n==="Megalodon"&&S.ench["Flimsy Rod"]==="hasty") q.cnt=1;
+  if(q.cnt>=st.goal&&before<st.goal) setTimeout(()=>{ toast("RoRed: „Nicht schlecht. Komm zum Vulkan zurück.“","#ff3a3a"); SFX.quest() },2000); renderQuests() }
+let camShake=0; function shakeCam(a){ camShake=Math.max(camShake,a) }
+/* hold a fish up so everybody can see it (H or backpack) */
+let holdIt=null, holdMesh=null, holdLbl=null;
+function setHold(it){ if(holdMesh){ scene.remove(holdMesh); holdMesh=null } if(holdLbl){ scene.remove(holdLbl); holdLbl.material.map.dispose(); holdLbl=null } holdIt=it||null;
+  if(holdIt){ const f=FISHBY[it.n]; holdMesh=makeFishMesh(it.n,it.m); holdMesh.scale.setScalar(clamp(fishSize(f)*0.9,0.7,3.2)); holdMesh.userData.s=holdMesh.scale.x; scene.add(holdMesh);
+    holdLbl=textSprite(`${fishLabel(it)} · ${fmtKg(it.w)}`,{size:36,color:RCOL[f.r]||"#fff",scale:0.03}); scene.add(holdLbl) } pushPresence(true) }
+function toggleHold(){ if(holdIt){ setHold(null); return } if(F.state!=="idle") return; if(!S.fish.length){ toast("Dein Rucksack ist leer.","#ffb35a"); return } setHold([...S.fish].sort((a,b)=>fishValue(b)-fishValue(a))[0]) }
+function updateHold(t){ if(holdIt&&(!S.fish.includes(holdIt)||F.state!=="idle"||pl.swim)) setHold(null); if(!holdMesh) return; const y=me.group.position.y+(pl.boat?6.4:7.6)+holdMesh.userData.s*0.35;
+  holdMesh.position.set(pl.x,y,pl.z); holdMesh.rotation.set(0,pl.ry+Math.PI/2+Math.sin(t*1.5)*0.2,Math.sin(t*3)*0.08); holdLbl.position.set(pl.x,y+1.6+holdMesh.userData.s*0.5,pl.z);
+  const f=FISHBY[holdIt.n]; if((rIdx(f.r)>=4||holdIt.m)&&Math.random()<0.25) GLOW.emit(pl.x+(Math.random()-.5)*2,y+(Math.random()-.5),pl.z+(Math.random()-.5)*2,0,1,0,0.8,0.6,holdIt.m&&MUT[holdIt.m]?MUT[holdIt.m].c:RCOL[f.r],-0.5) }
+function loseFish(){ roredTrack("lose"); F.reel=null; $("reel").style.display="none"; F.state="idle"; S.stats.snaps++; bobber.visible=false; myLine.visible=false;
   if(S.stats.streak>=5) toast(`Streak von ${S.stats.streak} verloren.`,"#ff6363"); S.stats.streak=0; toast("Der Fisch ist entkommen!","#ff6363"); SFX.fail(); markDirty(); pushPresence(true) }
 let lastCatch=null;
-function R_passive(G){ const n=G.rod.n; return n==="Frostfang"?"Eishauch":n==="Tiefenkrone"?"Krone der Tiefe":n==="Nebelrute"?"Nebel":n==="Klippenbrecher"?"Schmugglerglück":"" }
-function makeItem(f,w,ctx,G,bonus){ const mutExtra=(ctx.inEvent?0.05:0)+(G.fx.mut?0.06:0)+(G.rod.n==="Tiefenkrone"?0.1:0);
-  let m=rollMutation(mutExtra,ctx.W); if(ADM.nextMut){ m=ADM.nextMut; if(!ADM.sticky) ADM.nextMut="" } if(!m&&G.fx.abyssal&&Math.random()<G.fx.abyssal) m="Abyssal";
+function R_passive(G){ return G.AB&&G.AB.n?"✦ "+G.AB.n:"" }
+function makeItem(f,w,ctx,G,bonus){ const AB=G.AB||{}; const mutExtra=(ctx.inEvent?0.05:0)+(G.fx.mut?0.06:0)+(AB.mutPlus||0);
+  let m=rollMutation(mutExtra,ctx.W); if(!m&&G.fx.abyssal&&Math.random()<G.fx.abyssal) m="Abyssal";
+  if(ctx.W.aw&&Math.random()<(AW_LOC[ctx.W.aw]===f.l?0.5:0.12)) m=AW[ctx.W.aw].mut;
+  if(AB.mut){ const [mn,ch,cond]=AB.mut; const ok=!cond||(cond==="night"&&!ctx.W.day)||(cond==="day"&&ctx.W.day)||(cond==="deep"&&ctx.deep); const chance=AB.auroraMut&&ctx.W.aurora?AB.auroraMut:ch; if(ok&&Math.random()<chance) m=mn }
+  if(ADM.nextMut){ m=ADM.nextMut; if(!ADM.sticky) ADM.nextMut="" }
   return {id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),n:f.n,w,m,sh:Math.random()<0.02,sp:Math.random()<0.02,bonus:Math.round(bonus*100)/100,fav:false} }
 function catchFish(){
   const {f,w,fromShadow}=F.hooked, R=F.reel; F.reel=null; $("reel").style.display="none";
   const ctx=F.ctx, W=ctx.W, G=gearStats(W), rod=G.rod, ri=rIdx(f.r); const streak=S.stats.streak+1;
-  let bonus=Math.min(0.45,(streak-1)*0.03)+(R.perfect?0.1:0)+(G.fx.val||0); if(R.perfect&&rod.n==="Klippenbrecher") bonus+=1;
+  const AB=G.AB||{}; let bonus=Math.min(0.45,(streak-1)*0.03)+(R.perfect?0.1:0)+(G.fx.val||0)+(AB.val||0); if(R.perfect&&AB.perfectVal) bonus+=AB.perfectVal;
+  if(AB.every){ S.everyN=(S.everyN||0)+1; if(S.everyN%AB.every[0]===0){ bonus+=AB.every[1]; setTimeout(()=>toast(`${AB.n}: dieser Fang ist ${Math.round(AB.every[1]*100)} % mehr wert!`,"#2fd0c0"),700) } }
   const it=makeItem(f,w,ctx,G,bonus);
   const val=fishValue(it); let xp=Math.round(f.xp*G.xpMul); if(R.perfect){ xp=Math.round(xp*1.5); S.stats.perfect++ }
   const first=!S.dex[f.n]; const d=S.dex[f.n]||{c:0,bw:0,first:Date.now()}; d.c++; d.bw=Math.max(d.bw,w); S.dex[f.n]=d;
@@ -2036,11 +2202,13 @@ function catchFish(){
   const mb=masteryOf(rod.n).L; S.mastery[rod.n]=(S.mastery[rod.n]||0)+1; const ma=masteryOf(rod.n).L;
   if(ma>mb) setTimeout(()=>{ bigMsg(`Meisterschaft ${ma}!`,`${rod.n} · Glück +${ma*4} % · Lure +${ma*2} %`,"#ffd24a"); SFX.level() },3000);
   // passives: double catch
-  const dbl=(rod.n==="Nebelrute"&&Math.random()<0.2)||(rod.n==="Tiefenkrone"&&Math.random()<0.15);
+  const dbl=(AB.dbl&&Math.random()<AB.dbl)||(AB.dblNight&&!W.day&&Math.random()<AB.dblNight);
   if(dbl&&S.fish.length<bagCap()){ const it2=makeItem(f,rollWeight(f,G.fx.weight||0),ctx,G,bonus); S.fish.push(it2); S.stats.caught++; d.c++; setTimeout(()=>{ toast(`Doppelfang! Noch ein ${fishLabel(it2)} (${fmtKg(it2.w)})`,"#cfd8e3"); SFX.coin() },900) }
   // relics & treasure maps
   if(Math.random()<(ri>=4?0.08:0.009)){ S.relics++; setTimeout(()=>{ bigMsg("Enchant-Relikt!","Am Altar kannst du damit eine Rute verzaubern.","#8fe8ff"); SFX.relic() },2400) }
-  else if(!S.tmap&&Math.random()<0.014){ const m=makeTreasureMap(); if(m){ S.tmap=m; setTimeout(()=>{ bigMsg("Schatzkarte!",`Irgendwo auf ${m.loc} ist etwas vergraben. Folge dem roten Strahl.`,"#ff8a6a"); SFX.quest() },2400) } }
+  else if(!S.tmap&&Math.random()<0.014+(AB.tmap||0)){ const m=makeTreasureMap(); if(m){ S.tmap=m; setTimeout(()=>{ bigMsg("Schatzkarte!",`Irgendwo auf ${m.loc} ist etwas vergraben. Folge dem roten Strahl.`,"#ff8a6a"); SFX.quest() },2400) } }
+  roredTrack("catch",{f,rod,R});
+  if(SEAOF(f.l)&&Object.values(AW_LOC).includes(f.l)&&ri>=6) setTimeout(()=>bigMsg(f.r==="Divine"?"GÖTTLICH!!!":"UNGLAUBLICH!",`${fishLabel(it)} aus dem ${f.l}`,RCOL[f.r]),1600);
   gainXP(xp+(first?50:0));
   F.state="show"; F.showT=0; bobber.visible=false; myLine.visible=false; startShow(it,f);
   showCard(it,f,val,xp,first,R.perfect,streak); SFX.catch(ri); SFX.splash(1.2); splashFX(F.bob.x,F.bob.y,F.bob.z,26,1.3);
@@ -2136,9 +2304,9 @@ function sellFish(filter){ let v=0,n=0; S.fish=S.fish.filter(it=>{ if(filter(it)
 function panelBag(body){ $("sheetTitle").textContent="Rucksack"; setTabs([],null); const total=S.fish.reduce((s,it)=>s+fishValue(it),0);
   const bf=Object.entries(POTIONS).filter(([k])=>buffActive(k)).map(([k,p])=>`${p.n} (${Math.ceil((S.buffs[k]-Date.now())/60000)} min)`);
   body.insertAdjacentHTML("beforeend",`<div class="row chips"><span class="chip">Enchant-Relikte <b>${S.relics}</b></span><span class="chip">Schatzkarte <b>${S.tmap?esc(S.tmap.loc):"keine"}</b></span>${bf.map(x=>`<span class="chip good">${esc(x)}</span>`).join("")}</div>`);
-  body.insertAdjacentHTML("beforeend",`<p class="note">${S.fish.length}/${bagCap()} Fische · Wert <b style="color:var(--cash)">${fmt(total)} C$</b>. Verkaufen kannst du bei jedem Händler (Stand am Steg jeder Insel, Flöße auf dem Meer). Mit ★ markierte Fische werden nicht mitverkauft.</p>`);
+  body.insertAdjacentHTML("beforeend",`<p class="note">Mit „Hochhalten“ (oder Taste H) zeigst du allen Spielern einen Fisch. ${S.fish.length}/${bagCap()} Fische · Wert <b style="color:var(--cash)">${fmt(total)} C$</b>. Verkaufen kannst du bei jedem Händler (Stand am Steg jeder Insel, Flöße auf dem Meer). Mit ★ markierte Fische werden nicht mitverkauft.</p>`);
   if(!S.fish.length) body.insertAdjacentHTML("beforeend",`<p class="note">Noch leer.</p>`);
-  [...S.fish].sort((a,b)=>fishValue(b)-fishValue(a)).forEach(it=>body.appendChild(fishRow(it,()=>{}))) }
+  [...S.fish].sort((a,b)=>fishValue(b)-fishValue(a)).forEach(it=>body.appendChild(fishRow(it,act=>{ const b=document.createElement("button"); b.className="btn "+(holdIt===it?"":"alt"); b.textContent=holdIt===it?"Ablegen":"Hochhalten"; b.title="Allen zeigen (Taste H)"; b.onclick=()=>{ if(holdIt===it) setHold(null); else { if(F.state!=="idle") return; setHold(it); closeModal() } renderPanel() }; act.appendChild(b) }))) }
 function panelMerchant(body){ const loc=curNPC?.loc||"Moosewood"; $("sheetTitle").textContent=loc==="Ocean"?"Meereshändler":`Händler · ${loc}`; const tab=panelTab||"sell";
   setTabs([["sell","Verkaufen"],["rods","Ruten"],["bait","Köder"],["bag","Rucksack-Upgrade"]],tab);
   if(tab==="sell"){ const sellable=S.fish.filter(it=>!it.fav); const total=sellable.reduce((s,it)=>s+fishValue(it),0);
@@ -2162,10 +2330,11 @@ function panelMerchant(body){ const loc=curNPC?.loc||"Moosewood"; $("sheetTitle"
     const b=document.createElement("button"); b.className="btn gold"; b.textContent="Aufrüsten"; b.disabled=S.money<BAG_PRICE[nxt]; b.onclick=()=>{ if(S.money<BAG_PRICE[nxt]) return; S.money-=BAG_PRICE[nxt]; S.bag=nxt; SFX.level(); markDirty(); refreshHUD(); renderPanel() }; c.appendChild(b); body.appendChild(c) }
   else body.insertAdjacentHTML("beforeend",`<p class="note">Das ist der größte Rucksack.</p>`) }
 function statCmp(v,cur,fmtf=(x)=>x){ const cls=v>cur?"up":v<cur?"down":""; return `<b class="${cls}">${fmtf(v)}</b>` }
+const rodCol=r=>{ const L=c=>new THREE.Color(c).getHSL({}).l; return L(r.mc)>=0.3?r.mc:L(r.c1)>=0.3?r.c1:L(r.c2)>=0.3?r.c2:"#ffffff" };
 function rodCard(r,atShop){ const own=S.rods.includes(r.n), cur=ROD[S.rod]; const c=document.createElement("div"); c.className="card"+(S.rod===r.n?" sel":"")+(r.quest?" legend":"");
   const M=masteryOf(r.n), E=ENCHBY[S.ench[r.n]];
-  c.innerHTML=`<h3 style="color:${esc(r.mc)}">${esc(r.n)}</h3><div class="sub">${r.quest?"Legendäre Rute · Quest bei "+esc(LQ[r.quest].npc)+" ("+esc(S.visited[LQ[r.quest].loc]||!ISLBY[LQ[r.quest].loc]?.hidden?LQ[r.quest].loc:"???")+")":r.price?fmt(r.price)+" C$ · "+esc(locName(r.loc)):"Startrute"}</div>
-   ${r.passive?`<div class="sub" style="color:#ffe27a">${esc(r.passive)}</div>`:""}${own?`<div class="sub">Meisterschaft <b style="color:var(--gold)">${M.L}</b>${M.next?` · ${M.c}/${M.next} Fänge`:" · max"}${E?` · <span style="color:${enchTier(E)[1]}">${esc(E.n)}</span>`:""}</div>`:""}
+  c.innerHTML=`<h3 style="color:${esc(rodCol(r))}">${esc(r.n)}</h3><div class="sub">${r.quest?"Legendäre Rute · Quest bei "+esc(LQ[r.quest].npc)+" ("+esc(S.visited[LQ[r.quest].loc]||!ISLBY[LQ[r.quest].loc]?.hidden?LQ[r.quest].loc:"???")+")":r.price?fmt(r.price)+" C$ · "+esc(locName(r.loc)):"Startrute"}</div>
+   ${abilOf(r.n)?`<div class="sub abil">✦ <b>${esc(abilOf(r.n).n)}</b>: ${esc(abilOf(r.n).d)}</div>`:""}${own?`<div class="sub">Meisterschaft <b style="color:var(--gold)">${M.L}</b>${M.next?` · ${M.c}/${M.next} Fänge`:" · max"}${E?` · <span style="color:${enchTier(E)[1]}">${esc(E.n)}</span>`:""}</div>`:""}
    <div class="kv"><span>Lure Speed</span>${statCmp(r.lure,cur.lure,x=>x+"%")}<span>Glück</span>${statCmp(r.luck,cur.luck,x=>x+"%")}<span>Control</span>${statCmp(r.ctrl,cur.ctrl,x=>Math.round(x*100)+"%")}<span>Resilience</span>${statCmp(r.res,cur.res,x=>x+"%")}<span>Max Gewicht</span>${statCmp(r.mw||1e9,cur.mw||1e9,x=>x>=1e9?"∞":fmtKg(x))}</div>`;
   const b=document.createElement("button");
   if(own){ b.className="btn"; b.textContent=S.rod===r.n?"Ausgerüstet":"Ausrüsten"; b.disabled=S.rod===r.n; b.onclick=()=>{ S.rod=r.n; setRodLook(me,r.n); colorBobber(bobber,r.n); SFX.ui(); markDirty(); refreshHUD(); pushPresence(true); renderPanel() } }
@@ -2209,7 +2378,7 @@ function panelQuests(body){ $("sheetTitle").textContent="Aufträge"; setTabs([],
     const bt=document.createElement("button"); bt.className="btn alt"; bt.textContent="Neuer Auftrag · 25 C$"; bt.disabled=S.money<25; bt.onclick=()=>{ S.money-=25; S.bounties.splice(i,1); ensureBounties(locationAt(pl.x,pl.z)); markDirty(); refreshHUD(); renderQuests(); renderPanel() }; c.appendChild(bt); body.appendChild(c) });
   body.insertAdjacentHTML("beforeend",`<p class="note">${S.bountyDone} Aufträge erledigt. Neue Aufträge richten sich nach der Insel, auf der du gerade bist.</p><div class="sect">Verborgene Meister</div>`);
   const g=document.createElement("div"); g.className="grid"; for(const [id,L] of Object.entries(LQ)){ const q=S.lq[id], found=S.found[id]; const c=document.createElement("div"); c.className="card"+(q&&q.done?" sel":found?"":" lock");
-    const st=q&&!q.done?L.steps[q.step]:null; c.innerHTML=`<h3>${found?esc(L.npc):"???"}</h3><div class="sub">${found?esc(L.loc)+" · "+esc(L.rod):"Ein Gerücht: "+esc({aldo:"im Nebel ganz im Osten",mara:"hinter den Klippen von Castaway",tenzin:"auf dem Gipfel von Snowcap",ysolde:"am Ostrand der Zweiten See"}[id])}</div>${q&&q.done?`<div class="sub" style="color:var(--good)">Abgeschlossen · Titel „${esc(L.title)}“</div>`:st?`<div class="sub">Schritt ${q.step+1}/4: ${esc(st.d)}</div><div class="pbar"><i style="width:${Math.min(1,lqProgress(id)/st.goal)*100}%"></i></div>`:found?`<div class="sub">Sprich mit ${esc(L.npc)}, um die Prüfung anzunehmen.</div>`:""}`; g.appendChild(c) }
+    const st=q&&!q.done?L.steps[q.step]:null; c.innerHTML=`<h3>${found?esc(L.npc):"???"}</h3><div class="sub">${found?esc(L.loc)+" · "+esc(L.rod):"Ein Gerücht: "+esc({aldo:"im Nebel ganz im Osten",mara:"hinter den Klippen von Castaway",rored:"am Rand eines glühenden Kraters",tenzin:"auf dem Gipfel von Snowcap",ysolde:"am Ostrand der Zweiten See"}[id])}</div>${q&&q.done?`<div class="sub" style="color:var(--good)">Abgeschlossen · Titel „${esc(L.title)}“</div>`:st?`<div class="sub">Schritt ${q.step+1}/4: ${esc(st.d)}</div><div class="pbar"><i style="width:${Math.min(1,lqProgress(id)/st.goal)*100}%"></i></div>`:found?`<div class="sub">Sprich mit ${esc(L.npc)}, um die Prüfung anzunehmen.</div>`:""}`; g.appendChild(c) }
   body.appendChild(g) }
 let dexSea=0;
 const locKnown=l=>{ const I=ISLBY[l]; return !(I&&I.hidden)||S.visited[l] };
@@ -2281,7 +2450,7 @@ function refreshHUD(){
 let lastLoc="", lastEvent="";
 function refreshWorldHUD(){
   const W=world(); const hh=Math.floor(W.hour), mm=Math.floor((W.hour-hh)*6)*10; const loc=locationAt(pl.x,pl.z);
-  $("clock").innerHTML=`<b>${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}</b><span>${W.day?"Tag":"Nacht"}</span><b>${W.aurora?'<span style="color:#8affc9">Polarlicht</span>':WEATHER_DE[W.weather]}</b><b class="opt">${SEASON_DE[W.season]}</b><span class="opt">${esc(locName(loc))}</span>`;
+  $("clock").innerHTML=`<b>${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}</b><span>${W.day?"Tag":"Nacht"}</span><b>${W.aw?`<span style="color:${AW[W.aw].col}">${AW[W.aw].n} ${Math.floor(W.awLeft/60000)}:${String(Math.floor(W.awLeft/1000)%60).padStart(2,"0")}</span>`:W.aurora?'<span style="color:#8affc9">Polarlicht</span>':WEATHER_DE[W.weather]}</b><b class="opt">${SEASON_DE[W.season]}</b><span class="opt">${esc(locName(loc))}</span>`;
   if(loc!==lastLoc){ lastLoc=loc; const I=ISLBY[loc]; if(!S.visited[loc]){ S.visited[loc]=1; const xp=I&&I.hidden?400:60; gainXP(xp); markDirty(); if(performance.now()<bannerLock) toast(`Neu entdeckt: ${locName(loc)} · +${xp} XP`,"#5fd8ff"); else banner(loc==="Ocean"?"Offenes Meer":loc,(LOCDESC[loc]||"")+` · Neu entdeckt! +${xp} XP`); SFX.quest(); if(I&&I.hidden) flash("#ffffff55"); checkStory() } else if(loc!=="Ocean"&&loc!=="Sturmsee"&&performance.now()>=bannerLock) banner(loc,LOCDESC[loc]||"");
     if(S.bounties.length<3) ensureBounties(loc); pushPresence(true) }
   const ev=$("event"); if(W.event){ const left=Math.max(0,Math.ceil((W.event.ends-Date.now())/60000)); ev.style.display="block"; ev.textContent=`${W.event.n} · ${W.event.l==="Ocean"?"offene See":W.event.l} · noch ${left} min`;
@@ -2307,25 +2476,29 @@ function updateSky(){
   const foggy=Math.max(W.weather==="Foggy"?1:0,nebel);
   if(foggy>0){ top.lerp(C_("#98a6b2"),(0.5-night*0.3)*foggy); hor.lerp(C_("#c9d2d9"),(0.65-night*0.4)*foggy) }
   if(curSea===2&&W.weather!=="Clear"){ top.lerp(C_("#3a4a5a"),0.25); hor.lerp(C_("#8a9aa6"),0.2) }
+  const AWk=W.aw; if(AWk&&AW[AWk].night&&night<0.95){ night=0.95; top.copy(SKYC.night[0]); hor.copy(SKYC.night[1]) }
+  if(AWk==="blood"){ top.lerp(C_("#140205"),0.85); hor.lerp(C_("#4a0a10"),0.8) } else if(AWk==="star"){ top.lerp(C_("#06031a"),0.8); hor.lerp(C_("#22124a"),0.7) } else if(AWk==="storm"){ top.lerp(C_("#121821"),0.85); hor.lerp(C_("#303a48"),0.82) }
+  skyU.uMoonCol.value.set(AWk==="blood"?"#ff3020":AWk==="star"?"#e6d8ff":"#ebf2ff"); skyU.uMoonSize.value=lerp(skyU.uMoonSize.value,AWk==="blood"?1:0,0.15);
   skyU.uTop.value.copy(top); skyU.uHorizon.value.copy(hor); skyU.uBottom.value.copy(hor).multiplyScalar(0.7); skyU.uNight.value=night;
   const dayP=clamp((h-5.5)/15,0,1), sa=dayP*Math.PI; const sd=new THREE.Vector3(Math.cos(sa)*0.85,Math.sin(sa)*0.95+0.02,0.35).normalize(); skyU.uSunDir.value.copy(sd);
-  const np=((h-19.5+24)%24)/11, ma=clamp(np,0,1)*Math.PI; const md=new THREE.Vector3(-Math.cos(ma)*0.8,Math.sin(ma)*0.9+0.05,-0.4).normalize(); skyU.uMoonDir.value.copy(md);
+  const np=AWk&&AW[AWk].night&&W.realDay?0.42:((h-19.5+24)%24)/11, ma=clamp(np,0,1)*Math.PI; const md=new THREE.Vector3(-Math.cos(ma)*0.8,Math.sin(ma)*0.9+0.05,-0.4).normalize(); skyU.uMoonDir.value.copy(md);
   const low=clamp(sd.y*3,0,1); skyU.uSunCol.value.setRGB(1,0.72+0.23*low,0.45+0.4*low);
   const useMoon=night>0.5, L=useMoon?md:sd; sun.position.set(pl.x+L.x*200,Math.max(40,L.y*200),pl.z+L.z*200); sun.target.position.set(pl.x,0,pl.z);
   const wf=W.weather==="Clear"?1:W.weather==="Windy"?0.9:0.55;
   sun.intensity=useMoon?0.55:(2.4*wf*clamp(sd.y*2.5,0.15,1)); sun.color.copy(useMoon?C_("#8fa8ff"):skyU.uSunCol.value);
-  hemi.intensity=lerp(1.0,0.38,night)*(W.weather==="Clear"?1:0.85); hemi.color.copy(hor).lerp(C_("#ffffff"),0.3); hemi.groundColor.set(night>0.5?"#1a2230":"#5b6b3a");
-  const fogC=hor.clone(); scene.fog.color.copy(fogC); let dens=W.weather==="Foggy"?0.0042:W.weather==="Rain"?0.0014:curSea===2?0.0006:0.00045; dens=Math.max(dens,nebel*0.0075); scene.fog.density=lerp(scene.fog.density,dens,0.08);
+  hemiBase=lerp(1.0,0.38,night)*(W.weather==="Clear"?1:0.85)*(AWk==="blood"?1.1:1); hemi.intensity=hemiBase; if(AWk==="blood") hemi.color.set("#ff9a8e"); if(AWk!=="blood") hemi.color.copy(hor).lerp(C_("#ffffff"),0.3); hemi.groundColor.set(night>0.5?"#1a2230":"#5b6b3a");
+  const fogC=hor.clone(); scene.fog.color.copy(fogC); let dens=AWk==="storm"?0.0024:AWk==="blood"?0.0007:AWk==="star"?0.0006:W.weather==="Foggy"?0.0042:W.weather==="Rain"?0.0014:curSea===2?0.0006:0.00045; dens=Math.max(dens,nebel*0.0075); scene.fog.density=lerp(scene.fog.density,dens,0.08);
   const au=W.aurora?night:0; skyU.uAurora.value=lerp(skyU.uAurora.value,au,0.1); waterU.uAurora.value=skyU.uAurora.value;
-  if(gradePass){ const gu=gradePass.uniforms; gu.uTint.value.setRGB(1-night*0.08,1-night*0.04+au*0.04,1+night*0.06); gu.uSat.value=1.12-foggy*0.18+au*0.1; gu.uVig.value=0.3+night*0.25 }
+  if(gradePass){ const gu=gradePass.uniforms; gu.uTint.value.setRGB(1-night*0.08,1-night*0.04+au*0.04,1+night*0.06); if(AWk==="blood") gu.uTint.value.setRGB(1.1,0.9,0.9); else if(AWk==="star") gu.uTint.value.setRGB(1.0,0.97,1.08); gu.uSat.value=1.12-foggy*0.18+au*0.1; gu.uVig.value=0.3+night*0.25 }
   waterU.uSky.value.copy(hor).lerp(top,0.3); waterU.uSunDir.value.copy(useMoon?md:sd); waterU.uSunCol.value.copy(useMoon?C_("#8fa8ff").multiplyScalar(0.6):skyU.uSunCol.value).multiplyScalar(wf);
   waterU.uDeep.value.set("#0b4f8a").lerp(C_("#031428"),night*0.8); waterU.uShallow.value.set("#1cb8c8").lerp(C_("#0b3a50"),night*0.75); waterU.uNight.value=night;
+  if(AWk==="blood"){ waterU.uDeep.value.set("#2a0308"); waterU.uShallow.value.set("#7a0c16") } else if(AWk==="star"){ waterU.uDeep.value.set("#0b0632"); waterU.uShallow.value.set("#3a2a8a") } else if(AWk==="storm"){ waterU.uDeep.value.set("#07202e"); waterU.uShallow.value.set("#1a4452") }
   waterU.fogColor.value.copy(fogC); waterU.fogDensity.value=scene.fog.density;
   for(const gm of Object.values(GRASS)){ if(!gm) continue; const u=gm.material.uniforms; u.uLight.value.setRGB(lerp(1,0.32,night),lerp(1,0.38,night),lerp(1,0.55,night)); u.fogColor.value.copy(fogC); u.fogDensity.value=scene.fog.density }
   cloudMat.color.copy(C_("#ffffff").lerp(C_("#2a3350"),night*0.85)).lerp(C_("#8a939c"),W.weather==="Rain"?0.5:0); cloudMat.opacity=W.weather==="Clear"?0.85:0.97;
   lanternMat.emissiveIntensity=lerp(0.2,3.2,night); windowMat.emissiveIntensity=lerp(0,2.2,night); GLOWMATS.forEach(g=>g.mat.emissiveIntensity=lerp(g.base,g.night,night));
   if(lighthouseBeam) lighthouseBeam.visible=night>0.3;
-  rain.visible=W.weather==="Rain"; if(bloom) bloom.strength=lerp(0.38,0.7,night);
+  rain.visible=W.weather==="Rain"; rain.material.opacity=AWk==="storm"?0.75:0.45; if(bloom) bloom.strength=lerp(0.38,0.7,night);
   renderer.toneMappingExposure=lerp(1.05,1.25,night);
   return W;
 }
@@ -2338,7 +2511,8 @@ function myName(){ return S.nick||myProfileName||"Du" }
 let lastPresSent=0, lastPresKey="", presTimer=0;
 function presenceObj(){ const p={v:5,nick:S.nick||"",loc:locationAt(pl.x,pl.z),x:Math.round(pl.x*10)/10,z:Math.round(pl.z*10)/10,y:Math.round(pl.y*10)/10,ry:Math.round(pl.ry*100)/100,b:pl.boat?S.boat:0,sw:pl.swim?1:0,mv:pl.moving?1:0,st:F.state,rod:S.rod,lvl:levelInfo(S.xp).L,col:myColor};
   if(["cast","lure","bite","reel"].includes(F.state)){ p.bx=Math.round(F.bob.x*10)/10; p.bz=Math.round(F.bob.z*10)/10; p.by=Math.round((F.bob.y||0)*10)/10 }
-  if(showFish&&F.showIt) p.hold=F.showIt.n; if(lastCatch) p.last=lastCatch; if(myMsg) p.msg=myMsg; return p }
+  const H=showFish&&F.showIt?F.showIt:holdIt; if(H) p.hold={n:H.n,m:H.m||"",w:H.w,sh:H.sh?1:0,sp:H.sp?1:0};
+  if((F.state==="bite"||F.state==="reel")&&F.hooked) p.br=rIdx(F.hooked.f.r); if(lastCatch) p.last=lastCatch; if(myMsg) p.msg=myMsg; return p }
 function pushPresence(force){ if(!room) return; const now=performance.now(); if(!force&&now-lastPresSent<180){ clearTimeout(presTimer); presTimer=setTimeout(()=>pushPresence(true),190); return }
   const p=presenceObj(); const key=JSON.stringify(p); if(key===lastPresKey) return; lastPresKey=key; lastPresSent=now; room.presence(p).catch(()=>{}) }
 function avatarFor(p){ let a=avatars.get(p.peer); const pr=p.presence||{};
@@ -2347,7 +2521,7 @@ function avatarFor(p){ let a=avatars.get(p.peer); const pr=p.presence||{};
     const bts=[null,makeBoat(1),makeBoat(2),makeBoat(3)]; bts.forEach(b=>{ if(b){ b.visible=false; scene.add(b) } }); const bob=bobber.clone(); bob.visible=false; scene.add(bob); const line=makeLine(.6);
     a={ch,bts,bob,line,x:+pr.x||0,z:+pr.z||0,y:+pr.y||0,ry:+pr.ry||0,walkT:0,label:null,labelText:"",bubble:null,bubbleT:0,rod:"",holdMesh:null,holdName:""}; avatars.set(p.peer,a) }
   return a }
-function removeAvatar(peer){ const a=avatars.get(peer); if(!a) return; scene.remove(a.ch.group,a.bob,a.line); a.bts.forEach(b=>b&&scene.remove(b)); if(a.label) scene.remove(a.label); if(a.bubble) scene.remove(a.bubble); if(a.holdMesh) scene.remove(a.holdMesh); avatars.delete(peer) }
+function removeAvatar(peer){ const a=avatars.get(peer); if(!a) return; scene.remove(a.ch.group,a.bob,a.line); a.bts.forEach(b=>b&&scene.remove(b)); if(a.label) scene.remove(a.label); if(a.bubble) scene.remove(a.bubble); if(a.holdMesh) scene.remove(a.holdMesh); if(a.holdLbl) scene.remove(a.holdLbl); avatars.delete(peer) }
 function updatePeers(dt,t){
   for(const p of peers){ if(p.sameTab) continue; const pr=p.presence||{}; if(typeof pr.x!=="number"||typeof pr.z!=="number") continue;
     const a=avatarFor(p); const tx=clamp(pr.x,-2200,SEA2X+1600), tz=clamp(pr.z,-2200,2200), ty=clamp(+pr.y||0,-30,90);
@@ -2357,7 +2531,8 @@ function updatePeers(dt,t){
     const bt=clamp(+pr.b||0,0,3)|0; a.bts.forEach((b,i)=>{ if(!b) return; b.visible=i===bt&&vis; if(i===bt){ b.position.set(a.x,waveHeight(a.x,a.z,t)-0.3,a.z); b.rotation.y=a.ry } });
     const rod=ROD[pr.rod]?pr.rod:"Flimsy Rod"; if(a.rod!==rod){ a.rod=rod; setRodLook(a.ch,rod); colorBobber(a.bob,rod) }
     if(pr.mv===1) a.walkT+=dt*10; const st=typeof pr.st==="string"?pr.st:"idle";
-    poseCharacter(a.ch,{moving:pr.mv===1,boat:bt>0,swim:pr.sw===1,walkT:a.walkT,st:pr.hold?"hold":st,y:a.y},t); a.ch.group.position.x=a.x; a.ch.group.position.z=a.z; a.ch.group.rotation.y=a.ry;
+    poseCharacter(a.ch,{moving:pr.mv===1,boat:bt>0,swim:pr.sw===1,walkT:a.walkT,st:pr.hold?"hold":st,y:a.y},t);
+    if((st==="bite"||st==="reel")&&a.lastSt!=="bite"&&a.lastSt!=="reel"&&typeof pr.bx==="number"&&vis){ const br=clamp(+pr.br||0,0,10)|0; spawnBiteMark(pr.bx,+pr.by||0,pr.bz,br); const dd=Math.hypot(pr.bx-pl.x,pr.bz-pl.z); if(dd<140) SFX.bite(br,clamp(1-dd/140,0.12,0.7)) } a.lastSt=st; a.ch.group.position.x=a.x; a.ch.group.position.z=a.z; a.ch.group.rotation.y=a.ry;
     const txt=`${peerName(p)} · ${+pr.lvl||1}`; if(txt!==a.labelText){ if(a.label) scene.remove(a.label); a.label=textSprite(txt,{size:40,scale:0.03}); scene.add(a.label); a.labelText=txt }
     a.label.position.set(a.x,a.ch.group.position.y+8.3,a.z); { const f=clamp((70-Math.hypot(a.x-pl.x,a.z-pl.z))/15,0,1); a.label.visible=vis&&f>0.01; a.label.material.opacity=f }
     const m=pr.msg, showMsg=m&&typeof m.x==="string"&&Date.now()-(+m.t||0)<7000;
@@ -2365,8 +2540,11 @@ function updatePeers(dt,t){
     if(a.bubble){ a.bubble.visible=!!showMsg; a.bubble.position.set(a.x,a.ch.group.position.y+10.2,a.z) }
     const fishing=["lure","bite","reel","cast"].includes(st)&&typeof pr.bx==="number"; a.bob.visible=fishing; a.line.visible=fishing;
     if(fishing){ const by=(+pr.by||0)+(st==="reel"||st==="bite"?Math.sin(t*25)*0.15-0.2:Math.sin(t*3)*0.08); a.bob.position.set(pr.bx,by,pr.bz); const tip=new THREE.Vector3(); a.ch.tip.getWorldPosition(tip); setLine(a.line,tip,a.bob.position,st==="reel"?0.3:1.6) }
-    const hn=typeof pr.hold==="string"&&FISHBY[pr.hold]?pr.hold:""; if(hn!==a.holdName){ if(a.holdMesh){ scene.remove(a.holdMesh); a.holdMesh=null } a.holdName=hn; if(hn){ a.holdMesh=makeFishMesh(hn,""); a.holdMesh.scale.setScalar(clamp(fishSize(FISHBY[hn])*0.9,0.7,3.2)); scene.add(a.holdMesh) } }
-    if(a.holdMesh){ a.holdMesh.position.set(a.x,a.ch.group.position.y+7.8,a.z); a.holdMesh.rotation.y=a.ry+Math.PI/2 }
+    const ho=pr.hold&&typeof pr.hold==="object"?pr.hold:typeof pr.hold==="string"?{n:pr.hold}:null; const hn=ho&&typeof ho.n==="string"&&FISHBY[ho.n]?ho.n:""; const hm=hn&&typeof ho.m==="string"&&MUT[ho.m]?ho.m:""; const hk=hn?hn+"|"+hm+"|"+(+ho.w||0):"";
+    if(hk!==a.holdName){ if(a.holdMesh){ scene.remove(a.holdMesh); a.holdMesh=null } if(a.holdLbl){ scene.remove(a.holdLbl); a.holdLbl=null } a.holdName=hk;
+      if(hn){ const f=FISHBY[hn]; a.holdMesh=makeFishMesh(hn,hm); const s=clamp(fishSize(f)*0.9,0.7,3.2); a.holdMesh.scale.setScalar(s); a.holdMesh.userData.s=s; scene.add(a.holdMesh);
+        if(ho.w) { a.holdLbl=textSprite(`${ho.sh?"Shiny ":""}${ho.sp?"Sparkling ":""}${hm?hm+" ":""}${hn} · ${fmtKg(+ho.w)}`,{size:36,color:RCOL[f.r]||"#fff",scale:0.03}); scene.add(a.holdLbl) } } }
+    if(a.holdMesh){ a.holdMesh.visible=vis; const hy=a.ch.group.position.y+7.6+a.holdMesh.userData.s*0.35; a.holdMesh.position.set(a.x,hy,a.z); a.holdMesh.rotation.set(0,a.ry+Math.PI/2+Math.sin(t*1.5)*0.2,0); if(a.holdLbl){ a.holdLbl.visible=vis; a.holdLbl.position.set(a.x,hy+1.6+a.holdMesh.userData.s*0.5,a.z) } }
   }
   for(const peer of [...avatars.keys()]) if(!peers.some(p=>p.peer===peer&&!p.sameTab)) removeAvatar(peer);
 }
@@ -2632,7 +2810,7 @@ const CMDS={
   dex:{u:"set:all | clear",d:"Bestiary",f:P=>{ const v=String(pv(P,"set")||"all").toLowerCase(); if(v==="clear"||v==="leer"){ S.dex={}; S.dexRewards={}; return "Bestiary geleert" } FISH.forEach(f=>{ if(!S.dex[f.n]) S.dex[f.n]={c:1,bw:f.bw,first:Date.now()} }); checkStory(); return `Bestiary: ${FISH.length} Arten` }},
   tmap:{u:"",d:"Schatzkarte erzeugen",f:()=>{ S.tmap=makeTreasureMap(); if(!S.tmap) throw new Error("Keine besuchte Insel in dieser See."); return `Schatzkarte: ${S.tmap.loc}` }},
   chests:{u:"reset | open",d:"Truhen",f:P=>{ const v=String(pv(P,"set")||"reset").toLowerCase(); if(v==="open"){ CHESTS.forEach(c=>S.chests[c.id]=1); syncChests(); return "Alle Truhen geöffnet" } S.chests={}; syncChests(); return `${CHESTS.length} Truhen zurückgesetzt` }},
-  admin:{u:"off",d:"Admin-Modus beenden",f:P=>{ if(/^(off|aus)$/i.test(pv(P,"set")||"")){ S.admin=false; if(isOnlineAcct()) FDNET.send({t:"unadmin"}); updateAdminUI(); return "Admin-Modus beendet" } openModal("admin") }},
+  admin:{u:"off",d:"Admin-Modus beenden",f:P=>{ if(/^(off|aus)$/i.test(pv(P,"set")||"")){ S.admin=false; if(isOnlineAcct()) FDNET.send({t:"unadmin"}); updateAdminUI(); return "Admin-Modus beendet" } if(P.code!==undefined) return "Admin-Modus ist schon aktiv."; openModal("admin") }},
 };
 function runCommand(v,fromPanel){ const {cmd,P}=parseCmd(v);
   if(cmd==="admin"&&!adminOn()){ const code=String(P.code||"").trim();
@@ -2740,17 +2918,19 @@ addEventListener("keydown",e=>{ if(e.key==="F9"&&adminOn()&&!typing()){ e.preven
 { const el=document.createElement("div"); el.id="fps"; el.style.cssText="position:absolute;z-index:40;left:50%;bottom:4px;transform:translateX(-50%);font:800 12px var(--body);color:#9dffae;background:rgba(0,0,0,.55);padding:2px 8px;border-radius:8px;pointer-events:none;display:none"; document.getElementById("app").appendChild(el);
   let n=0; const loop=()=>{ n++; requestAnimationFrame(loop) }; requestAnimationFrame(loop); setInterval(()=>{ el.style.display=ADM.fps?"block":"none"; if(ADM.fps) el.textContent=`${n} FPS · ${renderer.info.render.calls} Draw Calls · ${Math.round(pl.x)}, ${Math.round(pl.z)}`; n=0 },1000) }
 /* ---------- main loop ---------- */
+let boltTimer=3, lightFlash=0, hemiBase=1;
 let lastT=performance.now(), T0=performance.now(), hudT=0, miniT=0, skyT=0, presT=0, hintT=0;
 const tipV=new THREE.Vector3(), camTarget=new THREE.Vector3();
 function frame(now){
   const dt=Math.min(0.05,(now-lastT)/1000); lastT=now; const t=(now-T0)/1000; U.time.value=t; waterU.uTime.value=t;
   updatePlayer(dt,t);
-  me.group.position.set(pl.x,0,pl.z); me.group.rotation.y=pl.ry; poseCharacter(me,{moving:pl.moving,boat:pl.boat,swim:pl.swim,walkT:pl.walkT,st:F.state==="hold"||F.state==="show"?"hold":F.state,y:pl.y},t);
+  me.group.position.set(pl.x,0,pl.z); me.group.rotation.y=pl.ry; poseCharacter(me,{moving:pl.moving,boat:pl.boat,swim:pl.swim,walkT:pl.walkT,st:F.state==="hold"||F.state==="show"||(holdIt&&F.state==="idle")?"hold":F.state,y:pl.y},t);
   boats.forEach((b,i)=>{ if(!b) return; b.visible=pl.boat&&S.boat===i; if(b.visible){ b.position.set(pl.x,waveHeight(pl.x,pl.z,t)-0.3,pl.z); b.rotation.y=pl.ry; b.rotation.z=Math.sin(t*1.6)*0.035; b.rotation.x=Math.sin(t*1.2)*0.02-pl.boatSpeed*0.002; if(b.userData.flag) b.userData.flag.rotation.y=Math.sin(t*4)*0.3 } });
   // camera
   const f=fwd(cam.yaw), cd=cam.dist; camTarget.set(pl.x,pl.y+(pl.boat?3.6:4.8),pl.z);
   let cx=camTarget.x-f.x*cd*Math.cos(cam.pitch), cz=camTarget.z-f.z*cd*Math.cos(cam.pitch), cy=camTarget.y+cd*Math.sin(cam.pitch); cy=Math.max(cy,groundAt(cx,cz)+2.2,waveHeight(cx,cz,t)+1.5);
-  const k=clamp(dt*10,0,1); cam.x=lerp(cam.x,cx,k); cam.y=lerp(cam.y,cy,k); cam.z=lerp(cam.z,cz,k); camera.position.set(cam.x,cam.y,cam.z); camera.lookAt(camTarget);
+  const k=clamp(dt*10,0,1); cam.x=lerp(cam.x,cx,k); cam.y=lerp(cam.y,cy,k); cam.z=lerp(cam.z,cz,k); camera.position.set(cam.x,cam.y,cam.z);
+  if(camShake>0){ camShake=Math.max(0,camShake-dt*1.2); camera.position.x+=(Math.random()-.5)*camShake; camera.position.y+=(Math.random()-.5)*camShake } camera.lookAt(camTarget);
   if(pl.boat&&pl.moving&&!rmb&&touches.size===0){ let d=pl.ry-cam.yaw; d=Math.atan2(Math.sin(d),Math.cos(d)); cam.yaw+=d*clamp(dt*1.4,0,1) }
   sky.position.copy(camera.position); const ws=900/WG; water.position.set(Math.round(camera.position.x/ws)*ws,0,Math.round(camera.position.z/ws)*ws); farWater.position.copy(water.position); seabed.position.set(camera.position.x,-24,camera.position.z);
   const sNow=seaAt(pl.x); if(sNow!==curSea){ curSea=sNow; updateSeaVis() }
@@ -2766,12 +2946,16 @@ function frame(now){
   if(F.state==="lure"&&!F.target){ F.lureT+=dt; if(F.lureT>=F.lureNeed) randomBite() }
   if(F.state==="lure"&&F.target&&!shadows.includes(F.target)){ F.target=null; F.lureNeed=4; F.lureT=0; $("shake").style.display="block"; moveShake() }
   if(F.state==="reel") updateReel(dt);
-  updateShow(dt,t);
+  updateShow(dt,t); updateHold(t); updateBiteMarks(dt,t);
   updateShadows(dt,t);
   for(let i=floats.length-1;i>=0;i--){ const fl=floats[i]; fl.life-=dt; fl.s.position.set(pl.x,me.group.position.y+9+(fl.max-fl.life)*2,pl.z); fl.s.material.opacity=clamp(fl.life/fl.max*1.6,0,1); if(fl.life<=0){ scene.remove(fl.s); fl.s.material.map.dispose(); floats.splice(i,1) } }
   if(myBubble){ myBubbleT-=dt; myBubble.position.set(pl.x,me.group.position.y+10.2,pl.z); if(myBubbleT<=0){ scene.remove(myBubble); myBubble=null } }
   // world animation
-  const W=world(); updateClouds(dt,W.weather==="Windy"?3:1); updateBirds(t,dt);
+  const W=world(); updateClouds(dt,W.weather==="Windy"||W.aw==="storm"?4:1); updateBirds(t,dt);
+  updateMeteors(dt,W.aw==="star",pl.x,pl.z,camera); updateBolt(dt);
+  if(W.aw==="storm"){ boltTimer-=dt; if(boltTimer<=0){ boltTimer=2+Math.random()*5; const b=strikeLightning(pl.x,pl.z); lightFlash=1; SFX.thunder(b.d) } }
+  if(W.aw==="blood"&&Math.random()<dt*25){ const a=Math.random()*6.28, d=10+Math.random()*80; GLOW.emit(pl.x+Math.cos(a)*d,0.5+Math.random()*3,pl.z+Math.sin(a)*d,0,0.8+Math.random(),0,2.5,0.7,"#ff2a3a",0,0.2) }
+  lightFlash=Math.max(0,lightFlash-dt*3.5); hemi.intensity=hemiBase+lightFlash*3.2;
   for(const s of SWIRLS){ if(s.ring) s.ring.rotation.z+=s.sp*dt; if(s.orb){ s.orb.position.y=s.y+Math.sin(t*1.5)*0.6; s.orb.rotation.y=t } }
   for(const fl of FLOATERS){ fl.m.position.y=fl.base+Math.sin(t*1.3+fl.ph)*(fl.amp||0.15) }
   if(lighthouseBeam) lighthouseBeam.rotation.y=t*0.6;
@@ -2781,7 +2965,7 @@ function frame(now){
   const SI=ISLBY["Snowcap Island"], FZ=ISLBY["Frostzinnen"]; const snowy=Math.hypot(pl.x-SI.x,pl.z-SI.z)<SI.r+120||Math.hypot(pl.x-FZ.x,pl.z-FZ.z)<FZ.r+140||(W.season==="Winter"&&W.weather!=="Clear"&&!pl.boat); snowFall.visible=snowy; if(snowy){ const a=snowFall.geometry.attributes.position.array; for(let i=0;i<900;i++){ a[i*3+1]-=5*dt; a[i*3]+=Math.sin(t+i)*0.02; if(a[i*3+1]<0) a[i*3+1]+=60 } snowFall.geometry.attributes.position.needsUpdate=true; snowFall.position.set(camera.position.x,camera.position.y-25,camera.position.z) }
   for(const gm of Object.values(GRASS)) if(gm) gm.material.uniforms.uPlayer.value.set(pl.x,pl.y,pl.z);
   for(const n of ["Roslit Volcano","Aschefelder"]){ const I=ISLBY[n]; if(I.lavaY&&I.sea===curSea&&Math.random()<dt*6) GLOW.emit(I.x+(Math.random()-.5)*8,I.lavaY+1,I.z+(Math.random()-.5)*8,(Math.random()-.5)*2,4+Math.random()*6,(Math.random()-.5)*2,1.6,1.5,"#ff7a2a",-3) }
-  waterU.uRough.value=curSea===1&&S.boat&&Math.hypot(pl.x,pl.z)>BOATS[S.boat].range-40?clamp((Math.hypot(pl.x,pl.z)-BOATS[S.boat].range+40)/60,0,1.5):curSea===2&&W.weather==="Rain"?0.5:0;
+  waterU.uRough.value=W.aw==="storm"?1.5:curSea===1&&S.boat&&Math.hypot(pl.x,pl.z)>BOATS[S.boat].range-40?clamp((Math.hypot(pl.x,pl.z)-BOATS[S.boat].range+40)/60,0,1.5):curSea===2&&W.weather==="Rain"?0.5:0;
   for(const L of LABELS){ const d=Math.hypot(L.position.x-pl.x,L.position.z-pl.z), rg=L.userData.range||250; const f=clamp((rg-d)/50,0,1); L.visible=f>0.01&&!(L.userData.hid&&!S.visited[L.userData.loc]); L.material.opacity=f }
   for(const n of NPCS){ const d=Math.hypot(n.x-pl.x,n.z-pl.z), f=clamp((32-d)/10,0,1); n.sprite.visible=f>0.01; n.sprite.material.opacity=f }
   updateLife(dt,t,W);
@@ -2841,7 +3025,7 @@ async function boot(){
 }
 boot().catch(e=>{ const el=$("loaderr"); el.style.display="block"; el.textContent="Fehler: "+e.message; console.error(e) });
 
-if(/[?&]debug\b/.test(location.search)) window.__fd={doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,get peers(){return peers},scene,renderer};
+if(/[?&]debug\b/.test(location.search)) window.__fd={doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
 
 </script>
 </body></html>

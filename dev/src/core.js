@@ -80,17 +80,35 @@ const NEWFISH=[
   ["Pale Leviathan","Legendary","Abgrund der Stille","","","Night","","Shark Head",5000,7400,2000,0.1,5,-50,3000],
   ["The Unseen","Secret","Abgrund der Stille","","","Night","","Phosphor Jelly",900,48000,300,0.12,-20,-75,20000],
   ["Abyssal Sovereign","Exotic","Abgrund der Stille","","","Night","","Shark Head",80000,150000,20000,3,-60,-85,40000,1],
+  // admin weathers: only while the weather is active, anywhere on the sea. Super rare, super hard.
+  ["Blutmond-Karpfen","Legendary","Blutmond","","","","","Worm",38,9500,18,60,5,-35,3200],
+  ["Karmesin-Aal","Mythical","Blutmond","","","","","Squid",70,18500,35,25,-10,-55,5600],
+  ["Vampirhai","Exotic","Blutmond","","","","","Shark Head",1100,46000,450,8,-35,-72,13000],
+  ["Blutmond-Leviathan","Divine","Blutmond","","","","","",30000,260000,12000,1,-80,-86,64000],
+  ["Sternenschuppe","Legendary","Sternenfall","","","","","Flakes",6,9800,3,60,15,-30,3200],
+  ["Kometenrochen","Mythical","Sternenfall","","","","","Shrimp",220,19500,100,25,-5,-55,5800],
+  ["Nebula-Qualle","Exotic","Sternenfall","","","","","Luminous Flakes",40,48000,20,8,-30,-72,13500],
+  ["Sternenwal","Divine","Sternenfall","","","","","",120000,280000,60000,1,-85,-87,66000],
+  ["Sturmbrecher","Legendary","Leviathans Zorn","","","","","Minnow",180,9200,90,60,0,-35,3200],
+  ["Blitzmuräne","Mythical","Leviathans Zorn","","","","","Night Shrimp",45,19000,22,25,-15,-58,5700],
+  ["Donnerschlund","Exotic","Leviathans Zorn","","","","","Shark Head",4000,47000,1800,8,-40,-74,13200],
+  ["Leviathan des Zorns","Divine","Leviathans Zorn","","","","","",400000,300000,150000,1,-90,-88,70000],
 ];
+const AW_LOC={blood:"Blutmond",star:"Sternenfall",storm:"Leviathans Zorn"};
 const FISH=DATA.fish.concat(NEWFISH).map(f=>({n:f[0],r:f[1],l:f[2],sub:f[3],w:split(f[4]),t:f[5],s:split(f[6]),b:split(f[7]),bw:f[8],bv:f[9],wr:f[10],c:f[11],res:f[12],ps:f[13],xp:f[14],hard:!!f[15]}));
 const FISHBY=Object.fromEntries(FISH.map(f=>[f.n,f]));
 const MUTS=DATA.muts.map(m=>({n:m[0],v:m[1],w:m[2],c:m[3]}));
 const MUT=Object.fromEntries(MUTS.map(m=>[m.n,m])); MUT.Shiny={n:"Shiny",v:1.85,c:"#fff0bc"}; MUT.Sparkling={n:"Sparkling",v:1.85,c:"#fff0bc"}; MUT.Aurora={n:"Aurora",v:6.5,c:"#8affc9"};
+// mutations from rod abilities, admin weathers and secrets (not rolled randomly)
+[["Luminescent",6.5,"#b8ff6a"],["Mother Nature",3,"#6fe37b"],["Solarblaze",3.5,"#ffb23a"],["Brined",3.5,"#9dffcf"],["King's Blessing",5.5,"#ffd24a"],["Atlantean",4,"#2fd0c0"],
+ ["Rainbow Cluster",5,"#ff7ad9"],["Oscar",6.4,"#ffe9a0"],["Tryhard",10,"#ff3a3a"],["Blutmond",8,"#ff2a3a"],["Kosmisch",9,"#b58bff"],["Sturmgeboren",7,"#5fd8ff"],
+ ["Nebelhauch",4,"#dfe6ee"],["Eiszahn",4.5,"#bfefff"],["Tiefgeboren",5,"#3a6aff"]].forEach(([n,v,col])=>{ MUT[n]={n,v,c:col,special:1} });
 const BAITS=DATA.bait.map(b=>({n:b[0],r:b[1],pl:b[2],ul:b[3],res:b[4],lure:b[5]})); const BAIT=Object.fromEntries(BAITS.map(b=>[b.n,b]));
-const RARITY=["Common","Uncommon","Unusual","Rare","Legendary","Mythical","Exotic","Secret","Limited","Apex"];
-const RCOL={Common:"#dfe6ee",Uncommon:"#7ee07a",Unusual:"#d6ec6a",Rare:"#52a8ff",Legendary:"#ffb23a",Mythical:"#ff5a93",Exotic:"#c78bff",Secret:"#39f3d2",Limited:"#b98cff",Apex:"#ff4040"};
-const RDE={Common:"Gewöhnlich",Uncommon:"Ungewöhnlich",Unusual:"Besonders",Rare:"Selten",Legendary:"Legendär",Mythical:"Mythisch",Exotic:"Exotisch",Secret:"Geheim",Limited:"Limitiert",Apex:"Apex"};
+const RARITY=["Common","Uncommon","Unusual","Rare","Legendary","Mythical","Exotic","Secret","Limited","Apex","Divine"];
+const RCOL={Common:"#dfe6ee",Uncommon:"#7ee07a",Unusual:"#d6ec6a",Rare:"#52a8ff",Legendary:"#ffb23a",Mythical:"#ff5a93",Exotic:"#c78bff",Secret:"#e8e8e8",Limited:"#4a6aff",Apex:"#ff4040",Divine:"#ffd6ff"};
+const RDE={Common:"Gewöhnlich",Uncommon:"Ungewöhnlich",Unusual:"Besonders",Rare:"Selten",Legendary:"Legendär",Mythical:"Mythisch",Exotic:"Exotisch",Secret:"Geheim",Limited:"Limitiert",Apex:"Apex",Divine:"Göttlich"};
 const rIdx=r=>Math.max(0,RARITY.indexOf(r));
-const rarHTML=r=>`<span class="rar ${r==="Exotic"?"ex":""}" style="color:${RCOL[r]||"#fff"}">${esc(r)}</span>`;
+const rarHTML=r=>`<span class="rar ${r==="Exotic"?"ex":r==="Divine"?"dv":r==="Secret"?"sc":""}" style="color:${RCOL[r]||"#fff"}">${esc(r)}</span>`;
 const EVENTS=[
   {n:"Megalodon Hunt",l:"Ancient Isle"},{n:"Livyatan Hunt",l:"Ancient Isle"},{n:"Shark Hunt",l:"Ocean"},{n:"Orca Migration",l:"Ocean"},
   {n:"Blue Whale Migration",l:"Ocean"},{n:"Narwhal Migration",l:"Ocean"},{n:"Humpback Whale Migration",l:"Ocean"},{n:"Sei Whale Migration",l:"Ocean"},
@@ -122,7 +140,41 @@ RODS.push(
   {n:"Frostfang",price:0,quest:"tenzin",loc:"Snowcap Island",lure:65,luck:320,ctrl:.22,res:40,mw:0,mc:"#bfefff",c1:"#e8fbff",c2:"#3a9ad8",passive:"Eishauch: Alle 4 s friert der Fisch im Minispiel 1 s lang ein."},
   {n:"Tiefenkrone",price:0,quest:"ysolde",loc:"Hexenturm",lure:95,luck:520,ctrl:.3,res:60,mw:0,mc:"#7b3cff",c1:"#ffd24a",c2:"#2a0a5a",passive:"Krone der Tiefe: 15 % Doppelfang, +10 % Mutationschance, Eishauch."},
 );
+RODS.push({n:"Tryhard Rod",price:0,quest:"rored",loc:"Roslit Volcano",lure:80,luck:399,ctrl:-0.37,res:-500,mw:0,mc:"#ff3a3a",c1:"#1a1a1a",c2:"#ff3a3a"});
 const ROD=Object.fromEntries(RODS.map(r=>[r.n,r]));
+/* rod abilities (almost every rod from 10k on has one, some are tiny). Values follow the Fischipedia wiki where known, the rest is own balancing.
+   mut:[name,chance,cond] · dbl:chance · prog:+progress · slash:[seconds,progress] · freeze:seconds · val:+value · heavy:factor · tmap/relic:chance · every:[n,valueBonus] · luckIf:[cond,luck] */
+const ROD_ABIL={
+  "Fortune Rod":{n:"Gierig",d:"5 % Chance auf die Mutation Greedy.",mut:["Greedy",0.05]},
+  "Rapid Rod":{n:"Flink",d:"Einholen 8 % schneller.",prog:0.08},
+  "Magnet Rod":{n:"Schrottsammler",d:"3 % Chance, eine Schatzkarte mitzuangeln.",tmap:0.03},
+  "Scurvy Rod":{n:"Piratenglück",d:"6 % Chance auf eine Schatzkarte, Fänge 5 % wertvoller.",tmap:0.06,val:0.05},
+  "Wildflower Rod":{n:"Blütenzauber",d:"8 % Chance auf Mother Nature.",mut:["Mother Nature",0.08]},
+  "Reinforced Rod":{n:"Verstärkt",d:"Schwere Fische bremsen nur halb so stark.",heavy:0.5},
+  "Nocturnal Rod":{n:"Nachtauge",d:"Nachts 10 % Chance auf Luminescent und +40 % Glück.",mut:["Luminescent",0.1,"night"],luckIf:["night",40]},
+  "Phoenix Rod":{n:"Sonnenfeuer",d:"Tagsüber 10 % Chance auf Solarblaze.",mut:["Solarblaze",0.1,"day"]},
+  "Midas Rod":{n:"Goldene Berührung",d:"15 % Chance auf die Mutation Midas.",mut:["Midas",0.15]},
+  "Aurora Rod":{n:"Polarschein",d:"Bei Polarlicht 30 % Aurora-Mutation, sonst 3 %.",mut:["Aurora",0.03],auroraMut:0.3},
+  "Brine-Infused Rod":{n:"Salzkruste",d:"12 % Chance auf Brined.",mut:["Brined",0.12]},
+  "Mythical Rod":{n:"Mythos",d:"6 % Mythical-Mutation, 8 % Doppelfang.",mut:["Mythical",0.06],dbl:0.08},
+  "Kings Rod":{n:"Königssegen",d:"10 % Chance auf King's Blessing, Control +5 %.",mut:["King's Blessing",0.1],ctrl:0.05},
+  "Trident Rod":{n:"Dreizack",d:"Jeder 3. Fang ist 50 % mehr wert, 8 % Atlantean.",every:[3,0.5],mut:["Atlantean",0.08]},
+  "Rainbow Cluster Rod":{n:"Regenbogen",d:"12 % Chance auf Rainbow Cluster.",mut:["Rainbow Cluster",0.12]},
+  "Rod Of The Depths":{n:"Tiefenruf",d:"In Tiefseezonen +60 % Glück und 15 % Tiefgeboren.",mut:["Tiefgeboren",0.15,"deep"],luckIf:["deep",60]},
+  "Great Rod of Oscar":{n:"Oscar",d:"10 % Oscar-Mutation, alle Fänge +20 % Wert.",mut:["Oscar",0.1],val:0.2},
+  "Anchor Rod":{n:"Anker",d:"Der Fortschritt fällt nie unter 10 %.",anchor:0.1},
+  "Coralline Rod":{n:"Riffseele",d:"12 % Chance auf Coral.",mut:["Coral",0.12]},
+  "Obsidian Rod":{n:"Glutklinge",d:"Alle 5 s ein Hieb: +8 % Fortschritt. 10 % Scorched.",slash:[5,0.08],mut:["Scorched",0.1]},
+  "Glacial Rod":{n:"Gletscherhauch",d:"Alle 5 s friert der Fisch kurz ein.",freeze:5},
+  "Atlantean Rod":{n:"Erbe Atlantis",d:"12 % Atlantean, 8 % Doppelfang.",mut:["Atlantean",0.12],dbl:0.08},
+  "Silent Rod":{n:"Stille",d:"12 % Shrouded, nachts 10 % Doppelfang.",mut:["Shrouded",0.12],dblNight:0.1},
+  "Nebelrute":{n:"Nebel",d:"20 % Doppelfang, 10 % Nebelhauch.",dbl:0.2,mut:["Nebelhauch",0.1]},
+  "Klippenbrecher":{n:"Schmugglerglück",d:"Perfect Catches verdoppeln den Wert.",perfectVal:1},
+  "Frostfang":{n:"Eishauch",d:"Alle 4 s friert der Fisch 1 s ein. 10 % Eiszahn.",freeze:4,mut:["Eiszahn",0.1]},
+  "Tiefenkrone":{n:"Krone der Tiefe",d:"15 % Doppelfang, +10 % Mutationschance, Eishauch.",dbl:0.15,mutPlus:0.1,freeze:4},
+  "Tryhard Rod":{n:"Tryhard",d:"Jeder Fang bekommt die Mutation Tryhard (×10). Einholen +165 %. Dafür fast keine Resilience.",mut:["Tryhard",1],prog:1.65},
+};
+const abilOf=n=>ROD_ABIL[n]||null;
 
 /* ---------- world layout ---------- */
 const SEA2X=6000;
@@ -158,8 +210,8 @@ const DEEPZ=[
 ];
 const RAFTS=[{n:"Ocean",x:-80,z:780},{n:"Sturmsee",x:SEA2X+60,z:-420}];
 const PORTALS=[{from:1,x:0,z:1800,to:{x:SEA2X-110,z:260},r:70},{from:2,x:SEA2X-1000,z:80,to:{x:40,z:1650},r:70}];
-const ALL_LOC=[...ISLE.map(i=>i.n),...DEEPZ.map(z=>z.n),"Ocean","Sturmsee"];
-const LOCDESC=Object.fromEntries([...ISLE,...DEEPZ].map(i=>[i.n,i.d])); LOCDESC.Ocean="Offenes Meer der ersten See. Hier ziehen Hunts und Wanderungen vorbei."; LOCDESC.Sturmsee="Die offene Zweite See. Stürme und große Räuber.";
+const ALL_LOC=[...ISLE.map(i=>i.n),...DEEPZ.map(z=>z.n),"Ocean","Sturmsee",...Object.values(AW_LOC)];
+const LOCDESC=Object.fromEntries([...ISLE,...DEEPZ].map(i=>[i.n,i.d])); LOCDESC.Ocean="Offenes Meer der ersten See. Hier ziehen Hunts und Wanderungen vorbei."; LOCDESC.Sturmsee="Die offene Zweite See. Stürme und große Räuber."; LOCDESC.Blutmond="Nur während des Blutmonds, überall auf See."; LOCDESC.Sternenfall="Nur während des Sternenfalls, überall auf See."; LOCDESC["Leviathans Zorn"]="Nur während Leviathans Zorn, überall auf See.";
 const SEAOF=l=>{ const i=ISLE.find(x=>x.n===l)||DEEPZ.find(x=>x.n===l); return i?i.sea:(l==="Sturmsee"?2:1) };
 const SEA1_R=1950, SEA2_R=1350;
 
@@ -267,10 +319,12 @@ function buffActive(k){ return S.buffs&&S.buffs[k]&&S.buffs[k]>Date.now() }
 function gearStats(W){
   W=W||world(); const r=ROD[S.rod]||ROD["Flimsy Rod"]; const b=S.baitEq&&S.bait[S.baitEq]>0?BAIT[S.baitEq]:null; const L=levelInfo(S.xp).L;
   const M=masteryOf(r.n).L; const e=ENCHBY[S.ench[r.n]]; const fx=e?e.fx:{}; const mega=buffActive("mega");
+  const AB=abilOf(r.n)||{};
   let luck=r.luck+(b?b.ul:0)+(L-1)+M*4+(fx.luck||0)+(buffActive("luck")?60:0)+(mega?120:0);
+  if(AB.luckIf&&AB.luckIf[0]==="night"&&!W.day) luck+=AB.luckIf[1];
   if(fx.rainLuck&&W.weather==="Rain") luck+=fx.rainLuck; if(fx.nightLuck&&!W.day) luck+=fx.nightLuck; if(W.aurora) luck+=100;
   const lure=r.lure+(b?b.lure:0)+M*2+(fx.lure||0)+(buffActive("lure")?45:0)+(mega?40:0);
-  return {rod:r,bait:b,lure,luck,ctrl:r.ctrl+M*0.005+(fx.ctrl||0),res:r.res+(b?b.res:0)+M*2+(fx.res||0),mw:r.mw,lvlLuck:L-1,M,ench:e,fx,
+  return {rod:r,bait:b,lure,luck,AB,ctrl:r.ctrl+M*0.005+(fx.ctrl||0)+(AB.ctrl||0),res:r.res+(b?b.res:0)+M*2+(fx.res||0),mw:r.mw,lvlLuck:L-1,M,ench:e,fx,
     xpMul:1+(fx.xp||0)+(buffActive("xp")?0.5:0)+(mega?0.5:0)};
 }
 const bagCap=()=>BAGS[S.bag]||20;
@@ -361,6 +415,10 @@ const LQ={
     steps:[{d:"Besitze Nebelrute, Klippenbrecher und Frostfang.",goal:3,k:"qrods"},{d:"Entdecke 60 Arten der Zweiten See.",goal:60,k:"sea2dex"},
       {d:"Fange den Abyssal Sovereign im Abgrund der Stille (nachts).",goal:1,k:"fish:Abyssal Sovereign"},{d:"Bring mir 10 Enchant-Relikte und 1.000.000 C$.",goal:1,k:"final",give:"final"}]},
 };
+LQ.rored={npc:"RoRed",loc:"Roslit Volcano",rod:"Tryhard Rod",title:"Tryhard",
+  intro:"„Du willst die Tryhard Rod? Dann zeig mir, dass du keine Ausrüstung brauchst. Nur Können. Mit der Flimsy Rod.“",
+  steps:[{d:"Erreiche Level 60.",goal:60,k:"level"},{d:"Schaffe 10 Perfect Catches in Folge mit der Flimsy Rod (ein Fehler setzt zurück).",goal:10,k:"flimsyPerfect"},
+    {d:"Schaffe 25-mal in Folge Perfect Cast und Perfect Catch mit der Flimsy Rod.",goal:25,k:"flimsyPP"},{d:"Fange einen Megalodon mit einer Flimsy Rod, die die Verzauberung Hasty trägt.",goal:1,k:"tryMeg"}]};
 function lqProgress(id){ const q=S.lq[id]; if(!q) return 0; const st=LQ[id].steps[q.step]; if(!st) return 0; const k=st.k;
   if(k==="relics") return Math.min(st.goal,S.relics); if(k==="money") return Math.min(st.goal,S.money);
   if(k==="dexpages"){ let n=0; for(const l of ["Castaway Cliffs","Forsaken Shores"]){ const a=FISH.filter(f=>f.l===l&&(f.r!=="Apex"||EVSET.has(f.sub))); if(a.filter(f=>S.dex[f.n]).length>=a.length*0.8) n++ } return n }
@@ -369,6 +427,7 @@ function lqProgress(id){ const q=S.lq[id]; if(!q) return 0; const st=LQ[id].step
   if(k==="qrods") return ["Nebelrute","Klippenbrecher","Frostfang"].filter(n=>S.rods.includes(n)).length;
   if(k==="sea2dex") return secondSeaSpecies();
   if(k==="final") return (S.relics>=10&&S.money>=1000000)?1:0;
+  if(k==="level") return levelInfo(S.xp).L;
   return q.cnt||0 }
 
 /* ---------- bounties ---------- */

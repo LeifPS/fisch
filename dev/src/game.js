@@ -27,7 +27,17 @@ function noiseHit(dur,freq,vol=0.3,type="lowpass",when=0,q=1){ const C=AU.ctx; i
 const SFX={
   cast(){ const f=noiseHit(0.35,400,0.25,"bandpass",0,2); if(f) f.frequency.exponentialRampToValueAtTime(2400,AU.ctx.currentTime+0.3) },
   splash(p=1){ noiseHit(0.45,900,0.35*p); noiseHit(0.2,2500,0.12*p,"highpass") },
-  bite(r=0){ tone(520,0.12,"sine",0.25); tone(780,0.16,"sine",0.22,0.09); if(r>=4){ tone(1040,0.3,"triangle",0.15,0.2) } },
+  bite(r=0,v=1){ const T=(f,d,ty,vo,w,sl)=>tone(f,d,ty,vo*v,w||0,null,sl||0);
+    if(r<=1){ T(620,0.09,"sine",0.22); T(880,0.12,"sine",0.2,0.08); return }
+    if(r===2){ T(660,0.09,"sine",0.22); T(880,0.1,"sine",0.2,0.07); T(1175,0.16,"sine",0.16,0.14); return }
+    if(r===3){ T(988,0.5,"sine",0.2); T(1480,0.6,"sine",0.12,0.04); T(1976,0.4,"sine",0.06,0.08); return }
+    if(r===4){ [784,988,1175,1568].forEach((f,i)=>T(f,0.35,"triangle",0.15,i*0.06)); T(2349,0.7,"sine",0.08,0.26); noiseHit(0.5,6000,0.05*v,"highpass",0.2); return }
+    if(r===5){ [523,659,784,1047].forEach(f=>{ T(f,0.9,"triangle",0.08); T(f*1.006,0.9,"sine",0.06) }); T(400,0.5,"sine",0.12,0,2.6); [1319,1568,2093].forEach((f,i)=>T(f,0.4,"sine",0.07,0.3+i*0.07)); return }
+    if(r===6){ const sc=[523,587,659,784,880,1047,1175,1319,1568,1760,2093]; sc.forEach((f,i)=>T(f,0.3,"sine",0.1,i*0.035)); T(2637,1,"triangle",0.06,0.4); noiseHit(0.8,7000,0.06*v,"highpass",0.3); return }
+    if(r===7){ T(110,1.4,"sawtooth",0.1,0,0.5); T(2637,1.2,"sine",0.05,0.1); T(2793,1.2,"sine",0.05,0.1); T(3322,0.6,"sine",0.04,0.5); return }
+    if(r===8||r===9){ T(70,1.2,"sine",0.35,0,0.5); noiseHit(0.7,300,0.35*v); [196,247,294,392].forEach(f=>T(f,1.1,"sawtooth",0.05,0.05)); T(784,0.8,"triangle",0.08,0.4); return }
+    [523,659,784,1047,1319].forEach((f,i)=>{ T(f,2.2,"sine",0.07,i*0.05); T(f*1.004,2.2,"sine",0.05,i*0.05); T(f*0.996,2.2,"triangle",0.03,i*0.05) }); T(2093,1.5,"sine",0.1,0.5); T(3136,1.2,"sine",0.05,0.7); noiseHit(1.5,9000,0.05*v,"highpass",0.4) },
+  thunder(d=300){ const v=clamp(1.4-d/500,0.25,1); noiseHit(2.2,180,0.5*v,"lowpass",d/340); noiseHit(0.4,900,0.25*v,"lowpass",d/340); tone(45,1.6,"sine",0.3*v,d/340,null,0.6) },
   tick(){ tone(1800+Math.random()*300,0.025,"square",0.03) },
   catch(r){ const base=[523,587,659,784,880,988,1047,1175,1319]; const n=3+Math.min(5,r); for(let i=0;i<n;i++) tone(base[i],0.35,"triangle",0.16,i*0.075); if(r>=4) tone(base[n]*2,0.8,"sine",0.12,n*0.075) },
   coin(){ tone(1319,0.09,"square",0.07); tone(1760,0.18,"square",0.07,0.07) },
@@ -75,7 +85,7 @@ addEventListener("keydown",e=>{
   if(e.key==="Enter"){ $("chatin").focus(); e.preventDefault(); return }
   if(e.code==="Space"){ e.preventDefault(); if(e.repeat) return; if(F.state==="reel"&&F.reel){ F.reel.hold=true } else if(F.state==="lure"&&!F.target){ shake() } else if(F.state==="idle") jump(); return }
   if(e.repeat) return;
-  ({b:toggleBoat,e:interact,i:()=>openModal("bag"),j:()=>openModal("dex"),q:()=>openModal("quests"),g:()=>openModal("gear"),m:()=>openModal("map"),p:()=>openModal("players")})[k]?.();
+  ({b:toggleBoat,e:interact,h:toggleHold,i:()=>openModal("bag"),j:()=>openModal("dex"),q:()=>openModal("quests"),g:()=>openModal("gear"),m:()=>openModal("map"),p:()=>openModal("players")})[k]?.();
   if(["arrowup","arrowdown","arrowleft","arrowright"].includes(k)) e.preventDefault();
 });
 addEventListener("keyup",e=>{ keys[e.key.toLowerCase()]=false; if(e.code==="Space"&&F.reel) F.reel.hold=false });
@@ -211,8 +221,12 @@ function eventZone(ev){ if(!ev) return null; const r=rng(ev.slot*131+7); const I
   for(let k=0;k<60;k++){ const a=r()*Math.PI*2, d=250+r()*1000, x=Math.cos(a)*d, z=Math.sin(a)*d; if(ISL.every(I=>Math.hypot(x-I.x,z-I.z)>I.r+150)&&DEEPZ.every(Z=>Math.hypot(x-Z.x,z-Z.z)>Z.r+90)) return {x,z,r:70} } return {x:420,z:420,r:70} }
 function fishContext(x,z,w){ const W=world(); let loc=locationAt(x,z); const deep=DEEPZ.some(Z=>Z.n===loc); if(deep&&!S.bell) loc=seaAt(x)===2?"Sturmsee":"Ocean";
   let spot=spotAt(loc,x,z,w.kind); const EZ=eventZone(W.event); const inEvent=!!(EZ&&W.event&&Math.hypot(x-EZ.x,z-EZ.z)<EZ.r&&(W.event.l===loc||W.event.l==="Ocean"&&loc==="Ocean"));
-  const SC=schoolFor(W,loc); const inSchool=!!(SC&&Math.hypot(x-SC.x,z-SC.z)<SC.r); return {W,loc,spot,inEvent,school:inSchool?SC:null,deepBlocked:deep&&!S.bell} }
-function rollAt(ctx,G){ if(ctx.school&&Math.random()<0.65) return ctx.school.f; if(ctx.inEvent&&Math.random()<0.5){ const ev=poolFor(ctx.loc,ctx.spot,ctx.W,true).filter(x=>x.isEv); if(ev.length) return ev[Math.floor(Math.random()*ev.length)].f } return rollFish(ctx.loc,ctx.spot,ctx.W,G,ctx.inEvent,ctx.school?40:0) }
+  const SC=schoolFor(W,loc); const inSchool=!!(SC&&Math.hypot(x-SC.x,z-SC.z)<SC.r); return {W,loc,spot,inEvent,school:inSchool?SC:null,deepBlocked:deep&&!S.bell,kind:w.kind,deep:deep&&!!S.bell} }
+function rollAW(W,G){ const loc=AW_LOC[W.aw]; let tot=0; const cand=FISH.filter(f=>f.l===loc).map(f=>{ let w=f.c*Math.max(0.3,1+G.luck/300); if(G.bait&&f.b.includes(G.bait.n)) w*=1.6; tot+=w; return [f,w] });
+  let r=Math.random()*(tot+380); for(const [f,w] of cand){ if((r-=w)<=0) return f } return null }
+function rollAt(ctx,G){ if(ctx.W.aw&&ctx.kind!=="fresh"){ const f=rollAW(ctx.W,G); if(f) return f }
+  const AB=G.AB||{}; const ex=AB.luckIf&&AB.luckIf[0]==="deep"&&ctx.deep?AB.luckIf[1]:0;
+  if(ctx.school&&Math.random()<0.65) return ctx.school.f; if(ctx.inEvent&&Math.random()<0.5){ const ev=poolFor(ctx.loc,ctx.spot,ctx.W,true).filter(x=>x.isEv); if(ev.length) return ev[Math.floor(Math.random()*ev.length)].f } return rollFish(ctx.loc,ctx.spot,ctx.W,G,ctx.inEvent,(ctx.school?40:0)+ex) }
 function spawnShadow(){
   const G=gearStats(); for(let k=0;k<12;k++){ const a=Math.random()*Math.PI*2, d=10+Math.random()*52, x=pl.x+Math.cos(a)*d, z=pl.z+Math.sin(a)*d; const w=waterAt(x,z); if(!w) continue;
     if(w.kind==="sea"&&terrainAt(x,z)>-1.3) continue; const ctx=fishContext(x,z,w); const f=rollAt(ctx,G); if(!f) return;
@@ -254,7 +268,7 @@ function startCharge(){
   if(pl.swim){ toast("Schwimmend kannst du nicht angeln.","#ffb35a"); return }
   if(pl.boat&&Math.abs(pl.boatSpeed)>3){ toast("Halte das Boot erst an (S).","#ffb35a"); return }
   if(S.fish.length>=bagCap()){ toast(`Rucksack voll (${bagCap()}). Verkaufe beim Händler oder rüste den Rucksack auf.`,"#ff6363"); SFX.fail(); return }
-  F.state="charge"; F.power=0; F.pdir=1; setHint("Loslassen zum Werfen"); pushPresence(true);
+  if(holdIt) setHold(null); F.state="charge"; F.power=0; F.pdir=1; setHint("Loslassen zum Werfen"); pushPresence(true);
 }
 function castGrade(p){ return p>=.93?"PERFECT!!":p>=.8?"Amazing!":p>=.62?"Great!":p>=.42?"Good!":p>=.22?"Fine.":"Meh.." }
 function releaseCast(){
@@ -286,13 +300,13 @@ const wBonus=()=>gearStats().fx.weight||0;
 function biteFrom(s){ const f=adminFish()||s.f; F.hooked={f,w:rollWeight(f,wBonus()),shadow:s,fromShadow:true}; doBite() }
 function randomBite(){ const G=gearStats(); const f=adminFish()||rollAt(F.ctx,G); if(!f){ cancelFishing(); toast("Hier beißt gerade nichts.","#ff9a6a"); return } F.hooked={f,w:rollWeight(f,G.fx.weight||0),shadow:null,fromShadow:false}; doBite() }
 function doBite(){ const f=F.hooked.f; $("shake").style.display="none"; F.state="bite"; SFX.bite(rIdx(f.r)); splashFX(F.bob.x,F.bob.y,F.bob.z,14,0.8);
-  floatText("!",rIdx(f.r)>=4?RCOL[f.r]:"#ff4b4b",1.0,2.4); if(F.hooked.shadow){ removeShadow(F.hooked.shadow); F.target=null }
+  spawnBiteMark(F.bob.x,F.bob.y,F.bob.z,rIdx(f.r)); if(rIdx(f.r)>=9) shakeCam(0.6); if(F.hooked.shadow){ removeShadow(F.hooked.shadow); F.target=null }
   setTimeout(startReel,520); pushPresence(true) }
 function startReel(){
   if(F.state!=="bite") return; const G=gearStats(), f=F.hooked.f, w=F.hooked.w;
   const barW=clamp(0.30+G.ctrl,0.08,1), diff=Math.max(0,(100-f.res)/100), eff=diff*(1-clamp(G.res,-150,95)/100);
-  let rate=0.135*Math.max(0.06,1+f.ps/100)*(1+(G.fx.prog||0)), heavy=1; if(G.mw>0&&w>G.mw){ heavy=clamp(Math.sqrt(G.mw/w),0.14,1); rate*=heavy }
-  F.reel={x:.5-barW/2,v:0,w:barW,fx:.5,ft:.5,fv:0,re:0,eff,rate,heavy,prog:.06,lock:1.1,perfect:true,hold:!!(keys[" "]||fishHeld||touches.size>0),t:0,dart:rIdx(f.r)>=3?0.35+0.1*rIdx(f.r):0,tick:0,freeze:(G.rod.n==="Frostfang"||G.rod.n==="Tiefenkrone")?4:0,frozen:0};
+  const AB=G.AB||{}; let rate=0.135*Math.max(0.06,1+f.ps/100)*(1+(G.fx.prog||0)+(AB.prog||0)), heavy=1; if(G.mw>0&&w>G.mw){ heavy=clamp(Math.sqrt(G.mw/w),0.14,1); if(AB.heavy) heavy=1-(1-heavy)*AB.heavy; rate*=heavy }
+  F.reel={x:.5-barW/2,v:0,w:barW,fx:.5,ft:.5,fv:0,re:0,eff,rate,heavy,prog:.06,lock:1.1,perfect:true,hold:!!(keys[" "]||fishHeld||touches.size>0),t:0,dart:rIdx(f.r)>=3?0.35+0.1*rIdx(f.r):0,tick:0,freeze:AB.freeze||0,freezeT:AB.freeze||0,frozen:0,slash:AB.slash?{t:AB.slash[0],p:AB.slash[1],c:AB.slash[0]}:null,anchor:AB.anchor||0};
   F.state="reel"; $("reel").style.display="block"; $("slider").style.width=(barW*100)+"%";
   const sz=fishSize(f); $("reelWho").textContent=sz>2.6?"Etwas RIESIGES hat angebissen!":sz>1.8?"Etwas Großes hat angebissen!":"Etwas hat angebissen!"; $("reelWho").style.color=rIdx(f.r)>=4?RCOL[f.r]:"#fff";
   const mods=[]; if(R_passive(G)) mods.push(R_passive(G)); if(f.ps) mods.push(`Fortschritt ${f.ps>0?"+":""}${f.ps}%`); if(heavy<1) mods.push(`zu schwer für die Rute (max ${fmtKg(G.mw)})`); $("reelMod").textContent=mods.join(" · ");
@@ -300,7 +314,8 @@ function startReel(){
 }
 function updateReel(dt){
   const R=F.reel; if(!R) return; R.t+=dt; R.re-=dt;
-  if(R.freeze){ R.freeze-=dt; if(R.freeze<=0){ R.freeze=4; R.frozen=1; tone(1600,0.25,"sine",0.08); sparkleFX(F.bob.x,F.bob.y+0.5,F.bob.z,"#bff4ff",14,2) } }
+  if(R.slash&&R.lock<=0){ R.slash.c-=dt; if(R.slash.c<=0){ R.slash.c=R.slash.t; R.prog+=R.slash.p; tone(220,0.25,"sawtooth",0.1,0,null,3); sparkleFX(F.bob.x,F.bob.y+0.5,F.bob.z,"#ff8a3a",20,2.5) } }
+  if(R.freeze){ R.freeze-=dt; if(R.freeze<=0){ R.freeze=R.freezeT; R.frozen=1; tone(1600,0.25,"sine",0.08); sparkleFX(F.bob.x,F.bob.y+0.5,F.bob.z,"#bff4ff",14,2) } }
   const frozen=R.frozen>0; if(frozen){ R.frozen-=dt; R.re+=dt } $("fishIcon").classList.toggle("ice",frozen);
   if(!frozen&&R.re<=0){ const jump=0.12+0.6*Math.min(1.4,R.eff); R.ft=clamp(R.fx+(Math.random()*2-1)*jump,0.03,0.97); R.re=(0.35+Math.random()*1.3)/(0.6+R.eff);
     if(R.dart&&Math.random()<R.dart*0.5){ R.ft=Math.random()<0.5?0.05+Math.random()*0.2:0.75+Math.random()*0.2; R.re*=0.6 } }
@@ -311,20 +326,42 @@ function updateReel(dt){
   $("slider").style.left=(R.x*100)+"%"; $("fishIcon").style.left=(R.fx*100)+"%"; const pi=$("prog").firstElementChild; pi.style.width=(clamp(R.prog,0,1)*100)+"%"; pi.classList.toggle("low",R.prog<0.2);
   $("reelPerf").textContent=R.perfect?"Perfect!":"";
   if(Math.random()<dt*4) splashFX(F.bob.x,F.bob.y,F.bob.z,3,0.5+R.eff*0.5);
-  if(ADM.autoReel) R.prog+=dt*0.9;
+  if(ADM.autoReel) R.prog+=dt*0.9; if(R.anchor&&R.lock<=0) R.prog=Math.max(R.prog,R.anchor);
   if(R.prog>=1) catchFish(); else if(R.prog<=0) loseFish();
 }
-function loseFish(){ F.reel=null; $("reel").style.display="none"; F.state="idle"; S.stats.snaps++; bobber.visible=false; myLine.visible=false;
+function roredTrack(ev,o){ const q=S.lq&&S.lq.rored; if(!q||q.done) return; const st=LQ.rored.steps[q.step]; if(!st) return; const streak=st.k==="flimsyPerfect"||st.k==="flimsyPP";
+  const breakIt=()=>{ if(q.cnt&&q.cnt<st.goal) toast(`RoRed: Serie gerissen bei ${q.cnt}. Nochmal von vorn!`,"#ff6363"); if(q.cnt<st.goal) q.cnt=0 };
+  if(ev==="lose"){ if(streak) breakIt(); renderQuests(); return }
+  const flimsy=o.rod.n==="Flimsy Rod", before=q.cnt||0;
+  if(st.k==="flimsyPerfect"){ if(flimsy&&o.R.perfect) q.cnt=before+1; else breakIt() }
+  if(st.k==="flimsyPP"){ if(flimsy&&o.R.perfect&&F.perfectCast) q.cnt=before+1; else breakIt() }
+  if(st.k==="tryMeg"&&flimsy&&o.f.n==="Megalodon"&&S.ench["Flimsy Rod"]==="hasty") q.cnt=1;
+  if(q.cnt>=st.goal&&before<st.goal) setTimeout(()=>{ toast("RoRed: „Nicht schlecht. Komm zum Vulkan zurück.“","#ff3a3a"); SFX.quest() },2000); renderQuests() }
+let camShake=0; function shakeCam(a){ camShake=Math.max(camShake,a) }
+/* hold a fish up so everybody can see it (H or backpack) */
+let holdIt=null, holdMesh=null, holdLbl=null;
+function setHold(it){ if(holdMesh){ scene.remove(holdMesh); holdMesh=null } if(holdLbl){ scene.remove(holdLbl); holdLbl.material.map.dispose(); holdLbl=null } holdIt=it||null;
+  if(holdIt){ const f=FISHBY[it.n]; holdMesh=makeFishMesh(it.n,it.m); holdMesh.scale.setScalar(clamp(fishSize(f)*0.9,0.7,3.2)); holdMesh.userData.s=holdMesh.scale.x; scene.add(holdMesh);
+    holdLbl=textSprite(`${fishLabel(it)} · ${fmtKg(it.w)}`,{size:36,color:RCOL[f.r]||"#fff",scale:0.03}); scene.add(holdLbl) } pushPresence(true) }
+function toggleHold(){ if(holdIt){ setHold(null); return } if(F.state!=="idle") return; if(!S.fish.length){ toast("Dein Rucksack ist leer.","#ffb35a"); return } setHold([...S.fish].sort((a,b)=>fishValue(b)-fishValue(a))[0]) }
+function updateHold(t){ if(holdIt&&(!S.fish.includes(holdIt)||F.state!=="idle"||pl.swim)) setHold(null); if(!holdMesh) return; const y=me.group.position.y+(pl.boat?6.4:7.6)+holdMesh.userData.s*0.35;
+  holdMesh.position.set(pl.x,y,pl.z); holdMesh.rotation.set(0,pl.ry+Math.PI/2+Math.sin(t*1.5)*0.2,Math.sin(t*3)*0.08); holdLbl.position.set(pl.x,y+1.6+holdMesh.userData.s*0.5,pl.z);
+  const f=FISHBY[holdIt.n]; if((rIdx(f.r)>=4||holdIt.m)&&Math.random()<0.25) GLOW.emit(pl.x+(Math.random()-.5)*2,y+(Math.random()-.5),pl.z+(Math.random()-.5)*2,0,1,0,0.8,0.6,holdIt.m&&MUT[holdIt.m]?MUT[holdIt.m].c:RCOL[f.r],-0.5) }
+function loseFish(){ roredTrack("lose"); F.reel=null; $("reel").style.display="none"; F.state="idle"; S.stats.snaps++; bobber.visible=false; myLine.visible=false;
   if(S.stats.streak>=5) toast(`Streak von ${S.stats.streak} verloren.`,"#ff6363"); S.stats.streak=0; toast("Der Fisch ist entkommen!","#ff6363"); SFX.fail(); markDirty(); pushPresence(true) }
 let lastCatch=null;
-function R_passive(G){ const n=G.rod.n; return n==="Frostfang"?"Eishauch":n==="Tiefenkrone"?"Krone der Tiefe":n==="Nebelrute"?"Nebel":n==="Klippenbrecher"?"Schmugglerglück":"" }
-function makeItem(f,w,ctx,G,bonus){ const mutExtra=(ctx.inEvent?0.05:0)+(G.fx.mut?0.06:0)+(G.rod.n==="Tiefenkrone"?0.1:0);
-  let m=rollMutation(mutExtra,ctx.W); if(ADM.nextMut){ m=ADM.nextMut; if(!ADM.sticky) ADM.nextMut="" } if(!m&&G.fx.abyssal&&Math.random()<G.fx.abyssal) m="Abyssal";
+function R_passive(G){ return G.AB&&G.AB.n?"✦ "+G.AB.n:"" }
+function makeItem(f,w,ctx,G,bonus){ const AB=G.AB||{}; const mutExtra=(ctx.inEvent?0.05:0)+(G.fx.mut?0.06:0)+(AB.mutPlus||0);
+  let m=rollMutation(mutExtra,ctx.W); if(!m&&G.fx.abyssal&&Math.random()<G.fx.abyssal) m="Abyssal";
+  if(ctx.W.aw&&Math.random()<(AW_LOC[ctx.W.aw]===f.l?0.5:0.12)) m=AW[ctx.W.aw].mut;
+  if(AB.mut){ const [mn,ch,cond]=AB.mut; const ok=!cond||(cond==="night"&&!ctx.W.day)||(cond==="day"&&ctx.W.day)||(cond==="deep"&&ctx.deep); const chance=AB.auroraMut&&ctx.W.aurora?AB.auroraMut:ch; if(ok&&Math.random()<chance) m=mn }
+  if(ADM.nextMut){ m=ADM.nextMut; if(!ADM.sticky) ADM.nextMut="" }
   return {id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),n:f.n,w,m,sh:Math.random()<0.02,sp:Math.random()<0.02,bonus:Math.round(bonus*100)/100,fav:false} }
 function catchFish(){
   const {f,w,fromShadow}=F.hooked, R=F.reel; F.reel=null; $("reel").style.display="none";
   const ctx=F.ctx, W=ctx.W, G=gearStats(W), rod=G.rod, ri=rIdx(f.r); const streak=S.stats.streak+1;
-  let bonus=Math.min(0.45,(streak-1)*0.03)+(R.perfect?0.1:0)+(G.fx.val||0); if(R.perfect&&rod.n==="Klippenbrecher") bonus+=1;
+  const AB=G.AB||{}; let bonus=Math.min(0.45,(streak-1)*0.03)+(R.perfect?0.1:0)+(G.fx.val||0)+(AB.val||0); if(R.perfect&&AB.perfectVal) bonus+=AB.perfectVal;
+  if(AB.every){ S.everyN=(S.everyN||0)+1; if(S.everyN%AB.every[0]===0){ bonus+=AB.every[1]; setTimeout(()=>toast(`${AB.n}: dieser Fang ist ${Math.round(AB.every[1]*100)} % mehr wert!`,"#2fd0c0"),700) } }
   const it=makeItem(f,w,ctx,G,bonus);
   const val=fishValue(it); let xp=Math.round(f.xp*G.xpMul); if(R.perfect){ xp=Math.round(xp*1.5); S.stats.perfect++ }
   const first=!S.dex[f.n]; const d=S.dex[f.n]||{c:0,bw:0,first:Date.now()}; d.c++; d.bw=Math.max(d.bw,w); S.dex[f.n]=d;
@@ -340,11 +377,13 @@ function catchFish(){
   const mb=masteryOf(rod.n).L; S.mastery[rod.n]=(S.mastery[rod.n]||0)+1; const ma=masteryOf(rod.n).L;
   if(ma>mb) setTimeout(()=>{ bigMsg(`Meisterschaft ${ma}!`,`${rod.n} · Glück +${ma*4} % · Lure +${ma*2} %`,"#ffd24a"); SFX.level() },3000);
   // passives: double catch
-  const dbl=(rod.n==="Nebelrute"&&Math.random()<0.2)||(rod.n==="Tiefenkrone"&&Math.random()<0.15);
+  const dbl=(AB.dbl&&Math.random()<AB.dbl)||(AB.dblNight&&!W.day&&Math.random()<AB.dblNight);
   if(dbl&&S.fish.length<bagCap()){ const it2=makeItem(f,rollWeight(f,G.fx.weight||0),ctx,G,bonus); S.fish.push(it2); S.stats.caught++; d.c++; setTimeout(()=>{ toast(`Doppelfang! Noch ein ${fishLabel(it2)} (${fmtKg(it2.w)})`,"#cfd8e3"); SFX.coin() },900) }
   // relics & treasure maps
   if(Math.random()<(ri>=4?0.08:0.009)){ S.relics++; setTimeout(()=>{ bigMsg("Enchant-Relikt!","Am Altar kannst du damit eine Rute verzaubern.","#8fe8ff"); SFX.relic() },2400) }
-  else if(!S.tmap&&Math.random()<0.014){ const m=makeTreasureMap(); if(m){ S.tmap=m; setTimeout(()=>{ bigMsg("Schatzkarte!",`Irgendwo auf ${m.loc} ist etwas vergraben. Folge dem roten Strahl.`,"#ff8a6a"); SFX.quest() },2400) } }
+  else if(!S.tmap&&Math.random()<0.014+(AB.tmap||0)){ const m=makeTreasureMap(); if(m){ S.tmap=m; setTimeout(()=>{ bigMsg("Schatzkarte!",`Irgendwo auf ${m.loc} ist etwas vergraben. Folge dem roten Strahl.`,"#ff8a6a"); SFX.quest() },2400) } }
+  roredTrack("catch",{f,rod,R});
+  if(SEAOF(f.l)&&Object.values(AW_LOC).includes(f.l)&&ri>=6) setTimeout(()=>bigMsg(f.r==="Divine"?"GÖTTLICH!!!":"UNGLAUBLICH!",`${fishLabel(it)} aus dem ${f.l}`,RCOL[f.r]),1600);
   gainXP(xp+(first?50:0));
   F.state="show"; F.showT=0; bobber.visible=false; myLine.visible=false; startShow(it,f);
   showCard(it,f,val,xp,first,R.perfect,streak); SFX.catch(ri); SFX.splash(1.2); splashFX(F.bob.x,F.bob.y,F.bob.z,26,1.3);
@@ -440,9 +479,9 @@ function sellFish(filter){ let v=0,n=0; S.fish=S.fish.filter(it=>{ if(filter(it)
 function panelBag(body){ $("sheetTitle").textContent="Rucksack"; setTabs([],null); const total=S.fish.reduce((s,it)=>s+fishValue(it),0);
   const bf=Object.entries(POTIONS).filter(([k])=>buffActive(k)).map(([k,p])=>`${p.n} (${Math.ceil((S.buffs[k]-Date.now())/60000)} min)`);
   body.insertAdjacentHTML("beforeend",`<div class="row chips"><span class="chip">Enchant-Relikte <b>${S.relics}</b></span><span class="chip">Schatzkarte <b>${S.tmap?esc(S.tmap.loc):"keine"}</b></span>${bf.map(x=>`<span class="chip good">${esc(x)}</span>`).join("")}</div>`);
-  body.insertAdjacentHTML("beforeend",`<p class="note">${S.fish.length}/${bagCap()} Fische · Wert <b style="color:var(--cash)">${fmt(total)} C$</b>. Verkaufen kannst du bei jedem Händler (Stand am Steg jeder Insel, Flöße auf dem Meer). Mit ★ markierte Fische werden nicht mitverkauft.</p>`);
+  body.insertAdjacentHTML("beforeend",`<p class="note">Mit „Hochhalten“ (oder Taste H) zeigst du allen Spielern einen Fisch. ${S.fish.length}/${bagCap()} Fische · Wert <b style="color:var(--cash)">${fmt(total)} C$</b>. Verkaufen kannst du bei jedem Händler (Stand am Steg jeder Insel, Flöße auf dem Meer). Mit ★ markierte Fische werden nicht mitverkauft.</p>`);
   if(!S.fish.length) body.insertAdjacentHTML("beforeend",`<p class="note">Noch leer.</p>`);
-  [...S.fish].sort((a,b)=>fishValue(b)-fishValue(a)).forEach(it=>body.appendChild(fishRow(it,()=>{}))) }
+  [...S.fish].sort((a,b)=>fishValue(b)-fishValue(a)).forEach(it=>body.appendChild(fishRow(it,act=>{ const b=document.createElement("button"); b.className="btn "+(holdIt===it?"":"alt"); b.textContent=holdIt===it?"Ablegen":"Hochhalten"; b.title="Allen zeigen (Taste H)"; b.onclick=()=>{ if(holdIt===it) setHold(null); else { if(F.state!=="idle") return; setHold(it); closeModal() } renderPanel() }; act.appendChild(b) }))) }
 function panelMerchant(body){ const loc=curNPC?.loc||"Moosewood"; $("sheetTitle").textContent=loc==="Ocean"?"Meereshändler":`Händler · ${loc}`; const tab=panelTab||"sell";
   setTabs([["sell","Verkaufen"],["rods","Ruten"],["bait","Köder"],["bag","Rucksack-Upgrade"]],tab);
   if(tab==="sell"){ const sellable=S.fish.filter(it=>!it.fav); const total=sellable.reduce((s,it)=>s+fishValue(it),0);
@@ -466,10 +505,11 @@ function panelMerchant(body){ const loc=curNPC?.loc||"Moosewood"; $("sheetTitle"
     const b=document.createElement("button"); b.className="btn gold"; b.textContent="Aufrüsten"; b.disabled=S.money<BAG_PRICE[nxt]; b.onclick=()=>{ if(S.money<BAG_PRICE[nxt]) return; S.money-=BAG_PRICE[nxt]; S.bag=nxt; SFX.level(); markDirty(); refreshHUD(); renderPanel() }; c.appendChild(b); body.appendChild(c) }
   else body.insertAdjacentHTML("beforeend",`<p class="note">Das ist der größte Rucksack.</p>`) }
 function statCmp(v,cur,fmtf=(x)=>x){ const cls=v>cur?"up":v<cur?"down":""; return `<b class="${cls}">${fmtf(v)}</b>` }
+const rodCol=r=>{ const L=c=>new THREE.Color(c).getHSL({}).l; return L(r.mc)>=0.3?r.mc:L(r.c1)>=0.3?r.c1:L(r.c2)>=0.3?r.c2:"#ffffff" };
 function rodCard(r,atShop){ const own=S.rods.includes(r.n), cur=ROD[S.rod]; const c=document.createElement("div"); c.className="card"+(S.rod===r.n?" sel":"")+(r.quest?" legend":"");
   const M=masteryOf(r.n), E=ENCHBY[S.ench[r.n]];
-  c.innerHTML=`<h3 style="color:${esc(r.mc)}">${esc(r.n)}</h3><div class="sub">${r.quest?"Legendäre Rute · Quest bei "+esc(LQ[r.quest].npc)+" ("+esc(S.visited[LQ[r.quest].loc]||!ISLBY[LQ[r.quest].loc]?.hidden?LQ[r.quest].loc:"???")+")":r.price?fmt(r.price)+" C$ · "+esc(locName(r.loc)):"Startrute"}</div>
-   ${r.passive?`<div class="sub" style="color:#ffe27a">${esc(r.passive)}</div>`:""}${own?`<div class="sub">Meisterschaft <b style="color:var(--gold)">${M.L}</b>${M.next?` · ${M.c}/${M.next} Fänge`:" · max"}${E?` · <span style="color:${enchTier(E)[1]}">${esc(E.n)}</span>`:""}</div>`:""}
+  c.innerHTML=`<h3 style="color:${esc(rodCol(r))}">${esc(r.n)}</h3><div class="sub">${r.quest?"Legendäre Rute · Quest bei "+esc(LQ[r.quest].npc)+" ("+esc(S.visited[LQ[r.quest].loc]||!ISLBY[LQ[r.quest].loc]?.hidden?LQ[r.quest].loc:"???")+")":r.price?fmt(r.price)+" C$ · "+esc(locName(r.loc)):"Startrute"}</div>
+   ${abilOf(r.n)?`<div class="sub abil">✦ <b>${esc(abilOf(r.n).n)}</b>: ${esc(abilOf(r.n).d)}</div>`:""}${own?`<div class="sub">Meisterschaft <b style="color:var(--gold)">${M.L}</b>${M.next?` · ${M.c}/${M.next} Fänge`:" · max"}${E?` · <span style="color:${enchTier(E)[1]}">${esc(E.n)}</span>`:""}</div>`:""}
    <div class="kv"><span>Lure Speed</span>${statCmp(r.lure,cur.lure,x=>x+"%")}<span>Glück</span>${statCmp(r.luck,cur.luck,x=>x+"%")}<span>Control</span>${statCmp(r.ctrl,cur.ctrl,x=>Math.round(x*100)+"%")}<span>Resilience</span>${statCmp(r.res,cur.res,x=>x+"%")}<span>Max Gewicht</span>${statCmp(r.mw||1e9,cur.mw||1e9,x=>x>=1e9?"∞":fmtKg(x))}</div>`;
   const b=document.createElement("button");
   if(own){ b.className="btn"; b.textContent=S.rod===r.n?"Ausgerüstet":"Ausrüsten"; b.disabled=S.rod===r.n; b.onclick=()=>{ S.rod=r.n; setRodLook(me,r.n); colorBobber(bobber,r.n); SFX.ui(); markDirty(); refreshHUD(); pushPresence(true); renderPanel() } }
@@ -513,7 +553,7 @@ function panelQuests(body){ $("sheetTitle").textContent="Aufträge"; setTabs([],
     const bt=document.createElement("button"); bt.className="btn alt"; bt.textContent="Neuer Auftrag · 25 C$"; bt.disabled=S.money<25; bt.onclick=()=>{ S.money-=25; S.bounties.splice(i,1); ensureBounties(locationAt(pl.x,pl.z)); markDirty(); refreshHUD(); renderQuests(); renderPanel() }; c.appendChild(bt); body.appendChild(c) });
   body.insertAdjacentHTML("beforeend",`<p class="note">${S.bountyDone} Aufträge erledigt. Neue Aufträge richten sich nach der Insel, auf der du gerade bist.</p><div class="sect">Verborgene Meister</div>`);
   const g=document.createElement("div"); g.className="grid"; for(const [id,L] of Object.entries(LQ)){ const q=S.lq[id], found=S.found[id]; const c=document.createElement("div"); c.className="card"+(q&&q.done?" sel":found?"":" lock");
-    const st=q&&!q.done?L.steps[q.step]:null; c.innerHTML=`<h3>${found?esc(L.npc):"???"}</h3><div class="sub">${found?esc(L.loc)+" · "+esc(L.rod):"Ein Gerücht: "+esc({aldo:"im Nebel ganz im Osten",mara:"hinter den Klippen von Castaway",tenzin:"auf dem Gipfel von Snowcap",ysolde:"am Ostrand der Zweiten See"}[id])}</div>${q&&q.done?`<div class="sub" style="color:var(--good)">Abgeschlossen · Titel „${esc(L.title)}“</div>`:st?`<div class="sub">Schritt ${q.step+1}/4: ${esc(st.d)}</div><div class="pbar"><i style="width:${Math.min(1,lqProgress(id)/st.goal)*100}%"></i></div>`:found?`<div class="sub">Sprich mit ${esc(L.npc)}, um die Prüfung anzunehmen.</div>`:""}`; g.appendChild(c) }
+    const st=q&&!q.done?L.steps[q.step]:null; c.innerHTML=`<h3>${found?esc(L.npc):"???"}</h3><div class="sub">${found?esc(L.loc)+" · "+esc(L.rod):"Ein Gerücht: "+esc({aldo:"im Nebel ganz im Osten",mara:"hinter den Klippen von Castaway",rored:"am Rand eines glühenden Kraters",tenzin:"auf dem Gipfel von Snowcap",ysolde:"am Ostrand der Zweiten See"}[id])}</div>${q&&q.done?`<div class="sub" style="color:var(--good)">Abgeschlossen · Titel „${esc(L.title)}“</div>`:st?`<div class="sub">Schritt ${q.step+1}/4: ${esc(st.d)}</div><div class="pbar"><i style="width:${Math.min(1,lqProgress(id)/st.goal)*100}%"></i></div>`:found?`<div class="sub">Sprich mit ${esc(L.npc)}, um die Prüfung anzunehmen.</div>`:""}`; g.appendChild(c) }
   body.appendChild(g) }
 let dexSea=0;
 const locKnown=l=>{ const I=ISLBY[l]; return !(I&&I.hidden)||S.visited[l] };
@@ -585,7 +625,7 @@ function refreshHUD(){
 let lastLoc="", lastEvent="";
 function refreshWorldHUD(){
   const W=world(); const hh=Math.floor(W.hour), mm=Math.floor((W.hour-hh)*6)*10; const loc=locationAt(pl.x,pl.z);
-  $("clock").innerHTML=`<b>${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}</b><span>${W.day?"Tag":"Nacht"}</span><b>${W.aurora?'<span style="color:#8affc9">Polarlicht</span>':WEATHER_DE[W.weather]}</b><b class="opt">${SEASON_DE[W.season]}</b><span class="opt">${esc(locName(loc))}</span>`;
+  $("clock").innerHTML=`<b>${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}</b><span>${W.day?"Tag":"Nacht"}</span><b>${W.aw?`<span style="color:${AW[W.aw].col}">${AW[W.aw].n} ${Math.floor(W.awLeft/60000)}:${String(Math.floor(W.awLeft/1000)%60).padStart(2,"0")}</span>`:W.aurora?'<span style="color:#8affc9">Polarlicht</span>':WEATHER_DE[W.weather]}</b><b class="opt">${SEASON_DE[W.season]}</b><span class="opt">${esc(locName(loc))}</span>`;
   if(loc!==lastLoc){ lastLoc=loc; const I=ISLBY[loc]; if(!S.visited[loc]){ S.visited[loc]=1; const xp=I&&I.hidden?400:60; gainXP(xp); markDirty(); if(performance.now()<bannerLock) toast(`Neu entdeckt: ${locName(loc)} · +${xp} XP`,"#5fd8ff"); else banner(loc==="Ocean"?"Offenes Meer":loc,(LOCDESC[loc]||"")+` · Neu entdeckt! +${xp} XP`); SFX.quest(); if(I&&I.hidden) flash("#ffffff55"); checkStory() } else if(loc!=="Ocean"&&loc!=="Sturmsee"&&performance.now()>=bannerLock) banner(loc,LOCDESC[loc]||"");
     if(S.bounties.length<3) ensureBounties(loc); pushPresence(true) }
   const ev=$("event"); if(W.event){ const left=Math.max(0,Math.ceil((W.event.ends-Date.now())/60000)); ev.style.display="block"; ev.textContent=`${W.event.n} · ${W.event.l==="Ocean"?"offene See":W.event.l} · noch ${left} min`;
@@ -611,25 +651,29 @@ function updateSky(){
   const foggy=Math.max(W.weather==="Foggy"?1:0,nebel);
   if(foggy>0){ top.lerp(C_("#98a6b2"),(0.5-night*0.3)*foggy); hor.lerp(C_("#c9d2d9"),(0.65-night*0.4)*foggy) }
   if(curSea===2&&W.weather!=="Clear"){ top.lerp(C_("#3a4a5a"),0.25); hor.lerp(C_("#8a9aa6"),0.2) }
+  const AWk=W.aw; if(AWk&&AW[AWk].night&&night<0.95){ night=0.95; top.copy(SKYC.night[0]); hor.copy(SKYC.night[1]) }
+  if(AWk==="blood"){ top.lerp(C_("#140205"),0.85); hor.lerp(C_("#4a0a10"),0.8) } else if(AWk==="star"){ top.lerp(C_("#06031a"),0.8); hor.lerp(C_("#22124a"),0.7) } else if(AWk==="storm"){ top.lerp(C_("#121821"),0.85); hor.lerp(C_("#303a48"),0.82) }
+  skyU.uMoonCol.value.set(AWk==="blood"?"#ff3020":AWk==="star"?"#e6d8ff":"#ebf2ff"); skyU.uMoonSize.value=lerp(skyU.uMoonSize.value,AWk==="blood"?1:0,0.15);
   skyU.uTop.value.copy(top); skyU.uHorizon.value.copy(hor); skyU.uBottom.value.copy(hor).multiplyScalar(0.7); skyU.uNight.value=night;
   const dayP=clamp((h-5.5)/15,0,1), sa=dayP*Math.PI; const sd=new THREE.Vector3(Math.cos(sa)*0.85,Math.sin(sa)*0.95+0.02,0.35).normalize(); skyU.uSunDir.value.copy(sd);
-  const np=((h-19.5+24)%24)/11, ma=clamp(np,0,1)*Math.PI; const md=new THREE.Vector3(-Math.cos(ma)*0.8,Math.sin(ma)*0.9+0.05,-0.4).normalize(); skyU.uMoonDir.value.copy(md);
+  const np=AWk&&AW[AWk].night&&W.realDay?0.42:((h-19.5+24)%24)/11, ma=clamp(np,0,1)*Math.PI; const md=new THREE.Vector3(-Math.cos(ma)*0.8,Math.sin(ma)*0.9+0.05,-0.4).normalize(); skyU.uMoonDir.value.copy(md);
   const low=clamp(sd.y*3,0,1); skyU.uSunCol.value.setRGB(1,0.72+0.23*low,0.45+0.4*low);
   const useMoon=night>0.5, L=useMoon?md:sd; sun.position.set(pl.x+L.x*200,Math.max(40,L.y*200),pl.z+L.z*200); sun.target.position.set(pl.x,0,pl.z);
   const wf=W.weather==="Clear"?1:W.weather==="Windy"?0.9:0.55;
   sun.intensity=useMoon?0.55:(2.4*wf*clamp(sd.y*2.5,0.15,1)); sun.color.copy(useMoon?C_("#8fa8ff"):skyU.uSunCol.value);
-  hemi.intensity=lerp(1.0,0.38,night)*(W.weather==="Clear"?1:0.85); hemi.color.copy(hor).lerp(C_("#ffffff"),0.3); hemi.groundColor.set(night>0.5?"#1a2230":"#5b6b3a");
-  const fogC=hor.clone(); scene.fog.color.copy(fogC); let dens=W.weather==="Foggy"?0.0042:W.weather==="Rain"?0.0014:curSea===2?0.0006:0.00045; dens=Math.max(dens,nebel*0.0075); scene.fog.density=lerp(scene.fog.density,dens,0.08);
+  hemiBase=lerp(1.0,0.38,night)*(W.weather==="Clear"?1:0.85)*(AWk==="blood"?1.1:1); hemi.intensity=hemiBase; if(AWk==="blood") hemi.color.set("#ff9a8e"); if(AWk!=="blood") hemi.color.copy(hor).lerp(C_("#ffffff"),0.3); hemi.groundColor.set(night>0.5?"#1a2230":"#5b6b3a");
+  const fogC=hor.clone(); scene.fog.color.copy(fogC); let dens=AWk==="storm"?0.0024:AWk==="blood"?0.0007:AWk==="star"?0.0006:W.weather==="Foggy"?0.0042:W.weather==="Rain"?0.0014:curSea===2?0.0006:0.00045; dens=Math.max(dens,nebel*0.0075); scene.fog.density=lerp(scene.fog.density,dens,0.08);
   const au=W.aurora?night:0; skyU.uAurora.value=lerp(skyU.uAurora.value,au,0.1); waterU.uAurora.value=skyU.uAurora.value;
-  if(gradePass){ const gu=gradePass.uniforms; gu.uTint.value.setRGB(1-night*0.08,1-night*0.04+au*0.04,1+night*0.06); gu.uSat.value=1.12-foggy*0.18+au*0.1; gu.uVig.value=0.3+night*0.25 }
+  if(gradePass){ const gu=gradePass.uniforms; gu.uTint.value.setRGB(1-night*0.08,1-night*0.04+au*0.04,1+night*0.06); if(AWk==="blood") gu.uTint.value.setRGB(1.1,0.9,0.9); else if(AWk==="star") gu.uTint.value.setRGB(1.0,0.97,1.08); gu.uSat.value=1.12-foggy*0.18+au*0.1; gu.uVig.value=0.3+night*0.25 }
   waterU.uSky.value.copy(hor).lerp(top,0.3); waterU.uSunDir.value.copy(useMoon?md:sd); waterU.uSunCol.value.copy(useMoon?C_("#8fa8ff").multiplyScalar(0.6):skyU.uSunCol.value).multiplyScalar(wf);
   waterU.uDeep.value.set("#0b4f8a").lerp(C_("#031428"),night*0.8); waterU.uShallow.value.set("#1cb8c8").lerp(C_("#0b3a50"),night*0.75); waterU.uNight.value=night;
+  if(AWk==="blood"){ waterU.uDeep.value.set("#2a0308"); waterU.uShallow.value.set("#7a0c16") } else if(AWk==="star"){ waterU.uDeep.value.set("#0b0632"); waterU.uShallow.value.set("#3a2a8a") } else if(AWk==="storm"){ waterU.uDeep.value.set("#07202e"); waterU.uShallow.value.set("#1a4452") }
   waterU.fogColor.value.copy(fogC); waterU.fogDensity.value=scene.fog.density;
   for(const gm of Object.values(GRASS)){ if(!gm) continue; const u=gm.material.uniforms; u.uLight.value.setRGB(lerp(1,0.32,night),lerp(1,0.38,night),lerp(1,0.55,night)); u.fogColor.value.copy(fogC); u.fogDensity.value=scene.fog.density }
   cloudMat.color.copy(C_("#ffffff").lerp(C_("#2a3350"),night*0.85)).lerp(C_("#8a939c"),W.weather==="Rain"?0.5:0); cloudMat.opacity=W.weather==="Clear"?0.85:0.97;
   lanternMat.emissiveIntensity=lerp(0.2,3.2,night); windowMat.emissiveIntensity=lerp(0,2.2,night); GLOWMATS.forEach(g=>g.mat.emissiveIntensity=lerp(g.base,g.night,night));
   if(lighthouseBeam) lighthouseBeam.visible=night>0.3;
-  rain.visible=W.weather==="Rain"; if(bloom) bloom.strength=lerp(0.38,0.7,night);
+  rain.visible=W.weather==="Rain"; rain.material.opacity=AWk==="storm"?0.75:0.45; if(bloom) bloom.strength=lerp(0.38,0.7,night);
   renderer.toneMappingExposure=lerp(1.05,1.25,night);
   return W;
 }
@@ -642,7 +686,8 @@ function myName(){ return S.nick||myProfileName||"Du" }
 let lastPresSent=0, lastPresKey="", presTimer=0;
 function presenceObj(){ const p={v:5,nick:S.nick||"",loc:locationAt(pl.x,pl.z),x:Math.round(pl.x*10)/10,z:Math.round(pl.z*10)/10,y:Math.round(pl.y*10)/10,ry:Math.round(pl.ry*100)/100,b:pl.boat?S.boat:0,sw:pl.swim?1:0,mv:pl.moving?1:0,st:F.state,rod:S.rod,lvl:levelInfo(S.xp).L,col:myColor};
   if(["cast","lure","bite","reel"].includes(F.state)){ p.bx=Math.round(F.bob.x*10)/10; p.bz=Math.round(F.bob.z*10)/10; p.by=Math.round((F.bob.y||0)*10)/10 }
-  if(showFish&&F.showIt) p.hold=F.showIt.n; if(lastCatch) p.last=lastCatch; if(myMsg) p.msg=myMsg; return p }
+  const H=showFish&&F.showIt?F.showIt:holdIt; if(H) p.hold={n:H.n,m:H.m||"",w:H.w,sh:H.sh?1:0,sp:H.sp?1:0};
+  if((F.state==="bite"||F.state==="reel")&&F.hooked) p.br=rIdx(F.hooked.f.r); if(lastCatch) p.last=lastCatch; if(myMsg) p.msg=myMsg; return p }
 function pushPresence(force){ if(!room) return; const now=performance.now(); if(!force&&now-lastPresSent<180){ clearTimeout(presTimer); presTimer=setTimeout(()=>pushPresence(true),190); return }
   const p=presenceObj(); const key=JSON.stringify(p); if(key===lastPresKey) return; lastPresKey=key; lastPresSent=now; room.presence(p).catch(()=>{}) }
 function avatarFor(p){ let a=avatars.get(p.peer); const pr=p.presence||{};
@@ -651,7 +696,7 @@ function avatarFor(p){ let a=avatars.get(p.peer); const pr=p.presence||{};
     const bts=[null,makeBoat(1),makeBoat(2),makeBoat(3)]; bts.forEach(b=>{ if(b){ b.visible=false; scene.add(b) } }); const bob=bobber.clone(); bob.visible=false; scene.add(bob); const line=makeLine(.6);
     a={ch,bts,bob,line,x:+pr.x||0,z:+pr.z||0,y:+pr.y||0,ry:+pr.ry||0,walkT:0,label:null,labelText:"",bubble:null,bubbleT:0,rod:"",holdMesh:null,holdName:""}; avatars.set(p.peer,a) }
   return a }
-function removeAvatar(peer){ const a=avatars.get(peer); if(!a) return; scene.remove(a.ch.group,a.bob,a.line); a.bts.forEach(b=>b&&scene.remove(b)); if(a.label) scene.remove(a.label); if(a.bubble) scene.remove(a.bubble); if(a.holdMesh) scene.remove(a.holdMesh); avatars.delete(peer) }
+function removeAvatar(peer){ const a=avatars.get(peer); if(!a) return; scene.remove(a.ch.group,a.bob,a.line); a.bts.forEach(b=>b&&scene.remove(b)); if(a.label) scene.remove(a.label); if(a.bubble) scene.remove(a.bubble); if(a.holdMesh) scene.remove(a.holdMesh); if(a.holdLbl) scene.remove(a.holdLbl); avatars.delete(peer) }
 function updatePeers(dt,t){
   for(const p of peers){ if(p.sameTab) continue; const pr=p.presence||{}; if(typeof pr.x!=="number"||typeof pr.z!=="number") continue;
     const a=avatarFor(p); const tx=clamp(pr.x,-2200,SEA2X+1600), tz=clamp(pr.z,-2200,2200), ty=clamp(+pr.y||0,-30,90);
@@ -661,7 +706,8 @@ function updatePeers(dt,t){
     const bt=clamp(+pr.b||0,0,3)|0; a.bts.forEach((b,i)=>{ if(!b) return; b.visible=i===bt&&vis; if(i===bt){ b.position.set(a.x,waveHeight(a.x,a.z,t)-0.3,a.z); b.rotation.y=a.ry } });
     const rod=ROD[pr.rod]?pr.rod:"Flimsy Rod"; if(a.rod!==rod){ a.rod=rod; setRodLook(a.ch,rod); colorBobber(a.bob,rod) }
     if(pr.mv===1) a.walkT+=dt*10; const st=typeof pr.st==="string"?pr.st:"idle";
-    poseCharacter(a.ch,{moving:pr.mv===1,boat:bt>0,swim:pr.sw===1,walkT:a.walkT,st:pr.hold?"hold":st,y:a.y},t); a.ch.group.position.x=a.x; a.ch.group.position.z=a.z; a.ch.group.rotation.y=a.ry;
+    poseCharacter(a.ch,{moving:pr.mv===1,boat:bt>0,swim:pr.sw===1,walkT:a.walkT,st:pr.hold?"hold":st,y:a.y},t);
+    if((st==="bite"||st==="reel")&&a.lastSt!=="bite"&&a.lastSt!=="reel"&&typeof pr.bx==="number"&&vis){ const br=clamp(+pr.br||0,0,10)|0; spawnBiteMark(pr.bx,+pr.by||0,pr.bz,br); const dd=Math.hypot(pr.bx-pl.x,pr.bz-pl.z); if(dd<140) SFX.bite(br,clamp(1-dd/140,0.12,0.7)) } a.lastSt=st; a.ch.group.position.x=a.x; a.ch.group.position.z=a.z; a.ch.group.rotation.y=a.ry;
     const txt=`${peerName(p)} · ${+pr.lvl||1}`; if(txt!==a.labelText){ if(a.label) scene.remove(a.label); a.label=textSprite(txt,{size:40,scale:0.03}); scene.add(a.label); a.labelText=txt }
     a.label.position.set(a.x,a.ch.group.position.y+8.3,a.z); { const f=clamp((70-Math.hypot(a.x-pl.x,a.z-pl.z))/15,0,1); a.label.visible=vis&&f>0.01; a.label.material.opacity=f }
     const m=pr.msg, showMsg=m&&typeof m.x==="string"&&Date.now()-(+m.t||0)<7000;
@@ -669,8 +715,11 @@ function updatePeers(dt,t){
     if(a.bubble){ a.bubble.visible=!!showMsg; a.bubble.position.set(a.x,a.ch.group.position.y+10.2,a.z) }
     const fishing=["lure","bite","reel","cast"].includes(st)&&typeof pr.bx==="number"; a.bob.visible=fishing; a.line.visible=fishing;
     if(fishing){ const by=(+pr.by||0)+(st==="reel"||st==="bite"?Math.sin(t*25)*0.15-0.2:Math.sin(t*3)*0.08); a.bob.position.set(pr.bx,by,pr.bz); const tip=new THREE.Vector3(); a.ch.tip.getWorldPosition(tip); setLine(a.line,tip,a.bob.position,st==="reel"?0.3:1.6) }
-    const hn=typeof pr.hold==="string"&&FISHBY[pr.hold]?pr.hold:""; if(hn!==a.holdName){ if(a.holdMesh){ scene.remove(a.holdMesh); a.holdMesh=null } a.holdName=hn; if(hn){ a.holdMesh=makeFishMesh(hn,""); a.holdMesh.scale.setScalar(clamp(fishSize(FISHBY[hn])*0.9,0.7,3.2)); scene.add(a.holdMesh) } }
-    if(a.holdMesh){ a.holdMesh.position.set(a.x,a.ch.group.position.y+7.8,a.z); a.holdMesh.rotation.y=a.ry+Math.PI/2 }
+    const ho=pr.hold&&typeof pr.hold==="object"?pr.hold:typeof pr.hold==="string"?{n:pr.hold}:null; const hn=ho&&typeof ho.n==="string"&&FISHBY[ho.n]?ho.n:""; const hm=hn&&typeof ho.m==="string"&&MUT[ho.m]?ho.m:""; const hk=hn?hn+"|"+hm+"|"+(+ho.w||0):"";
+    if(hk!==a.holdName){ if(a.holdMesh){ scene.remove(a.holdMesh); a.holdMesh=null } if(a.holdLbl){ scene.remove(a.holdLbl); a.holdLbl=null } a.holdName=hk;
+      if(hn){ const f=FISHBY[hn]; a.holdMesh=makeFishMesh(hn,hm); const s=clamp(fishSize(f)*0.9,0.7,3.2); a.holdMesh.scale.setScalar(s); a.holdMesh.userData.s=s; scene.add(a.holdMesh);
+        if(ho.w) { a.holdLbl=textSprite(`${ho.sh?"Shiny ":""}${ho.sp?"Sparkling ":""}${hm?hm+" ":""}${hn} · ${fmtKg(+ho.w)}`,{size:36,color:RCOL[f.r]||"#fff",scale:0.03}); scene.add(a.holdLbl) } } }
+    if(a.holdMesh){ a.holdMesh.visible=vis; const hy=a.ch.group.position.y+7.6+a.holdMesh.userData.s*0.35; a.holdMesh.position.set(a.x,hy,a.z); a.holdMesh.rotation.set(0,a.ry+Math.PI/2+Math.sin(t*1.5)*0.2,0); if(a.holdLbl){ a.holdLbl.visible=vis; a.holdLbl.position.set(a.x,hy+1.6+a.holdMesh.userData.s*0.5,a.z) } }
   }
   for(const peer of [...avatars.keys()]) if(!peers.some(p=>p.peer===peer&&!p.sameTab)) removeAvatar(peer);
 }
@@ -936,7 +985,7 @@ const CMDS={
   dex:{u:"set:all | clear",d:"Bestiary",f:P=>{ const v=String(pv(P,"set")||"all").toLowerCase(); if(v==="clear"||v==="leer"){ S.dex={}; S.dexRewards={}; return "Bestiary geleert" } FISH.forEach(f=>{ if(!S.dex[f.n]) S.dex[f.n]={c:1,bw:f.bw,first:Date.now()} }); checkStory(); return `Bestiary: ${FISH.length} Arten` }},
   tmap:{u:"",d:"Schatzkarte erzeugen",f:()=>{ S.tmap=makeTreasureMap(); if(!S.tmap) throw new Error("Keine besuchte Insel in dieser See."); return `Schatzkarte: ${S.tmap.loc}` }},
   chests:{u:"reset | open",d:"Truhen",f:P=>{ const v=String(pv(P,"set")||"reset").toLowerCase(); if(v==="open"){ CHESTS.forEach(c=>S.chests[c.id]=1); syncChests(); return "Alle Truhen geöffnet" } S.chests={}; syncChests(); return `${CHESTS.length} Truhen zurückgesetzt` }},
-  admin:{u:"off",d:"Admin-Modus beenden",f:P=>{ if(/^(off|aus)$/i.test(pv(P,"set")||"")){ S.admin=false; if(isOnlineAcct()) FDNET.send({t:"unadmin"}); updateAdminUI(); return "Admin-Modus beendet" } openModal("admin") }},
+  admin:{u:"off",d:"Admin-Modus beenden",f:P=>{ if(/^(off|aus)$/i.test(pv(P,"set")||"")){ S.admin=false; if(isOnlineAcct()) FDNET.send({t:"unadmin"}); updateAdminUI(); return "Admin-Modus beendet" } if(P.code!==undefined) return "Admin-Modus ist schon aktiv."; openModal("admin") }},
 };
 function runCommand(v,fromPanel){ const {cmd,P}=parseCmd(v);
   if(cmd==="admin"&&!adminOn()){ const code=String(P.code||"").trim();
@@ -1044,17 +1093,19 @@ addEventListener("keydown",e=>{ if(e.key==="F9"&&adminOn()&&!typing()){ e.preven
 { const el=document.createElement("div"); el.id="fps"; el.style.cssText="position:absolute;z-index:40;left:50%;bottom:4px;transform:translateX(-50%);font:800 12px var(--body);color:#9dffae;background:rgba(0,0,0,.55);padding:2px 8px;border-radius:8px;pointer-events:none;display:none"; document.getElementById("app").appendChild(el);
   let n=0; const loop=()=>{ n++; requestAnimationFrame(loop) }; requestAnimationFrame(loop); setInterval(()=>{ el.style.display=ADM.fps?"block":"none"; if(ADM.fps) el.textContent=`${n} FPS · ${renderer.info.render.calls} Draw Calls · ${Math.round(pl.x)}, ${Math.round(pl.z)}`; n=0 },1000) }
 /* ---------- main loop ---------- */
+let boltTimer=3, lightFlash=0, hemiBase=1;
 let lastT=performance.now(), T0=performance.now(), hudT=0, miniT=0, skyT=0, presT=0, hintT=0;
 const tipV=new THREE.Vector3(), camTarget=new THREE.Vector3();
 function frame(now){
   const dt=Math.min(0.05,(now-lastT)/1000); lastT=now; const t=(now-T0)/1000; U.time.value=t; waterU.uTime.value=t;
   updatePlayer(dt,t);
-  me.group.position.set(pl.x,0,pl.z); me.group.rotation.y=pl.ry; poseCharacter(me,{moving:pl.moving,boat:pl.boat,swim:pl.swim,walkT:pl.walkT,st:F.state==="hold"||F.state==="show"?"hold":F.state,y:pl.y},t);
+  me.group.position.set(pl.x,0,pl.z); me.group.rotation.y=pl.ry; poseCharacter(me,{moving:pl.moving,boat:pl.boat,swim:pl.swim,walkT:pl.walkT,st:F.state==="hold"||F.state==="show"||(holdIt&&F.state==="idle")?"hold":F.state,y:pl.y},t);
   boats.forEach((b,i)=>{ if(!b) return; b.visible=pl.boat&&S.boat===i; if(b.visible){ b.position.set(pl.x,waveHeight(pl.x,pl.z,t)-0.3,pl.z); b.rotation.y=pl.ry; b.rotation.z=Math.sin(t*1.6)*0.035; b.rotation.x=Math.sin(t*1.2)*0.02-pl.boatSpeed*0.002; if(b.userData.flag) b.userData.flag.rotation.y=Math.sin(t*4)*0.3 } });
   // camera
   const f=fwd(cam.yaw), cd=cam.dist; camTarget.set(pl.x,pl.y+(pl.boat?3.6:4.8),pl.z);
   let cx=camTarget.x-f.x*cd*Math.cos(cam.pitch), cz=camTarget.z-f.z*cd*Math.cos(cam.pitch), cy=camTarget.y+cd*Math.sin(cam.pitch); cy=Math.max(cy,groundAt(cx,cz)+2.2,waveHeight(cx,cz,t)+1.5);
-  const k=clamp(dt*10,0,1); cam.x=lerp(cam.x,cx,k); cam.y=lerp(cam.y,cy,k); cam.z=lerp(cam.z,cz,k); camera.position.set(cam.x,cam.y,cam.z); camera.lookAt(camTarget);
+  const k=clamp(dt*10,0,1); cam.x=lerp(cam.x,cx,k); cam.y=lerp(cam.y,cy,k); cam.z=lerp(cam.z,cz,k); camera.position.set(cam.x,cam.y,cam.z);
+  if(camShake>0){ camShake=Math.max(0,camShake-dt*1.2); camera.position.x+=(Math.random()-.5)*camShake; camera.position.y+=(Math.random()-.5)*camShake } camera.lookAt(camTarget);
   if(pl.boat&&pl.moving&&!rmb&&touches.size===0){ let d=pl.ry-cam.yaw; d=Math.atan2(Math.sin(d),Math.cos(d)); cam.yaw+=d*clamp(dt*1.4,0,1) }
   sky.position.copy(camera.position); const ws=900/WG; water.position.set(Math.round(camera.position.x/ws)*ws,0,Math.round(camera.position.z/ws)*ws); farWater.position.copy(water.position); seabed.position.set(camera.position.x,-24,camera.position.z);
   const sNow=seaAt(pl.x); if(sNow!==curSea){ curSea=sNow; updateSeaVis() }
@@ -1070,12 +1121,16 @@ function frame(now){
   if(F.state==="lure"&&!F.target){ F.lureT+=dt; if(F.lureT>=F.lureNeed) randomBite() }
   if(F.state==="lure"&&F.target&&!shadows.includes(F.target)){ F.target=null; F.lureNeed=4; F.lureT=0; $("shake").style.display="block"; moveShake() }
   if(F.state==="reel") updateReel(dt);
-  updateShow(dt,t);
+  updateShow(dt,t); updateHold(t); updateBiteMarks(dt,t);
   updateShadows(dt,t);
   for(let i=floats.length-1;i>=0;i--){ const fl=floats[i]; fl.life-=dt; fl.s.position.set(pl.x,me.group.position.y+9+(fl.max-fl.life)*2,pl.z); fl.s.material.opacity=clamp(fl.life/fl.max*1.6,0,1); if(fl.life<=0){ scene.remove(fl.s); fl.s.material.map.dispose(); floats.splice(i,1) } }
   if(myBubble){ myBubbleT-=dt; myBubble.position.set(pl.x,me.group.position.y+10.2,pl.z); if(myBubbleT<=0){ scene.remove(myBubble); myBubble=null } }
   // world animation
-  const W=world(); updateClouds(dt,W.weather==="Windy"?3:1); updateBirds(t,dt);
+  const W=world(); updateClouds(dt,W.weather==="Windy"||W.aw==="storm"?4:1); updateBirds(t,dt);
+  updateMeteors(dt,W.aw==="star",pl.x,pl.z,camera); updateBolt(dt);
+  if(W.aw==="storm"){ boltTimer-=dt; if(boltTimer<=0){ boltTimer=2+Math.random()*5; const b=strikeLightning(pl.x,pl.z); lightFlash=1; SFX.thunder(b.d) } }
+  if(W.aw==="blood"&&Math.random()<dt*25){ const a=Math.random()*6.28, d=10+Math.random()*80; GLOW.emit(pl.x+Math.cos(a)*d,0.5+Math.random()*3,pl.z+Math.sin(a)*d,0,0.8+Math.random(),0,2.5,0.7,"#ff2a3a",0,0.2) }
+  lightFlash=Math.max(0,lightFlash-dt*3.5); hemi.intensity=hemiBase+lightFlash*3.2;
   for(const s of SWIRLS){ if(s.ring) s.ring.rotation.z+=s.sp*dt; if(s.orb){ s.orb.position.y=s.y+Math.sin(t*1.5)*0.6; s.orb.rotation.y=t } }
   for(const fl of FLOATERS){ fl.m.position.y=fl.base+Math.sin(t*1.3+fl.ph)*(fl.amp||0.15) }
   if(lighthouseBeam) lighthouseBeam.rotation.y=t*0.6;
@@ -1085,7 +1140,7 @@ function frame(now){
   const SI=ISLBY["Snowcap Island"], FZ=ISLBY["Frostzinnen"]; const snowy=Math.hypot(pl.x-SI.x,pl.z-SI.z)<SI.r+120||Math.hypot(pl.x-FZ.x,pl.z-FZ.z)<FZ.r+140||(W.season==="Winter"&&W.weather!=="Clear"&&!pl.boat); snowFall.visible=snowy; if(snowy){ const a=snowFall.geometry.attributes.position.array; for(let i=0;i<900;i++){ a[i*3+1]-=5*dt; a[i*3]+=Math.sin(t+i)*0.02; if(a[i*3+1]<0) a[i*3+1]+=60 } snowFall.geometry.attributes.position.needsUpdate=true; snowFall.position.set(camera.position.x,camera.position.y-25,camera.position.z) }
   for(const gm of Object.values(GRASS)) if(gm) gm.material.uniforms.uPlayer.value.set(pl.x,pl.y,pl.z);
   for(const n of ["Roslit Volcano","Aschefelder"]){ const I=ISLBY[n]; if(I.lavaY&&I.sea===curSea&&Math.random()<dt*6) GLOW.emit(I.x+(Math.random()-.5)*8,I.lavaY+1,I.z+(Math.random()-.5)*8,(Math.random()-.5)*2,4+Math.random()*6,(Math.random()-.5)*2,1.6,1.5,"#ff7a2a",-3) }
-  waterU.uRough.value=curSea===1&&S.boat&&Math.hypot(pl.x,pl.z)>BOATS[S.boat].range-40?clamp((Math.hypot(pl.x,pl.z)-BOATS[S.boat].range+40)/60,0,1.5):curSea===2&&W.weather==="Rain"?0.5:0;
+  waterU.uRough.value=W.aw==="storm"?1.5:curSea===1&&S.boat&&Math.hypot(pl.x,pl.z)>BOATS[S.boat].range-40?clamp((Math.hypot(pl.x,pl.z)-BOATS[S.boat].range+40)/60,0,1.5):curSea===2&&W.weather==="Rain"?0.5:0;
   for(const L of LABELS){ const d=Math.hypot(L.position.x-pl.x,L.position.z-pl.z), rg=L.userData.range||250; const f=clamp((rg-d)/50,0,1); L.visible=f>0.01&&!(L.userData.hid&&!S.visited[L.userData.loc]); L.material.opacity=f }
   for(const n of NPCS){ const d=Math.hypot(n.x-pl.x,n.z-pl.z), f=clamp((32-d)/10,0,1); n.sprite.visible=f>0.01; n.sprite.material.opacity=f }
   updateLife(dt,t,W);
@@ -1145,4 +1200,4 @@ async function boot(){
 }
 boot().catch(e=>{ const el=$("loaderr"); el.style.display="block"; el.textContent="Fehler: "+e.message; console.error(e) });
 
-if(/[?&]debug\b/.test(location.search)) window.__fd={doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,get peers(){return peers},scene,renderer};
+if(/[?&]debug\b/.test(location.search)) window.__fd={doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
