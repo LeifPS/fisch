@@ -76,7 +76,7 @@ const PAL={
   jungle:{sand:"#ccb87e",grass:"#3c8a38",grass2:"#32772f",rock:"#6a7657",hi:"#2f6e2c",gcol:"#4aa044"},
   crystal:{sand:"#bab2d8",grass:"#6c62a8",grass2:"#5b5294",rock:"#4b457c",hi:"#c7b8ff",gcol:"#8a7fd0"},
   brine:{sand:"#e0e8dc",grass:"#a3be9c",grass2:"#8fac88",rock:"#68776c",hi:"#f2f6f0",gcol:"#b0cfa6"},
-  altar:{sand:"#b9bccc",grass:"#6b7ba2",grass2:"#5e6d96",rock:"#5a5f7c",hi:"#8e9bc2",gcol:"#8494c0"},
+  altar:{sand:"#c4c6d2",grass:"#7f9a8c",grass2:"#6f8a7e",rock:"#5a5f7c",hi:"#8e9bc2",gcol:"#8494c0"},
   fog:{sand:"#b6b5aa",grass:"#7a8770",grass2:"#697562",rock:"#6b6d66",hi:"#8a9282",gcol:"#8d9a84"},
   harbor:{sand:"#e6d5a4",grass:"#68ab47",grass2:"#5a9b3f",rock:"#979187",hi:"#78a458",gcol:"#7cc158"},
   reefcrown:{sand:"#fcf0cf",grass:"#f8e5b9",grass2:"#f1d8a6",rock:"#ead3a2",hi:"#f8e6bd",gcol:"#9be07a"},
@@ -493,12 +493,13 @@ function fixMat(m){ const n=m.name||""; if(n==="window") return windowMat; if(n=
   else { m.roughness=Math.max(0.45,m.roughness); m.metalness=Math.min(m.metalness,0.6) }
   return AMAT[n]=m }
 async function loadAssets(){ const L=new GLTFLoader();
-  await Promise.all(["world","boats","rods"].map(async f=>{ try{ const g=await L.loadAsync(`assets/${f}.glb`);
+  await Promise.all(["world","boats","rods","build"].map(async f=>{ try{ const g=await L.loadAsync(`assets/${f}.glb`);
     for(const root of [...g.scene.children]){ root.traverse(o=>{ if(o.isMesh){ o.material=fixMat(o.material); o.castShadow=!LOW; o.receiveShadow=true } });
       const h=new THREE.Group(); h.name=root.name; root.position.set(0,0,0); h.add(root); h.updateMatrixWorld(true);
       const bb=new THREE.Box3().setFromObject(h); if(f!=="rods"){ root.position.set(-(bb.min.x+bb.max.x)/2,-bb.min.y,-(bb.min.z+bb.max.z)/2); h.updateMatrixWorld(true) }
       h.userData.size=bb.getSize(new THREE.Vector3()); ASSETS[root.name]=h } }catch(e){ console.warn("asset",f,e) } })) }
 const hasAsset=n=>!!ASSETS[n];
+function placeAsset(n,x,y,z,ry=0,sc=1){ if(!ASSETS[n]) return null; if(CUR_I){ const S0=ASSETS[n].userData.size; y=addPad(CUR_I,x,z,Math.max(S0.x,S0.z)*sc*0.55,Math.max(y,groundAt(x,z))) } const o=ASSETS[n].clone(true); o.scale.setScalar(sc); o.position.set(x,y-0.1,z); o.rotation.y=ry; addObj(o,x); return o }
 /* clone scaled so the larger footprint side (or height) equals the target */
 function assetObj(n,target,by="xz"){ const h=ASSETS[n]; if(!h) return null; const c=h.clone(true); const S=h.userData.size; const k=target?target/(by==="y"?S.y:Math.max(S.x,S.z)):1; c.scale.setScalar(k); c.userData.k=k; c.userData.size=S; return c }
 /* one merged geometry with the material colours baked into vertex colours (for instancing) */
@@ -834,15 +835,15 @@ function buildMoosewood(I){
   for(const [da,dd,w,rf] of hs){ const a=va+da, x=I.x+Math.cos(a)*I.r*dd, z=I.z+Math.sin(a)*I.r*dd; house(x,groundAt(x,z),z,Math.PI/2-a+Math.PI,w,rf); I.excl.push({x,z,r:9}) }
   const wa=va+1.25; const D2=dock(I,wa,20,5); const wx=D2.sx-Math.cos(wa)*10, wz=D2.sz-Math.sin(wa)*10; const wy=groundAt(wx,wz);
   const shed=merge([P(new THREE.BoxGeometry(12,7,10),"#9a6a40",0,3.5,0),P(new THREE.BoxGeometry(13,.6,11),"#6b4428",0,7.2,0),P(new THREE.ConeGeometry(9,3.5,4),"#4d5a6b",0,9,0,0,Math.PI/4,0,1,1,0.85),P(new THREE.BoxGeometry(6,5,.3),"#3b2a20",0,2.5,5.05)]);
-  addMesh(shed,vcMat(),wx,wy,wz,Math.PI/2-wa+Math.PI); addCollider(wx,wz,7); I.excl.push({x:wx,z:wz,r:12});
+  if(!placeAsset("shipyard",wx,wy,wz,Math.PI/2-wa+Math.PI)) addMesh(shed,vcMat(),wx,wy,wz,Math.PI/2-wa+Math.PI); addCollider(wx,wz,7); I.excl.push({x:wx,z:wz,r:12});
   const bx=wx+Math.cos(wa)*6.5+Math.cos(wa+Math.PI/2)*5, bz=wz+Math.sin(wa)*6.5+Math.sin(wa+Math.PI/2)*5; const demo=makeBoat(2); demo.position.set(bx,groundAt(bx,bz)+0.6,bz); demo.rotation.y=Math.PI/2-wa; demo.rotation.z=0.08; addObj(demo,bx); addCollider(bx,bz,3);
   npc({shirt:"#3a4a5e",hat:"captain",skin:SKINS[1],hair:"#ddd",beard:"#e8e8e8"},D2.sx-Math.cos(wa)*3,D2.sz-Math.sin(wa)*3,Math.PI/2-wa,"shipwright","Moosewood","Werft","rgba(40,70,120,.9)");
   const aa=va-1.2; const ax=I.x+Math.cos(aa)*I.r*0.5, az=I.z+Math.sin(aa)*I.r*0.5, ay=groundAt(ax,az);
-  addMesh(merge([P(new THREE.ConeGeometry(5,5.5,8),"#7b4fb8",0,2.75,0),P(new THREE.ConeGeometry(5.05,1,8),"#ffd24a",0,0.6,0),P(new THREE.BoxGeometry(2,2.6,.3),"#2a1a44",0,1.3,4.1)]),vcMat(),ax,ay,az,Math.PI/2-aa+Math.PI); addCollider(ax,az,4.5); I.excl.push({x:ax,z:az,r:8});
+  if(!placeAsset("appraiser_tent",ax,ay,az,Math.PI/2-aa+Math.PI)) addMesh(merge([P(new THREE.ConeGeometry(5,5.5,8),"#7b4fb8",0,2.75,0),P(new THREE.ConeGeometry(5.05,1,8),"#ffd24a",0,0.6,0),P(new THREE.BoxGeometry(2,2.6,.3),"#2a1a44",0,1.3,4.1)]),vcMat(),ax,ay,az,Math.PI/2-aa+Math.PI); addCollider(ax,az,4.5); I.excl.push({x:ax,z:az,r:8});
   npc({shirt:"#6a3aa0",hat:"wizard",skin:SKINS[4],hair:"#c9a0ff"},ax+Math.cos(aa)*6,az+Math.sin(aa)*6,Math.PI/2-aa,"appraiser","Moosewood","Appraiser","rgba(90,40,140,.9)");
   // alchemist hut
   const ca=va-0.7; const cx=I.x+Math.cos(ca)*I.r*0.62, cz=I.z+Math.sin(ca)*I.r*0.62, cy=groundAt(cx,cz);
-  addMesh(merge([P(new THREE.CylinderGeometry(3.4,3.8,5,8),"#6f8f5a",0,2.5,0),P(new THREE.ConeGeometry(4.6,4,8),"#3f6a3a",0,7,0),P(new THREE.BoxGeometry(1.6,2.6,.3),"#2b2230",0,1.3,3.6),P(new THREE.CylinderGeometry(.9,.7,1,10),"#333",3.8,0.5,2.2)]),vcMat(),cx,cy,cz,Math.PI/2-ca+Math.PI); addCollider(cx,cz,4); I.excl.push({x:cx,z:cz,r:7});
+  if(!placeAsset("alchemist_hut",cx,cy,cz,Math.PI/2-ca+Math.PI)) addMesh(merge([P(new THREE.CylinderGeometry(3.4,3.8,5,8),"#6f8f5a",0,2.5,0),P(new THREE.ConeGeometry(4.6,4,8),"#3f6a3a",0,7,0),P(new THREE.BoxGeometry(1.6,2.6,.3),"#2b2230",0,1.3,3.6),P(new THREE.CylinderGeometry(.9,.7,1,10),"#333",3.8,0.5,2.2)]),vcMat(),cx,cy,cz,Math.PI/2-ca+Math.PI); addCollider(cx,cz,4); I.excl.push({x:cx,z:cz,r:7});
   const cau=addMesh(new THREE.CircleGeometry(.8,16),glowMat("#6fe37b",2.5),cx+Math.cos(ca+0.5)*4.4,cy+1.05,cz+Math.sin(ca+0.5)*4.4,0,false); cau.rotation.x=-Math.PI/2; WITCHLIGHTS.push({x:cau.position.x,y:cau.position.y,z:cau.position.z,c:"#6fe37b"});
   npc({shirt:"#3f6a3a",hat:"hood",hatCol:"#2f5a3a",skin:SKINS[0],robe:"#2f5a3a"},cx+Math.cos(ca)*5.5,cz+Math.sin(ca)*5.5,Math.PI/2-ca,"alchemist","Moosewood","Alchemistin","rgba(30,90,50,.9)");
   // lighthouse
@@ -871,9 +872,11 @@ function buildMoosewood(I){
   villager(I,-0.6,0.3,{shirt:"#2f8f5b",hat:null,skin:SKINS[2],hair:"#d9a441"},"Timo",["Wenn du eine Schatzkarte angelst: Folge dem roten Strahl und drück E, um zu graben.","Jede Rute wird besser, je mehr du mit ihr fängst. Meisterschaft nennen das die Alten."]);
 }
 function buildTerrapin(I){ const a=I.hutAng+Math.PI*0.8, x=I.x+Math.cos(a)*I.r*0.35, z=I.z+Math.sin(a)*I.r*0.35, y=groundAt(x,z);
-  addMesh(merge([P(new THREE.CylinderGeometry(2.6,3.6,13,8),"#efe4cc",0,6.5,0),P(new THREE.ConeGeometry(3.4,4,8),"#b8543a",0,15,0),P(new THREE.BoxGeometry(1.4,2.4,.3),"#6b4428",0,1.2,3.3)]),vcMat(),x,y,z,faceAng(x,z,I.x,I.z)); addCollider(x,z,3.6); I.excl.push({x,z,r:8});
+  const WM=placeAsset("windmill",x,y,z,faceAng(x,z,I.x,I.z)); addCollider(x,z,4); I.excl.push({x,z,r:9});
+  if(WM){ let bl=null; WM.traverse(o=>{ if(o.name==="blades") bl=o }); if(bl) SPINNERS.push({o:bl,axis:"z",sp:0.8}) } else {
+  addMesh(merge([P(new THREE.CylinderGeometry(2.6,3.6,13,8),"#efe4cc",0,6.5,0),P(new THREE.ConeGeometry(3.4,4,8),"#b8543a",0,15,0),P(new THREE.BoxGeometry(1.4,2.4,.3),"#6b4428",0,1.2,3.3)]),vcMat(),x,y,z,faceAng(x,z,I.x,I.z));
   const fr=faceAng(x,z,I.x,I.z); const hub=new THREE.Group(); hub.position.set(x+Math.sin(fr)*3.1,y+12,z+Math.cos(fr)*3.1); hub.rotation.y=fr;
-  const bl=new THREE.Group(); for(let k=0;k<4;k++){ const b=new THREE.Mesh(new THREE.BoxGeometry(1.4,8,.15),stdMat({color:"#f6efe0"})); b.position.y=4.4; const arm=new THREE.Group(); arm.rotation.z=k*Math.PI/2; arm.add(b); bl.add(arm) } hub.add(bl); addObj(hub,x); SPINNERS.push({o:bl,axis:"z",sp:0.8});
+  const bl=new THREE.Group(); for(let k=0;k<4;k++){ const b=new THREE.Mesh(new THREE.BoxGeometry(1.4,8,.15),stdMat({color:"#f6efe0"})); b.position.y=4.4; const arm=new THREE.Group(); arm.rotation.z=k*Math.PI/2; arm.add(b); bl.add(arm) } hub.add(bl); addObj(hub,x); SPINNERS.push({o:bl,axis:"z",sp:0.8}) }
   villager(I,0.5,0.3,{shirt:"#e0c040",hat:"straw",skin:SKINS[0]},"Müller Karl",["Die Mühle dreht sich schneller, wenn Wind aufkommt. Bei Wind beißen andere Fische.","Bei Nebel lohnt sich die Suche nach dem Nebel im Osten. Nebelfische gibt es nur dann."]) }
 function buildSunstone(I){ for(let k=0;k<3;k++){ const a=I.hutAng+Math.PI+(k-1)*0.9, x=I.x+Math.cos(a)*I.r*0.45, z=I.z+Math.sin(a)*I.r*0.45, y=groundAt(x,z);
   addMesh(new THREE.TorusGeometry(6-k,1.3,6,12,Math.PI),stdMat({color:"#c9864e",flatShading:true}),x,y-0.5,z,a); addCollider(x+Math.cos(a+Math.PI/2)*(6-k),z+Math.sin(a+Math.PI/2)*(6-k),1.5); addCollider(x-Math.cos(a+Math.PI/2)*(6-k),z-Math.sin(a+Math.PI/2)*(6-k),1.5) }
@@ -902,16 +905,16 @@ function buildAnkerheim(I){ const va=I.hutAng; const cols=[["#e8d9c0","#9a3a2e"]
   for(let k=0;k<6;k++){ const a=va-0.8+k*0.32+0.16, d=I.r*0.24, x=I.x+Math.cos(a)*d, z=I.z+Math.sin(a)*d; const cc=cols[(k+3)%cols.length]; house(x,groundAt(x,z),z,Math.PI/2-a+Math.PI,cc[0],cc[1],0.95); I.excl.push({x,z,r:9}) }
   // bell tower in the centre
   const tx=I.x-Math.cos(va)*I.r*0.05, tz=I.z-Math.sin(va)*I.r*0.05, ty=groundAt(tx,tz);
-  addMesh(merge([P(new THREE.BoxGeometry(6,20,6),"#d8cfb6",0,10,0),P(new THREE.BoxGeometry(6.6,.6,6.6),"#a39d8a",0,20.3,0),P(new THREE.ConeGeometry(5,7,4),"#2f5f9d",0,24.2,0,0,Math.PI/4),P(new THREE.CylinderGeometry(1.4,1.8,2,12),"#d9a441",0,18,0),P(new THREE.CylinderGeometry(2.2,2.2,.4,24),"#fff",0,14,3.05,Math.PI/2)]),vcMat(),tx,ty,tz,Math.PI/2-va); addCollider(tx,tz,4.4); I.excl.push({x:tx,z:tz,r:8});
+  if(!placeAsset("belltower",tx,ty,tz,Math.PI/2-va)) addMesh(merge([P(new THREE.BoxGeometry(6,20,6),"#d8cfb6",0,10,0),P(new THREE.BoxGeometry(6.6,.6,6.6),"#a39d8a",0,20.3,0),P(new THREE.ConeGeometry(5,7,4),"#2f5f9d",0,24.2,0,0,Math.PI/4),P(new THREE.CylinderGeometry(1.4,1.8,2,12),"#d9a441",0,18,0),P(new THREE.CylinderGeometry(2.2,2.2,.4,24),"#fff",0,14,3.05,Math.PI/2)]),vcMat(),tx,ty,tz,Math.PI/2-va); addCollider(tx,tz,4.4); I.excl.push({x:tx,z:tz,r:8});
   // extra piers with a moored ship
   for(const s of [-1,1]){ const a=va+s*0.55; const D=dock(I,a,30,5); if(s>0){ const sh=makeBoat(3); const px=D.sx+Math.cos(a)*18+Math.cos(a+Math.PI/2)*6.5, pz=D.sz+Math.sin(a)*18+Math.sin(a+Math.PI/2)*6.5; sh.position.set(px,0.2,pz); sh.rotation.y=Math.PI/2-a; sh.scale.setScalar(1.3); addObj(sh,px); FLOATERS.push({m:sh,base:0.2,ph:3}); addCollider(px,pz,5) }
     const bx=D.sx-Math.cos(a)*4, bz=D.sz-Math.sin(a)*4; for(let k=0;k<4;k++) inst(k%2?"barrel":"crate",bx+Math.cos(a+Math.PI/2)*(3+k*1.6),groundAt(bx,bz),bz+Math.sin(a+Math.PI/2)*(3+k*1.6),k,1,1) }
   for(let k=0;k<10;k++){ const a=va+(k-4.5)*0.2, x=I.x+Math.cos(a)*I.r*0.62, z=I.z+Math.sin(a)*I.r*0.62; const y=groundAt(x,z); lampPost(x,y,z,Math.PI/2-a) }
   const alA=va+Math.PI*0.75, alx=I.x+Math.cos(alA)*I.r*0.55, alz=I.z+Math.sin(alA)*I.r*0.55, aly=groundAt(alx,alz);
-  addMesh(new THREE.CylinderGeometry(3,3.8,1.4,8),stdMat({color:"#7d8199"}),alx,aly+0.7,alz); const orb=addMesh(new THREE.SphereGeometry(1.6,20,14),glowMat("#bfe6ff",2.2),alx,aly+4.6,alz,0,false); SWIRLS.push({orb,y:aly+4.6}); addCollider(alx,alz,3.8); I.excl.push({x:alx,z:alz,r:8});
+  if(!placeAsset("altar",alx,aly,alz,0,0.55)) addMesh(new THREE.CylinderGeometry(3,3.8,1.4,8),stdMat({color:"#7d8199"}),alx,aly+0.7,alz); const orb=addMesh(new THREE.SphereGeometry(1.6,20,14),glowMat("#bfe6ff",2.2),alx,aly+4.6,alz,0,false); SWIRLS.push({orb,y:aly+4.6}); addCollider(alx,alz,3.8); I.excl.push({x:alx,z:alz,r:8});
   npc({shirt:"#5a6aa0",hat:"hood",hatCol:"#2b3a70",skin:SKINS[3],robe:"#2b3a70"},alx+Math.cos(alA)*-5,alz+Math.sin(alA)*-5,faceAng(alx,alz,I.x,I.z)+Math.PI,"altar",I.n,"Altarhüterin Nerea","rgba(50,60,140,.9)");
   const apA=va-Math.PI*0.72, apx=I.x+Math.cos(apA)*I.r*0.5, apz=I.z+Math.sin(apA)*I.r*0.5, apy=groundAt(apx,apz);
-  addMesh(merge([P(new THREE.ConeGeometry(5,5.5,8),"#2f5f9d",0,2.75,0),P(new THREE.ConeGeometry(5.05,1,8),"#ffd24a",0,0.6,0)]),vcMat(),apx,apy,apz); addCollider(apx,apz,4.5); I.excl.push({x:apx,z:apz,r:8});
+  if(!placeAsset("appraiser_tent",apx,apy,apz,faceAng(apx,apz,I.x,I.z))) addMesh(merge([P(new THREE.ConeGeometry(5,5.5,8),"#2f5f9d",0,2.75,0),P(new THREE.ConeGeometry(5.05,1,8),"#ffd24a",0,0.6,0)]),vcMat(),apx,apy,apz); addCollider(apx,apz,4.5); I.excl.push({x:apx,z:apz,r:8});
   npc({shirt:"#2b3a70",hat:"wizard",skin:SKINS[1],hair:"#9fd8ff"},apx+Math.cos(apA)*-6,apz+Math.sin(apA)*-6,faceAng(apx,apz,I.x,I.z)+Math.PI,"appraiser",I.n,"Appraiser","rgba(90,40,140,.9)");
   const chA=va+0.95, chx=I.x+Math.cos(chA)*I.r*0.3, chz=I.z+Math.sin(chA)*I.r*0.3;
   npc({shirt:"#3f6a3a",hat:"hood",hatCol:"#2f5a3a",skin:SKINS[2],robe:"#1f4a2a"},chx,chz,faceAng(chx,chz,I.x+Math.cos(va)*I.r,I.z+Math.sin(va)*I.r),"alchemist",I.n,"Alchemist Bram","rgba(30,90,50,.9)");
@@ -952,7 +955,7 @@ function buildSandbar(I){ const r=rng(I.seed+9); for(let k=0;k<3;k++){ const a=r
 function buildWitch(I){ const x=I.x-2, z=I.z+1, y=groundAt(x,z); const parts=[];
   for(let k=0;k<5;k++) parts.push(P(new THREE.CylinderGeometry(3.4-k*0.25,3.6-k*0.25,5,10),k%2?"#4a4058":"#3a3248",Math.sin(k*0.9)*0.5*k*0.3,2.5+k*5,k*0.18,0.02*k,0,0.03*k));
   parts.push(P(new THREE.ConeGeometry(4.4,8,10),"#5a2a8a",0.9,31,0.9,0.08,0,0.1),P(new THREE.BoxGeometry(1.6,2.8,.3),"#1a1420",0,1.4,3.5));
-  const tw=addMesh(merge(parts),vcMat(),x,y,z,0.6); addCollider(x,z,3.8); I.excl.push({x,z,r:8});
+  const tw=placeAsset("witch_tower",x,y,z,0.6)||addMesh(merge(parts),vcMat(),x,y,z,0.6); addCollider(x,z,3.8); I.excl.push({x,z,r:8});
   for(let k=0;k<5;k++){ const wy=y+6+k*4.7, a=k*1.7; const w=addMesh(new THREE.BoxGeometry(.9,1.3,.2),glowMat("#c78bff",1.6),x+Math.cos(a)*3.25,wy,z+Math.sin(a)*3.25,-a+Math.PI/2,false); }
   const cx=x+6, cz=z+4, cyy=groundAt(cx,cz); addMesh(new THREE.CylinderGeometry(1.4,1,1.4,12),stdMat({color:"#222"}),cx,cyy+0.7,cz,0,false); const brew=addMesh(new THREE.CircleGeometry(1.2,16),glowMat("#7dff8a",2.4),cx,cyy+1.42,cz,0,false); brew.rotation.x=-Math.PI/2; WITCHLIGHTS.push({x:cx,y:cyy+1.5,z:cz,c:"#9dff9a"});
   const nx=x+Math.cos(I.hutAng)*6, nz=z+Math.sin(I.hutAng)*6; npc({shirt:"#3a2248",hat:"witch",hatCol:"#2a1a44",skin:"#cfe6d8",robe:"#2a1a44",hair:"#b8a0ff"},nx,nz,faceAng(nx,nz,I.dock.ex,I.dock.ez),"lq","Hexenturm","Tiefseehexe Ysolde","rgba(70,20,110,.92)",{lq:"ysolde"});
@@ -982,7 +985,7 @@ function decorate(I){
   if(b==="wreck"){ for(let k=0;k<3;k++){ const a=I.hutAng+Math.PI+(k-1)*0.9, d=I.r*(0.95+k*0.08); const x=I.x+Math.cos(a)*d, z=I.z+Math.sin(a)*d; const wr=makeBoat(3); wr.position.set(x,terrainAt(x,z)+0.8,z); wr.rotation.set(0.25,r()*6,0.45); wr.traverse(o=>{ if(o.material) o.material=stdMat({color:"#4a3526",roughness:1}) }); addObj(wr,x) } }
   if(b==="ancient"||b==="altar"){ const n2=b==="altar"?8:6, rr=b==="altar"?I.r*0.3:I.r*0.22; const cx=b==="altar"?I.x:I.x+Math.cos(I.hutAng+Math.PI)*I.r*0.35, cz=b==="altar"?I.z:I.z+Math.sin(I.hutAng+Math.PI)*I.r*0.35;
     for(let k=0;k<n2;k++){ const a=k/n2*Math.PI*2, x=cx+Math.cos(a)*rr, z=cz+Math.sin(a)*rr; const h=groundAt(x,z); const broken=b==="ancient"&&k%3===1; addMesh(merge([P(new THREE.CylinderGeometry(1,1.15,broken?4:9,10),"#b9b3a0",0,broken?2:4.5,0),P(new THREE.BoxGeometry(2.6,.6,2.6),"#a39d8a",0,0.3,0),...(broken?[]:[P(new THREE.BoxGeometry(2.6,.6,2.6),"#a39d8a",0,9.2,0)])]),vcMat(),x,h,z); addCollider(x,z,1.3) }
-    if(b==="altar"){ const h=groundAt(cx,cz); addMesh(new THREE.CylinderGeometry(4,5,1.6,8),stdMat({color:"#7d8199"}),cx,h+0.8,cz); const orb=addMesh(new THREE.SphereGeometry(2.4,24,16),glowMat("#bfe6ff",2.4),cx,h+6,cz,0,false); SWIRLS.push({orb,y:h+6}); addCollider(cx,cz,5) }
+    if(b==="altar"){ const h=groundAt(cx,cz); const AL=placeAsset("altar",cx,h,cz,0,1.4); if(!AL) addMesh(new THREE.CylinderGeometry(4,5,1.6,8),stdMat({color:"#7d8199"}),cx,h+0.8,cz); const orb=addMesh(new THREE.SphereGeometry(2.4,24,16),glowMat("#bfe6ff",2.4),cx,h+(AL?9.6:6),cz,0,false); SWIRLS.push({orb,y:h+6}); addCollider(cx,cz,5) }
     if(b==="ancient"){ for(let k=0;k<7;k++){ const a=I.hutAng+2.2, x=I.x+Math.cos(a)*I.r*0.45+k*1.6*Math.cos(a+Math.PI/2), z=I.z+Math.sin(a)*I.r*0.45+k*1.6*Math.sin(a+Math.PI/2); addMesh(new THREE.TorusGeometry(3.2-Math.abs(k-3)*0.35,.28,6,12,Math.PI),stdMat({color:"#efe8d6"}),x,groundAt(x,z),z,Math.PI/2-a) } } }
   if(b==="brine"){ for(let k=0;k<5;k++){ const a=r()*6.28, d=r()*I.r*0.5, x=I.x+Math.cos(a)*d, z=I.z+Math.sin(a)*d; const h=groundAt(x,z); const pool=addMesh(new THREE.CircleGeometry(3+r()*3,16),new THREE.MeshStandardMaterial({color:"#6dff9a",emissive:new THREE.Color("#2fbf5a"),emissiveIntensity:0.9,roughness:.2}),x,h+0.15,z,0,false); pool.rotation.x=-Math.PI/2 } }
   const nr=Math.round(I.r*0.12); for(let k=0;k<nr;k++){ const a=r()*6.28, d=I.r*(0.75+r()*0.3), x=I.x+Math.cos(a)*d, z=I.z+Math.sin(a)*d; const h=islandH(I,x,z); if(h<-1.5||excluded(I,x,z,2)) continue; if(b==="cliffring"&&Math.abs(angDiff(Math.atan2(z-I.z,x-I.x),I.chanAng))<0.3) continue; inst(b==="ash"?"ashrock":GEO.grock1&&r()<0.6?["grock1","grock2","grock3"][Math.floor(r()*3)]:"rock",x,h-0.2,z,r()*6,0.6+r()*1.2,0.9+r()*0.2) }
