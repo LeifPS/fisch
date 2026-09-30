@@ -206,19 +206,21 @@ function checkPortals(t){ if(performance.now()<portalUntil) return; for(const Pt
     travelTo(Pt.to.x,Pt.to.z,true); return } }
 function travelTo(x,z,boat){ portalUntil=performance.now()+3000; bannerLock=performance.now()+3500; cancelFishing(true); if(F.reel){ F.reel=null; $("reel").style.display="none"; F.state="idle"; bobber.visible=false; myLine.visible=false } flash(); SFX.portal(); for(const s of [...shadows]) removeShadow(s);
   const prevSea=seaAt(pl.x); pl.x=x; pl.z=z; const sea=seaAt(x); pl.ry=Math.atan2(seaC(sea)-x,-z); pl.boat=!!boat&&S.boat>0; pl.boatSpeed=0; pl.y=pl.boat?0.5:groundAt(x,z); cam.yaw=pl.ry;
-  cam.x=pl.x-Math.sin(cam.yaw)*20; cam.z=pl.z-Math.cos(cam.yaw)*20; cam.y=pl.y+10; lastLoc=""; curSea=sea; updateSeaVis();
+  cam.x=pl.x-Math.sin(cam.yaw)*20; cam.z=pl.z-Math.cos(cam.yaw)*20; cam.y=pl.y+10; lastLoc=""; curSea=sea; updateSeaVis(); warmWorld(pl.x,pl.z);
   if(sea!==prevSea) banner(sea===2?"Die Zweite See":"Die Erste See",sea===2?"Stürmischer, tiefer, reicher. Ankerheim liegt im Osten.":"Willkommen zurück. Moosewood liegt im Norden."); pushPresence(true) }
-function updateSeaVis(){ SEAG[1].visible=curSea===1; SEAG[2].visible=curSea===2 }
+function updateSeaVis(){ SEAG[1].visible=curSea===1; SEAG[2].visible=curSea===2; setWaterZones(curSea) }
+/* stream terrain detail + height map around a new position right away (teleports, boot) */
+function warmWorld(x,z){ fineTilesAround(x,z,LOW?260:380); updateHMap(x,z,true) }
 
 /* ---------- fish shadows ---------- */
 const shadows=[]; let shadowSpawnT=0;
 function schoolFor(W,loc){ const slot=Math.floor(nowMs()/SCHOOL_MS); const r=rng(slot*7919+hashStr(loc)); const I=ISLBY[loc];
   if(!I) return null; const pool=poolFor(loc,"",W,false).map(x=>x.f).filter(f=>!f.sub&&f.c>=3&&f.c<=60&&rIdx(f.r)<=4); if(!pool.length) return null;
-  const f=pool[Math.floor(r()*pool.length)]; const a=r()*Math.PI*2; const d=I.r*(1.12+r()*0.3); return {f,x:I.x+Math.cos(a)*d,z:I.z+Math.sin(a)*d,r:22,loc} }
+  const f=pool[Math.floor(r()*pool.length)]; const a=r()*Math.PI*2; const d=I.r*(1.08+r()*0.25); return {f,x:I.x+Math.cos(a)*d,z:I.z+Math.sin(a)*d,r:45,loc} }
 function eventZone(ev){ if(!ev) return null; const r=rng(ev.slot*131+7); const I=ISLBY[ev.l], Z=DEEPZ.find(z=>z.n===ev.l);
-  if(I){ const a=r()*Math.PI*2, d=I.r*1.3+28; return {x:I.x+Math.cos(a)*d,z:I.z+Math.sin(a)*d,r:60} }
-  if(Z) return {x:Z.x+(r()-.5)*40,z:Z.z+(r()-.5)*40,r:55};
-  for(let k=0;k<60;k++){ const a=r()*Math.PI*2, d=250+r()*1000, x=Math.cos(a)*d, z=Math.sin(a)*d; if(ISL.every(I=>Math.hypot(x-I.x,z-I.z)>I.r+150)&&DEEPZ.every(Z=>Math.hypot(x-Z.x,z-Z.z)>Z.r+90)) return {x,z,r:70} } return {x:420,z:420,r:70} }
+  if(I){ const a=r()*Math.PI*2, d=I.r*1.25+120; return {x:I.x+Math.cos(a)*d,z:I.z+Math.sin(a)*d,r:200} }
+  if(Z) return {x:Z.x+(r()-.5)*120,z:Z.z+(r()-.5)*120,r:200};
+  for(let k=0;k<60;k++){ const a=r()*Math.PI*2, d=1500+r()*6000, x=Math.cos(a)*d, z=Math.sin(a)*d; if(ISL.every(I=>Math.hypot(x-I.x,z-I.z)>I.r+500)&&DEEPZ.every(Z=>Math.hypot(x-Z.x,z-Z.z)>Z.r+300)) return {x,z,r:260} } return {x:1800,z:1800,r:260} }
 function fishContext(x,z,w){ const W=world(); let loc=locationAt(x,z); const deep=DEEPZ.some(Z=>Z.n===loc); if(deep&&!S.bell) loc=seaAt(x)===2?"Sturmsee":"Ocean";
   let spot=spotAt(loc,x,z,w.kind); const EZ=eventZone(W.event); const inEvent=!!(EZ&&W.event&&Math.hypot(x-EZ.x,z-EZ.z)<EZ.r&&(W.event.l===loc||W.event.l==="Ocean"&&loc==="Ocean"));
   const SC=schoolFor(W,loc); const inSchool=!!(SC&&Math.hypot(x-SC.x,z-SC.z)<SC.r); return {W,loc,spot,inEvent,school:inSchool?SC:null,deepBlocked:deep&&!S.bell,kind:w.kind,deep:deep&&!!S.bell} }
@@ -599,7 +601,7 @@ function panelMap(body){ $("sheetTitle").textContent="Seekarte"; const sea=mapSe
 function fastTravel(n){ const I=ISLBY[n], D=I.dock; travelTo(D.ex-Math.cos(D.ang)*5,D.ez-Math.sin(D.ang)*5,false); pl.ry=Math.PI/2-D.ang; cam.yaw=pl.ry; pl.y=groundAt(pl.x,pl.z); banner(n,"Schnellreise") }
 $("tabs").addEventListener("click",e=>{ if(panel==="map"){ const b=e.target.closest("button[data-tab]"); if(b) mapSea=+b.dataset.tab } },true);
 const miniCtx=$("mini").getContext("2d");
-function drawMini(){ const size=336, c=miniCtx, range=480, sc=size/(range*2); c.save(); c.clearRect(0,0,size,size); c.beginPath(); c.arc(size/2,size/2,size/2,0,7); c.clip(); c.fillStyle="#0f5a8a"; c.fillRect(0,0,size,size);
+function drawMini(){ const size=336, c=miniCtx, range=pl.boat?1500:700, sc=size/(range*2); c.save(); c.clearRect(0,0,size,size); c.beginPath(); c.arc(size/2,size/2,size/2,0,7); c.clip(); c.fillStyle="#0f5a8a"; c.fillRect(0,0,size,size);
   const tx=x=>size/2+(x-pl.x)*sc, tz=z=>size/2+(z-pl.z)*sc; const W=world(), EZ=eventZone(W.event);
   c.setLineDash([6,6]); c.lineWidth=2; const B=BOATS[S.boat]; if(B&&B.range<5000&&curSea===1){ c.strokeStyle="rgba(255,210,74,.6)"; c.beginPath(); c.arc(tx(0),tz(0),B.range*sc,0,7); c.stroke() } c.setLineDash([]);
   for(const Z of DEEPZ){ if(Z.sea!==curSea) continue; c.fillStyle=Z.col; c.beginPath(); c.arc(tx(Z.x),tz(Z.z),Z.r*sc,0,7); c.fill() }
@@ -647,7 +649,7 @@ function updateSky(){
   else if(h>=4.8&&h<7){ const t=(h-4.8)/2.2; top=SKYC.night[0].clone().lerp(SKYC.dusk[0],Math.min(1,t*1.6)).lerp(SKYC.day[0],Math.max(0,t-0.5)/0.5); hor=SKYC.night[1].clone().lerp(SKYC.dusk[1],Math.min(1,t*1.5)).lerp(SKYC.day[1],Math.max(0,t-0.55)/0.45); night=1-smooth(clamp(t/0.7,0,1)) }
   else { top=SKYC.night[0].clone(); hor=SKYC.night[1].clone(); night=1 }
   if(W.weather==="Rain"){ top.lerp(C_("#4c5a68"),0.6-night*0.3); hor.lerp(C_("#7d8b97"),0.6-night*0.35) }
-  const NB=ISLBY["Nebelinsel"]; const nd=Math.hypot(pl.x-NB.x,pl.z-NB.z); const nebel=curSea===1?smooth(clamp((520-nd)/360,0,1)):0;
+  const NB=ISLBY["Nebelinsel"]; const nd=Math.hypot(pl.x-NB.x,pl.z-NB.z); const nebel=curSea===1?smooth(clamp((1500-nd)/1100,0,1)):0;
   const foggy=Math.max(W.weather==="Foggy"?1:0,nebel);
   if(foggy>0){ top.lerp(C_("#98a6b2"),(0.5-night*0.3)*foggy); hor.lerp(C_("#c9d2d9"),(0.65-night*0.4)*foggy) }
   if(curSea===2&&W.weather!=="Clear"){ top.lerp(C_("#3a4a5a"),0.25); hor.lerp(C_("#8a9aa6"),0.2) }
@@ -662,7 +664,7 @@ function updateSky(){
   const wf=W.weather==="Clear"?1:W.weather==="Windy"?0.9:0.55;
   sun.intensity=useMoon?0.55:(2.4*wf*clamp(sd.y*2.5,0.15,1)); sun.color.copy(useMoon?C_("#8fa8ff"):skyU.uSunCol.value);
   hemiBase=lerp(1.0,0.38,night)*(W.weather==="Clear"?1:0.85)*(AWk==="blood"?1.1:1); hemi.intensity=hemiBase; if(AWk==="blood") hemi.color.set("#ff9a8e"); if(AWk!=="blood") hemi.color.copy(hor).lerp(C_("#ffffff"),0.3); hemi.groundColor.set(night>0.5?"#1a2230":"#5b6b3a");
-  const fogC=hor.clone(); scene.fog.color.copy(fogC); let dens=AWk==="storm"?0.0024:AWk==="blood"?0.0007:AWk==="star"?0.0006:W.weather==="Foggy"?0.0042:W.weather==="Rain"?0.0014:curSea===2?0.0006:0.00045; dens=Math.max(dens,nebel*0.0075); scene.fog.density=lerp(scene.fog.density,dens,0.08);
+  const fogC=hor.clone(); scene.fog.color.copy(fogC); let dens=AWk==="storm"?0.0011:AWk==="blood"?0.00032:AWk==="star"?0.00022:W.weather==="Foggy"?0.0019:W.weather==="Rain"?0.0005:curSea===2?0.00016:0.00011; dens=Math.max(dens,nebel*0.004); scene.fog.density=lerp(scene.fog.density,dens,0.08);
   const au=W.aurora?night:0; skyU.uAurora.value=lerp(skyU.uAurora.value,au,0.1); waterU.uAurora.value=skyU.uAurora.value;
   if(gradePass){ const gu=gradePass.uniforms; gu.uTint.value.setRGB(1-night*0.08,1-night*0.04+au*0.04,1+night*0.06); if(AWk==="blood") gu.uTint.value.setRGB(1.1,0.9,0.9); else if(AWk==="star") gu.uTint.value.setRGB(1.0,0.97,1.08); gu.uSat.value=1.12-foggy*0.18+au*0.1; gu.uVig.value=0.3+night*0.25 }
   waterU.uSky.value.copy(hor).lerp(top,0.3); waterU.uSunDir.value.copy(useMoon?md:sd); waterU.uSunCol.value.copy(useMoon?C_("#8fa8ff").multiplyScalar(0.6):skyU.uSunCol.value).multiplyScalar(wf);
@@ -699,7 +701,7 @@ function avatarFor(p){ let a=avatars.get(p.peer); const pr=p.presence||{};
 function removeAvatar(peer){ const a=avatars.get(peer); if(!a) return; scene.remove(a.ch.group,a.bob,a.line); a.bts.forEach(b=>b&&scene.remove(b)); if(a.label) scene.remove(a.label); if(a.bubble) scene.remove(a.bubble); if(a.holdMesh) scene.remove(a.holdMesh); if(a.holdLbl) scene.remove(a.holdLbl); avatars.delete(peer) }
 function updatePeers(dt,t){
   for(const p of peers){ if(p.sameTab) continue; const pr=p.presence||{}; if(typeof pr.x!=="number"||typeof pr.z!=="number") continue;
-    const a=avatarFor(p); const tx=clamp(pr.x,-2200,SEA2X+1600), tz=clamp(pr.z,-2200,2200), ty=clamp(+pr.y||0,-30,90);
+    const a=avatarFor(p); const tx=clamp(pr.x,-SEA1_R-500,SEA2X+SEA2_R+500), tz=clamp(pr.z,-SEA1_R-500,SEA1_R+500), ty=clamp(+pr.y||0,-30,90);
     const vis=seaAt(tx)===curSea; a.ch.group.visible=vis; if(a.label) a.label.visible=vis;
     if(Math.hypot(tx-a.x,tz-a.z)>40){ a.x=tx; a.z=tz } else { const k=clamp(dt*6,0,1); a.x=lerp(a.x,tx,k); a.z=lerp(a.z,tz,k) } a.y=lerp(a.y,ty,clamp(dt*9,0,1));
     let dr=(+pr.ry||0)-a.ry; dr=Math.atan2(Math.sin(dr),Math.cos(dr)); a.ry+=dr*clamp(dt*10,0,1);
@@ -895,7 +897,6 @@ function updateLife(dt,t,W){
   for(const p of PORTAL_FX){ p.ring.rotation.z+=dt*0.4; if(p.Pt.from===curSea&&Math.hypot(p.Pt.x-pl.x,p.Pt.z-pl.z)<700&&Math.random()<dt*30){ const a=Math.random()*6.28, r=p.Pt.r*(0.3+Math.random()*0.7); GLOW.emit(p.Pt.x+Math.cos(a)*r,0.6,p.Pt.z+Math.sin(a)*r,-Math.sin(a)*6,6+Math.random()*10,Math.cos(a)*6,2,1.4,p.Pt.from===1?"#9fe8ff":"#ffd28a",-1,0.2) } }
   for(const c of CHESTS){ if(c.opening!==null&&c.opening!==undefined&&c.opening<1.2){ c.opening+=dt*1.4; c.lid.rotation.x=-1.9*smooth(Math.min(1,c.opening)); c.glow.visible=c.opening<1.15; if(Math.random()<dt*30) GLOW.emit(c.x,c.y+1.2,c.z,(Math.random()-.5)*2,3+Math.random()*3,(Math.random()-.5)*2,1,0.8,"#ffe27a",-2) }
     else if(!S.chests[c.id]&&Math.abs(c.x-pl.x)<60&&Math.abs(c.z-pl.z)<60&&Math.random()<dt*2) GLOW.emit(c.x+(Math.random()-.5)*2,c.y+1.4,c.z+(Math.random()-.5)*2,0,1,0,1,0.5,"#ffe27a",-0.3) }
-  for(const [n,g] of Object.entries(HIDG)){ const I=ISLBY[n]; g.visible=I.sea===curSea&&(S.visited[n]||Math.hypot(I.x-pl.x,I.z-pl.z)<650) }
   // treasure map marker
   const tm=S.tmap&&seaAt(S.tmap.x)===curSea; digBeam.visible=digX.visible=!!tm; if(tm){ const gy=groundAt(S.tmap.x,S.tmap.z); digBeam.position.set(S.tmap.x,gy+130,S.tmap.z); digX.position.set(S.tmap.x,gy+0.12,S.tmap.z); digBeam.material.opacity=0.16+Math.sin(t*3)*0.06 }
 }
@@ -1094,6 +1095,9 @@ addEventListener("keydown",e=>{ if(e.key==="F9"&&adminOn()&&!typing()){ e.preven
   let n=0; const loop=()=>{ n++; requestAnimationFrame(loop) }; requestAnimationFrame(loop); setInterval(()=>{ el.style.display=ADM.fps?"block":"none"; if(ADM.fps) el.textContent=`${n} FPS · ${renderer.info.render.calls} Draw Calls · ${Math.round(pl.x)}, ${Math.round(pl.z)}`; n=0 },1000) }
 /* ---------- main loop ---------- */
 let boltTimer=3, lightFlash=0, hemiBase=1;
+let tileT=0; const DETAIL_R=LOW?2200:3400;
+function cullIslands(){ for(const I of ISL){ const g=ISG[I.n]; if(!g) continue; const d=Math.hypot(I.x-pl.x,I.z-pl.z)-I.r; let v=I.sea===curSea&&d<DETAIL_R;
+    if(I.hidden) v=v&&(S.visited[I.n]||d<(I.n==="Nebelinsel"?420:600)); g.visible=v } lodIslands(pl.x,pl.z); for(const n of NPCS){ const d=Math.hypot(n.x-pl.x,n.z-pl.z); n.ch.group.visible=d<(LOW?220:380) } }
 let lastT=performance.now(), T0=performance.now(), hudT=0, miniT=0, skyT=0, presT=0, hintT=0;
 const tipV=new THREE.Vector3(), camTarget=new THREE.Vector3();
 function frame(now){
@@ -1107,7 +1111,8 @@ function frame(now){
   const k=clamp(dt*10,0,1); cam.x=lerp(cam.x,cx,k); cam.y=lerp(cam.y,cy,k); cam.z=lerp(cam.z,cz,k); camera.position.set(cam.x,cam.y,cam.z);
   if(camShake>0){ camShake=Math.max(0,camShake-dt*1.2); camera.position.x+=(Math.random()-.5)*camShake; camera.position.y+=(Math.random()-.5)*camShake } camera.lookAt(camTarget);
   if(pl.boat&&pl.moving&&!rmb&&touches.size===0){ let d=pl.ry-cam.yaw; d=Math.atan2(Math.sin(d),Math.cos(d)); cam.yaw+=d*clamp(dt*1.4,0,1) }
-  sky.position.copy(camera.position); const ws=900/WG; water.position.set(Math.round(camera.position.x/ws)*ws,0,Math.round(camera.position.z/ws)*ws); farWater.position.copy(water.position); seabed.position.set(camera.position.x,-24,camera.position.z);
+  sky.position.copy(camera.position); const ws=WSIZE/WG; water.position.set(Math.round(camera.position.x/ws)*ws,0,Math.round(camera.position.z/ws)*ws); farWater.position.copy(water.position); seabed.position.set(camera.position.x,SEAFLOOR-0.5,camera.position.z);
+  updateHMap(pl.x,pl.z,false); tileT-=dt; if(tileT<=0){ tileT=updateTiles(pl.x,pl.z)?0.05:0.5; cullIslands() }
   const sNow=seaAt(pl.x); if(sNow!==curSea){ curSea=sNow; updateSeaVis() }
   // fishing
   if(F.state==="charge"){ F.power+=F.pdir*dt*1.1; if(F.power>=1){F.power=1;F.pdir=-1} if(F.power<=0){F.power=0;F.pdir=1}
@@ -1188,7 +1193,7 @@ async function boot(){
   await accountGate(lt,lb);
   setRodLook(me,S.rod); colorBobber(bobber,S.rod);
   if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); cam.yaw=pl.ry } else spawnHome();
-  curSea=seaAt(pl.x); updateSeaVis(); syncChests(); updateAdminUI();
+  curSea=seaAt(pl.x); updateSeaVis(); warmWorld(pl.x,pl.z); cullIslands(); syncChests(); updateAdminUI();
   ensureBounties(locationAt(pl.x,pl.z)); refreshHUD(); renderQuests(); updateSky();
   cam.x=pl.x-Math.sin(cam.yaw)*20; cam.z=pl.z-Math.cos(cam.yaw)*20; cam.y=pl.y+10;
   lb.style.width="100%"; lt.textContent=S.stats.caught?`Willkommen zurück, ${titleFor(levelInfo(S.xp).L)}!`:"Bereit zum Ablegen";
@@ -1200,4 +1205,4 @@ async function boot(){
 }
 boot().catch(e=>{ const el=$("loaderr"); el.style.display="block"; el.textContent="Fehler: "+e.message; console.error(e) });
 
-if(/[?&]debug\b/.test(location.search)) window.__fd={doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
+if(/[?&]debug\b/.test(location.search)) window.__fd={TSTAT,cullIslands,updateTiles,renderer,ISG,doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};

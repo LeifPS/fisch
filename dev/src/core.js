@@ -176,51 +176,54 @@ const ROD_ABIL={
 };
 const abilOf=n=>ROD_ABIL[n]||null;
 
-/* ---------- world layout ---------- */
-const SEA2X=6000;
+/* ---------- world layout (v3: a real ocean – about one minute by motor boat between neighbours) ---------- */
+const SEA2X=40000;
 const ISLE=[
-  {n:"Moosewood",x:0,z:0,r:110,peak:18,biome:"forest",fresh:1,sea:1,d:"Heimathafen mit Dorf, Leuchtturm, Werft und Appraiser."},
-  {n:"Roslit Bay",x:-380,z:170,r:92,peak:10,biome:"tropic",fresh:1,reef:1,sea:1,d:"Tropische Bucht mit Korallenriff und Süßwasserteich."},
-  {n:"Terrapin Island",x:330,z:-210,r:80,peak:14,biome:"meadow",fresh:1,sea:1,d:"Blühende Wiesen und eine alte Windmühle."},
-  {n:"Sunstone Island",x:110,z:400,r:70,peak:16,biome:"desert",sea:1,d:"Sonnige Felseninsel mit Felsbögen."},
-  {n:"Mushgrove Swamp",x:-290,z:-320,r:90,peak:5,biome:"swamp",sea:1,d:"Nebliger Sumpf voller Riesenpilze."},
-  {n:"Roslit Volcano",x:-780,z:520,r:82,peak:62,biome:"volcano",sea:1,d:"Aktiver Vulkan. Die Hitze lockt seltene Fische an."},
-  {n:"Snowcap Island",x:190,z:-850,r:100,peak:62,biome:"snow",fresh:1,sea:1,d:"Ein Berg aus Eis. Auf dem Gipfel soll jemand leben."},
-  {n:"Forsaken Shores",x:-880,z:-160,r:90,peak:9,biome:"wreck",fresh:1,reef:1,sea:1,d:"Piratenküste voller Schiffswracks."},
-  {n:"Castaway Cliffs",x:850,z:360,r:100,peak:48,biome:"cliffring",sea:1,d:"Ein Ring aus Klippen. Seefahrer erzählen von einer verborgenen Lagune."},
-  {n:"Ancient Isle",x:800,z:-540,r:108,peak:28,biome:"ancient",fresh:1,sea:1,d:"Urzeitinsel mit Ruinen. Revier des Megalodon."},
-  {n:"Grand Reef",x:470,z:850,r:64,peak:3,biome:"reef",sea:1,d:"Ein riesiges Korallenatoll."},
-  {n:"Lost Jungle",x:1250,z:-1100,r:98,peak:22,biome:"jungle",sea:1,d:"Dichter Dschungel am Rand der Welt."},
-  {n:"Crystal Cove",x:-1150,z:-950,r:58,peak:22,biome:"crystal",sea:1,d:"Leuchtende Kristallinsel."},
-  {n:"Brine Pool",x:-1300,z:760,r:58,peak:10,biome:"brine",sea:1,d:"Salzkrusten und giftgrüne Becken."},
-  {n:"Keepers Altar",x:0,z:-1450,r:52,peak:8,biome:"altar",sea:1,d:"Uralter Altar der Verzauberung. Hier liegt der Kings Rod."},
-  {n:"Nebelinsel",x:1650,z:120,r:34,peak:7,biome:"fog",sea:1,hidden:1,d:"Eine Insel, die nur im Nebel sichtbar zu sein scheint."},
-  {n:"Ankerheim",x:SEA2X,z:0,r:120,peak:14,biome:"harbor",fresh:1,sea:2,d:"Hafenstadt der Zweiten See mit Altar und Händlern."},
-  {n:"Korallenkrone",x:SEA2X-620,z:380,r:88,peak:4,biome:"reefcrown",sea:2,d:"Ein Atoll mit Korallen, so groß wie Bäume."},
-  {n:"Aschefelder",x:SEA2X+680,z:320,r:100,peak:30,biome:"ash",sea:2,d:"Schwarze Asche, dampfende Geysire."},
-  {n:"Frostzinnen",x:SEA2X+250,z:-720,r:100,peak:40,biome:"spires",sea:2,d:"Eisnadeln, die in den Himmel stechen."},
-  {n:"Atlantische Ruinen",x:SEA2X-480,z:-560,r:115,peak:8,biome:"ruins",sea:2,d:"Die versunkene Stadt ragt wieder aus dem Meer."},
-  {n:"Hexenturm",x:SEA2X+1080,z:-660,r:30,peak:6,biome:"witch",sea:2,hidden:1,d:"Ein schiefer Turm am Rand der Welt."},
+  {n:"Moosewood",x:0,z:0,r:420,peak:34,biome:"forest",fresh:1,sea:1,d:"Heimathafen mit Dorf, Leuchtturm, Werft und Appraiser."},
+  {n:"Roslit Bay",x:-2500,z:900,r:380,peak:22,biome:"tropic",fresh:1,reef:1,sea:1,d:"Tropische Bucht mit Korallenriff und Süßwasserteich."},
+  {n:"Terrapin Island",x:2400,z:-1300,r:360,peak:30,biome:"meadow",fresh:1,sea:1,d:"Blühende Wiesen und eine alte Windmühle."},
+  {n:"Sunstone Island",x:700,z:2800,r:320,peak:36,biome:"desert",sea:1,d:"Sonnige Felseninsel mit Felsbögen."},
+  {n:"Mushgrove Swamp",x:-1900,z:-2400,r:400,peak:9,biome:"swamp",sea:1,d:"Nebliger Sumpf voller Riesenpilze."},
+  {n:"Roslit Volcano",x:-3250,z:2450,r:330,peak:160,biome:"volcano",sea:1,d:"Aktiver Vulkan. Die Hitze lockt seltene Fische an."},
+  {n:"Snowcap Island",x:800,z:-4600,r:450,peak:230,biome:"snow",fresh:1,sea:1,d:"Ein Berg aus Eis. Auf dem Gipfel soll jemand leben."},
+  {n:"Forsaken Shores",x:-5000,z:-600,r:400,peak:18,biome:"wreck",fresh:1,reef:1,sea:1,d:"Piratenküste voller Schiffswracks."},
+  {n:"Castaway Cliffs",x:4900,z:1800,r:420,peak:95,biome:"cliffring",sea:1,d:"Ein Ring aus Klippen. Seefahrer erzählen von einer verborgenen Lagune."},
+  {n:"Ancient Isle",x:4600,z:-3900,r:480,peak:58,biome:"ancient",fresh:1,sea:1,d:"Urzeitinsel mit Ruinen. Revier des Megalodon."},
+  {n:"Grand Reef",x:2800,z:5200,r:300,peak:4,biome:"reef",sea:1,d:"Ein riesiges Korallenatoll."},
+  {n:"Lost Jungle",x:7400,z:-6800,r:460,peak:52,biome:"jungle",sea:1,d:"Dichter Dschungel am Rand der Welt."},
+  {n:"Crystal Cove",x:-6200,z:-5200,r:260,peak:46,biome:"crystal",sea:1,d:"Leuchtende Kristallinsel."},
+  {n:"Brine Pool",x:-5400,z:3800,r:260,peak:18,biome:"brine",sea:1,d:"Salzkrusten und giftgrüne Becken."},
+  {n:"Keepers Altar",x:-600,z:-8200,r:260,peak:14,biome:"altar",sea:1,d:"Uralter Altar der Verzauberung. Hier liegt der Kings Rod."},
+  {n:"Nebelinsel",x:8900,z:600,r:170,peak:16,biome:"fog",sea:1,hidden:1,d:"Eine Insel, die nur im Nebel sichtbar zu sein scheint."},
+  {n:"Ankerheim",x:SEA2X,z:0,r:450,peak:26,biome:"harbor",fresh:1,sea:2,d:"Hafenstadt der Zweiten See mit Altar und Händlern."},
+  {n:"Korallenkrone",x:SEA2X-2400,z:1800,r:340,peak:6,biome:"reefcrown",sea:2,d:"Ein Atoll mit Korallen, so groß wie Bäume."},
+  {n:"Aschefelder",x:SEA2X+2700,z:1600,r:400,peak:70,biome:"ash",sea:2,d:"Schwarze Asche, dampfende Geysire."},
+  {n:"Frostzinnen",x:SEA2X+1000,z:-3200,r:420,peak:120,biome:"spires",sea:2,d:"Eisnadeln, die in den Himmel stechen."},
+  {n:"Atlantische Ruinen",x:SEA2X-2100,z:-2600,r:440,peak:16,biome:"ruins",sea:2,d:"Die versunkene Stadt ragt wieder aus dem Meer."},
+  {n:"Hexenturm",x:SEA2X+5200,z:-4200,r:120,peak:12,biome:"witch",sea:2,hidden:1,d:"Ein schiefer Turm am Rand der Welt."},
 ];
 const DEEPZ=[
-  {n:"Desolate Deep",x:-420,z:1300,r:110,col:"#0d2a45",sea:1,d:"Ein finsterer Tiefseegraben."},
-  {n:"Vertigo",x:-560,z:-1330,r:110,col:"#2d1656",sea:1,d:"Ein Strudel, in dem oben und unten verschwimmen."},
-  {n:"The Depths",x:1250,z:1080,r:110,col:"#040b1c",sea:1,d:"Der tiefste Punkt der ersten See."},
-  {n:"Abgrund der Stille",x:SEA2X,z:830,r:125,col:"#12062a",sea:2,d:"Kein Laut, kein Licht. Nur Augen in der Tiefe."},
+  {n:"Desolate Deep",x:-2200,z:6200,r:420,col:"#0d2a45",sea:1,d:"Ein finsterer Tiefseegraben."},
+  {n:"Vertigo",x:-3600,z:-7400,r:420,col:"#2d1656",sea:1,d:"Ein Strudel, in dem oben und unten verschwimmen."},
+  {n:"The Depths",x:6800,z:5600,r:420,col:"#040b1c",sea:1,d:"Der tiefste Punkt der ersten See."},
+  {n:"Abgrund der Stille",x:SEA2X,z:4200,r:460,col:"#12062a",sea:2,d:"Kein Laut, kein Licht. Nur Augen in der Tiefe."},
 ];
-const RAFTS=[{n:"Ocean",x:-80,z:780},{n:"Sturmsee",x:SEA2X+60,z:-420}];
-const PORTALS=[{from:1,x:0,z:1800,to:{x:SEA2X-110,z:260},r:70},{from:2,x:SEA2X-1000,z:80,to:{x:40,z:1650},r:70}];
+const RAFTS=[{n:"Ocean",x:-600,z:3500},{n:"Sturmsee",x:SEA2X+300,z:-1500}];
+const PORTALS=[{from:1,x:0,z:9500,to:{x:SEA2X-4300,z:400},r:260},{from:2,x:SEA2X-4800,z:300,to:{x:120,z:9000},r:260}];
 const ALL_LOC=[...ISLE.map(i=>i.n),...DEEPZ.map(z=>z.n),"Ocean","Sturmsee",...Object.values(AW_LOC)];
 const LOCDESC=Object.fromEntries([...ISLE,...DEEPZ].map(i=>[i.n,i.d])); LOCDESC.Ocean="Offenes Meer der ersten See. Hier ziehen Hunts und Wanderungen vorbei."; LOCDESC.Sturmsee="Die offene Zweite See. Stürme und große Räuber."; LOCDESC.Blutmond="Nur während des Blutmonds, überall auf See."; LOCDESC.Sternenfall="Nur während des Sternenfalls, überall auf See."; LOCDESC["Leviathans Zorn"]="Nur während Leviathans Zorn, überall auf See.";
 const SEAOF=l=>{ const i=ISLE.find(x=>x.n===l)||DEEPZ.find(x=>x.n===l); return i?i.sea:(l==="Sturmsee"?2:1) };
-const SEA1_R=1950, SEA2_R=1350;
+const SEA1_R=10200, SEA2_R=7000;
+const MAP_SCALE=4; // distances compared to v2
 
 /* ---------- boats, bag, crates, shops ---------- */
 const BOATS=[
   {id:0,n:"Kein Boot",range:0,speed:0,price:0,lvl:0},
-  {id:1,n:"Ruderboot",range:560,speed:20,price:0,lvl:0,d:"Reicht für die Inseln rund um Moosewood."},
-  {id:2,n:"Motorboot",range:1100,speed:38,price:2500,lvl:5,d:"Schnell genug für den zweiten Inselring."},
-  {id:3,n:"Hochseeboot",range:99999,speed:60,price:12000,lvl:12,d:"Erreicht jede Ecke der See, auch die Tiefseezonen und den Mahlstrom."},
+  {id:1,n:"Ruderboot",range:3300,speed:24,price:0,lvl:0,model:"boat_row",d:"Reicht für die Inseln rund um Moosewood."},
+  {id:2,n:"Motorboot",range:6800,speed:40,price:2500,lvl:5,model:"boat_motor",d:"Schnell genug für den zweiten Inselring."},
+  {id:3,n:"Hochseeboot",range:99999,speed:54,price:12000,lvl:12,model:"boat_cruiser",d:"Erreicht jede Ecke der See, auch die Tiefseezonen und den Mahlstrom."},
+  {id:4,n:"Jetski",range:99999,speed:80,price:65000,lvl:22,model:"boat_jetski",d:"Klein, laut und extrem schnell. Perfekt für Hunts."},
+  {id:5,n:"Karmesin-Segler",range:99999,speed:90,price:180000,lvl:32,model:"boat_sail",d:"Ein prachtvolles Segelschiff mit Hilfsmotor. Das schnellste Schiff der Meere."},
 ];
 const BELL={price:35000,lvl:20};
 const BAGS=[20,35,60,100,200,350]; const BAG_PRICE=[0,800,4000,15000,60000,250000];
@@ -431,7 +434,7 @@ function lqProgress(id){ const q=S.lq[id]; if(!q) return 0; const st=LQ[id].step
   return q.cnt||0 }
 
 /* ---------- bounties ---------- */
-function locTier(loc){ const I=ISLE.find(i=>i.n===loc)||DEEPZ.find(i=>i.n===loc); if(!I) return loc==="Sturmsee"?5:2.6; if(I.sea===2) return 5; return 1+Math.min(3,Math.hypot(I.x,I.z)/500) }
+function locTier(loc){ const I=ISLE.find(i=>i.n===loc)||DEEPZ.find(i=>i.n===loc); if(!I) return loc==="Sturmsee"?5:2.6; if(I.sea===2) return 5; return 1+Math.min(3,Math.hypot(I.x,I.z)/2000) }
 function makeBounty(loc){
   const r=Math.random(); const W=world();
   const pool=poolFor(loc,loc==="Ocean"?"Open Sea":"",W,false).map(x=>x.f).concat(FISH.filter(f=>f.l===loc&&f.sub&&!EVSET.has(f.sub)&&(!f.t||f.t===W.time)));
