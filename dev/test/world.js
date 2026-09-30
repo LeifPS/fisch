@@ -3,7 +3,7 @@ const TH=path.join(__dirname,'../../../fd/node_modules/three'); const OUT=n=>pat
 const SHOTS=JSON.parse(process.env.SHOTS||'[]');
 (async()=>{
  const b=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
- const errs=[]; const ctx=await b.newContext({viewport:{width:+(process.env.W||1100),height:+(process.env.H||680)}}); const p=await ctx.newPage(); p.setDefaultTimeout(300000);
+ const errs=[]; const ctx=await b.newContext({viewport:{width:+(process.env.W||1100),height:+(process.env.H||680)},...(process.env.MOB?{isMobile:true,hasTouch:true,deviceScaleFactor:2}:{})}); const p=await ctx.newPage(); p.setDefaultTimeout(300000);
  p.on('pageerror',e=>errs.push('PAGEERR '+e.message)); p.on('console',m=>{ if(m.type()==='error'&&!/ERR_FAILED/.test(m.text())) errs.push(m.text().slice(0,300)); if(/^\[T\]/.test(m.text())) console.log(m.text()) });
  await p.route(/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/(.*)/,r=>{ const u=new URL(r.request().url()); r.fulfill({path:path.join(TH,u.pathname.replace('/npm/three@0.160.0/','')),contentType:'application/javascript'}) });
  await p.route(/googleapis|gstatic/,r=>r.abort());
