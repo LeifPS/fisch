@@ -11,7 +11,7 @@ const TH=path.join(__dirname,'../../../fd/node_modules/three'); const OUT=n=>pat
  await p.waitForSelector('#acct',{state:'visible'}); await p.fill('#accName','leif'); await p.fill('#accPass','test1234'); await p.click('#accLogin');
  await p.waitForFunction(()=>window.__gameStarted); await p.click('#startBtn'); await p.waitForTimeout(2500);
  const R=async c=>{ await p.evaluate(c=>__fd.runCommand(c),c); await p.waitForTimeout(250) };
- await R('/instant set:on'); await R('/autoreel set:on');
+ await R('/tp to:Moosewood'); await R('/aw off'); await R('/instant set:on'); await R('/autoreel set:on');
  for(const [rod,fish,aw] of [['Obsidian Rod','Megalodon',''],['Tryhard Rod','Sternenwal','star'],['Nebelrute','','blood']]){
    await R('/rods name:'+rod); if(fish) await R('/bite fish:'+fish); if(aw) await R('/aw set:'+aw);
    await p.evaluate(()=>{ __fd.setMouse(innerWidth/2,innerHeight*0.42); __fd.startCharge(); __fd.F.power=0.97; __fd.releaseCast() });

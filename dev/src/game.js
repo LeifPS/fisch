@@ -64,8 +64,8 @@ function musicTick(){ const C=AU.ctx; if(!C||!S.settings.music) return; const W=
 /* ---------- player ---------- */
 const MOOSE=ISLBY["Moosewood"];
 const myColor=(()=>{ try{ const c=localStorage.getItem("fd-col"); if(c) return c }catch(e){} const hues=[200,12,140,280,45,330,170]; const c=`hsl(${hues[Math.floor(Math.random()*hues.length)]}, 62%, 50%)`; try{localStorage.setItem("fd-col",c)}catch(e){} return c })();
-const me=makeCharacter({shirt:new THREE.Color().setStyle(myColor).getHexString().replace(/^/,"#"),hat:"cap",rod:true,skin:SKINS[hashStr(myColor)%SKINS.length]}); scene.add(me.group); setRodLook(me,S.rod);
-const boats=[null,makeBoat(1),makeBoat(2),makeBoat(3)]; boats.forEach(b=>{ if(b){ b.visible=false; scene.add(b) } });
+const me=makeCharacter({shirt:new THREE.Color().setStyle(myColor).getHexString().replace(/^/,"#"),hat:"cap",rod:true,backpack:true,skin:SKINS[hashStr(myColor)%SKINS.length]}); scene.add(me.group); setRodLook(me,S.rod);
+let boats=[]; function makeMyBoats(){ boats.forEach(b=>b&&scene.remove(b)); boats=[null,...BOATS.slice(1).map(b=>makeBoat(b.id))]; boats.forEach(b=>{ if(b){ b.visible=false; scene.add(b) } }) } makeMyBoats();
 const pl={x:0,z:0,y:2,vy:0,ry:0,boat:false,boatSpeed:0,swim:false,walkT:0,moving:false,grounded:true};
 const cam={yaw:0,pitch:0.34,dist:TOUCH?28:24,x:0,y:10,z:0};
 let curSea=1; const seaC=s=>s===2?SEA2X:0, seaR=s=>s===2?SEA2_R:SEA1_R;
@@ -178,7 +178,7 @@ function updatePlayer(dt,t){
       if(sea===1&&B.range<5000){ const R=Math.hypot(nx,nz); if(R>B.range){ const k=B.range/R; nx*=k; nz*=k; pl.boatSpeed*=0.5; if(t-rangeWarnT>4){ rangeWarnT=t; toast(`Die See wird zu rau für dein ${B.n}. Ein besseres Boot gibt es in der Werft von Moosewood.`,"#ffb35a") } } }
       const RR=seaR(sea), dd=Math.hypot(nx-cx,nz); if(dd>RR){ const k=RR/dd; nx=cx+(nx-cx)*k; nz*=k; pl.boatSpeed*=0.4; if(t-rangeWarnT>4){ rangeWarnT=t; toast("Hier endet die bekannte See. Dahinter nur Sturm und Nebel.","#ffb35a") } }
       pl.x=nx; pl.z=nz } else { pl.boatSpeed*=-0.25; if(Math.abs(pl.boatSpeed)>4) SFX.splash(0.3) }
-    pl.y=waveHeight(pl.x,pl.z,t)+0.55; pl.swim=false; pl.moving=Math.abs(pl.boatSpeed)>1;
+    pl.y=waveHeight(pl.x,pl.z,t)+0.55+((boats[S.boat]&&boats[S.boat].userData.seat)||0); pl.swim=false; pl.moving=Math.abs(pl.boatSpeed)>1;
     const sp=Math.abs(pl.boatSpeed); if(sp>8&&Math.random()<dt*(boost?60:30)){ const b=fwd(pl.ry+Math.PI); for(const s of [-1,1]) FX.emit(pl.x+b.x*5+Math.cos(pl.ry)*s*1.8,0.3,pl.z+b.z*5-Math.sin(pl.ry)*s*1.8,(Math.random()-.5)*2+Math.cos(pl.ry)*s*2,2+Math.random()*(boost?4:2),(Math.random()-.5)*2-Math.sin(pl.ry)*s*2,0.7,boost?1:0.7,"#ffffff",-10) }
     if(boost&&sp>20&&Math.random()<dt*20){ const b=fwd(pl.ry+Math.PI); FX.emit(pl.x+b.x*7,0.4,pl.z+b.z*7,(Math.random()-.5)*3,5+Math.random()*3,(Math.random()-.5)*3,0.8,1.3,"#e8f8ff",-14) }
     checkPortals(t);
@@ -491,7 +491,7 @@ const iconScene=new THREE.Scene(); iconScene.add(new THREE.HemisphereLight(0xfff
 const iconCam=new THREE.PerspectiveCamera(28,400/220,0.1,50); iconCam.position.set(0.3,0.55,5.2); iconCam.lookAt(0,0,0);
 const ICONS={}; const silMat=new THREE.MeshBasicMaterial({color:0x14263a});
 function fishIcon(n,mut,sil){ const key=n+"|"+(mut||"")+"|"+(sil?1:0); if(ICONS[key]) return ICONS[key];
-  const m=makeFishMesh(n,mut); if(sil) m.material=silMat; m.geometry.computeBoundingSphere(); const bs=m.geometry.boundingSphere; m.scale.setScalar(1.25/bs.radius); m.position.set(-bs.center.x*1.25/bs.radius,-bs.center.y*1.25/bs.radius,0); m.rotation.y=-0.35;
+  const m=makeFishMesh(n,mut); if(sil) m.material=silMat; m.geometry.computeBoundingSphere(); const bs=m.geometry.boundingSphere; m.scale.setScalar(1.62/bs.radius); m.position.set(-bs.center.x*1.62/bs.radius,-bs.center.y*1.62/bs.radius,0); m.rotation.y=-0.35;
   iconScene.add(m); iconR.render(iconScene,iconCam); iconScene.remove(m); if(!sil) m.material.dispose();
   const c=document.createElement("canvas"); c.width=400; c.height=220; c.getContext("2d").drawImage(iconR.domElement,0,0); return ICONS[key]=c }
 function iconCanvas(n,mut,sil,w,h){ const c=document.createElement("canvas"); const dpr=Math.min(2,devicePixelRatio||1); c.width=w*dpr; c.height=h*dpr; c.style.width=w+"px"; c.style.height=h+"px"; c.getContext("2d").drawImage(fishIcon(n,mut,sil),0,0,c.width,c.height); return c }
@@ -758,7 +758,7 @@ function pushPresence(force){ if(!room) return; const now=performance.now(); if(
 function avatarFor(p){ let a=avatars.get(p.peer); const pr=p.presence||{};
   if(!a){ let col="#c46b3b"; try{ col="#"+new THREE.Color().setStyle(typeof pr.col==="string"?pr.col:"#c46b3b").getHexString() }catch(e){}
     const ch=makeCharacter({shirt:col,hat:["cap","straw","captain"][hashStr(p.peer)%3],rod:true,skin:SKINS[hashStr(p.peer)%SKINS.length]}); scene.add(ch.group);
-    const bts=[null,makeBoat(1),makeBoat(2),makeBoat(3)]; bts.forEach(b=>{ if(b){ b.visible=false; scene.add(b) } }); const bob=bobber.clone(); bob.visible=false; scene.add(bob); const line=makeLine(.6);
+    const bts=[null,...BOATS.slice(1).map(b=>makeBoat(b.id))]; bts.forEach(b=>{ if(b){ b.visible=false; scene.add(b) } }); const bob=bobber.clone(); bob.visible=false; scene.add(bob); const line=makeLine(.6);
     a={ch,bts,bob,line,x:+pr.x||0,z:+pr.z||0,y:+pr.y||0,ry:+pr.ry||0,walkT:0,label:null,labelText:"",bubble:null,bubbleT:0,rod:"",holdMesh:null,holdName:""}; avatars.set(p.peer,a) }
   return a }
 function removeAvatar(peer){ const a=avatars.get(peer); if(!a) return; scene.remove(a.ch.group,a.bob,a.line); a.bts.forEach(b=>b&&scene.remove(b)); if(a.label) scene.remove(a.label); if(a.bubble) scene.remove(a.bubble); if(a.holdMesh) scene.remove(a.holdMesh); if(a.holdLbl) scene.remove(a.holdLbl); avatars.delete(peer) }
@@ -768,7 +768,7 @@ function updatePeers(dt,t){
     const vis=seaAt(tx)===curSea; a.ch.group.visible=vis; if(a.label) a.label.visible=vis;
     if(Math.hypot(tx-a.x,tz-a.z)>40){ a.x=tx; a.z=tz } else { const k=clamp(dt*6,0,1); a.x=lerp(a.x,tx,k); a.z=lerp(a.z,tz,k) } a.y=lerp(a.y,ty,clamp(dt*9,0,1));
     let dr=(+pr.ry||0)-a.ry; dr=Math.atan2(Math.sin(dr),Math.cos(dr)); a.ry+=dr*clamp(dt*10,0,1);
-    const bt=clamp(+pr.b||0,0,3)|0; a.bts.forEach((b,i)=>{ if(!b) return; b.visible=i===bt&&vis; if(i===bt){ b.position.set(a.x,waveHeight(a.x,a.z,t)-0.3,a.z); b.rotation.y=a.ry } });
+    const bt=clamp(+pr.b||0,0,BOATS.length-1)|0; a.bts.forEach((b,i)=>{ if(!b) return; b.visible=i===bt&&vis; if(i===bt){ b.position.set(a.x,waveHeight(a.x,a.z,t)-0.3,a.z); b.rotation.y=a.ry } });
     const rod=ROD[pr.rod]?pr.rod:"Flimsy Rod"; if(a.rod!==rod){ a.rod=rod; setRodLook(a.ch,rod); colorBobber(a.bob,rod) }
     if(pr.mv===1) a.walkT+=dt*10; const st=typeof pr.st==="string"?pr.st:"idle";
     poseCharacter(a.ch,{moving:pr.mv===1,boat:bt>0,swim:pr.sw===1,walkT:a.walkT,st:pr.hold?"hold":st,y:a.y},t);
@@ -1030,7 +1030,7 @@ const CMDS={
   instant:{u:"set:on | off",d:"Sofort-Biss",f:P=>{ ADM.instant=onoff(pv(P,"set"),ADM.instant); return `Sofort-Biss: ${ADM.instant?"an":"aus"}` }},
   autoreel:{u:"set:on | off",d:"Automatisch einholen",f:P=>{ ADM.autoReel=onoff(pv(P,"set"),ADM.autoReel); return `Auto-Einholen: ${ADM.autoReel?"an":"aus"}` }},
   fps:{u:"set:on | off",d:"FPS-Anzeige",f:P=>{ ADM.fps=onoff(pv(P,"set"),ADM.fps); return `FPS-Anzeige: ${ADM.fps?"an":"aus"}` }},
-  boat:{u:"tier:3",d:"Boot (0–3)",f:P=>{ S.boat=Math.max(0,Math.min(3,pn(pv(P,"tier"),3)|0)); if(!S.boat) pl.boat=false; return `Boot: ${BOATS[S.boat].n}` }},
+  boat:{u:"tier:3",d:"Boot (0–5)",f:P=>{ S.boat=Math.max(0,Math.min(BOATS.length-1,pn(pv(P,"tier"),3)|0)); if(!S.boat) pl.boat=false; return `Boot: ${BOATS[S.boat].n}` }},
   radar:{u:"set:on | off",d:"Fisch-Radar geben/nehmen",f:P=>{ S.radar=onoff(pv(P,"set"),S.radar); S.settings.radar=S.radar; updateRadarUI(); return `Fisch-Radar: ${S.radar?"ja":"nein"}` }},
   areas:{u:"",d:"Fischgebiete hier auflisten",f:()=>{ const loc=locationAt(pl.x,pl.z); const A=(AREA_LOC[loc]||[]).map(a=>`#${a.id} ${a.nat||(a.deep?"tief":"")} (${Math.round(Math.hypot(a.x-pl.x,a.z-pl.z))} m): ${a.fish.join(", ")}`); A.forEach(t=>addChat("Admin",t,true)); return `${A.length} Gebiete bei ${loc}` }},
   bell:{u:"set:on | off",d:"Tauchglocke",f:P=>{ S.bell=onoff(pv(P,"set"),S.bell); return `Tauchglocke: ${S.bell?"ja":"nein"}` }},
@@ -1258,7 +1258,7 @@ async function boot(){
   await accountGate(lt,lb);
   setRodLook(me,S.rod); colorBobber(bobber,S.rod);
   if(validPos(S.pos)){ pl.x=S.pos.x; pl.z=S.pos.z; pl.ry=S.pos.ry||0; pl.boat=!!S.pos.boat&&S.boat>0; pl.y=groundAt(pl.x,pl.z); cam.yaw=pl.ry } else spawnHome();
-  genAreas(); updateRadarUI();
+  genAreas(); updateRadarUI(); makeMyBoats(); setRodLook(me,S.rod);
   curSea=seaAt(pl.x); updateSeaVis(); warmWorld(pl.x,pl.z); cullIslands(); syncChests(); updateAdminUI();
   ensureBounties(locationAt(pl.x,pl.z)); refreshHUD(); renderQuests(); updateSky();
   cam.x=pl.x-Math.sin(cam.yaw)*20; cam.z=pl.z-Math.cos(cam.yaw)*20; cam.y=pl.y+10;
@@ -1271,4 +1271,4 @@ async function boot(){
 }
 boot().catch(e=>{ const el=$("loaderr"); el.style.display="block"; el.textContent="Fehler: "+e.message; console.error(e) });
 
-if(/[?&]debug\b/.test(location.search)) window.__fd={TSTAT,cullIslands,updateTiles,AREAS,eventZone,renderer,ISG,doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
+if(/[?&]debug\b/.test(location.search)) window.__fd={ASSETS,TSTAT,cullIslands,updateTiles,AREAS,eventZone,renderer,ISG,doEnchant,lqAdvance,lqCount,setCur:n=>{curNPC=n},get curSea(){return curSea},travelTo,CHESTS,NPCS,ISLBY,openChest,makeTreasureMap,updatePrompt,get nearAct(){return nearAct},interact,makeFishMesh,fishGeometry,fishIcon,F,pl,cam,get S(){return S},shadows,startCharge,releaseCast,camera,toggleBoat,keys,world,locationAt,setMouse:(x,y)=>{mx=x;my=y},get tState(){return F.state},openModal,closeModal,runCommand,GW,adminOn,spawnBiteMark,toggleHold,setHold,get peers(){return peers},scene,renderer};
