@@ -24,3 +24,6 @@ out = head + '<script type="module">\n' + imports + '\n'.join(parts) + '\n</scri
 dst = os.path.join(D, '..', 'public', 'index.html')
 open(dst, 'w', encoding='utf-8').write(out)
 print('wrote', dst, len(out))
+
+import subprocess
+subprocess.run(["python3", os.path.join(D, "..", "lgh", "lgh-einbauen.py"), dst, "fischerdock", "--ohne-menue"], check=True)
