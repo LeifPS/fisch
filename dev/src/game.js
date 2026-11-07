@@ -820,13 +820,57 @@ function panelPlayers(body){ $("sheetTitle").textContent="Spieler"; const tab=pa
     <div class="row"><button class="btn alt" id="musBtn">Musik: ${S.settings.music?"an":"aus"}</button><button class="btn alt" id="sfxBtn">Geräusche: ${S.settings.sfx?"an":"aus"}</button></div>
     <p class="note">Inoffizielles Fanprojekt nach dem Roblox-Spiel Fisch, nicht mit dessen Entwicklern verbunden. Fischnamen und -werte stammen aus dem Official Fisch Wiki (fischipedia.org); Welt, Modelle, Musik und Balancing sind eigene Arbeit.</p>
     <p class="note">Spielstand: ${myId&&db?"wird in deinem Account (Cloud) und im Browser gespeichert. Du kannst dich auf jedem Gerät einloggen.":"wird in diesem Browser gespeichert."}</p>
-    <div class="row"><button class="btn alt" id="resetBtn">Spielstand zurücksetzen</button><span class="note" id="resetNote"></span></div>`);
+    <div class="row"><button class="btn alt" id="resetBtn">Spielstand zurücksetzen</button><span class="note" id="resetNote"></span></div>
+    <p class="note" style="margin-top:14px"><b style="color:var(--ink)">Spielstand übertragen:</b> Erstelle einen Code und löse ihn auf einem anderen Gerät oder in einem anderen Account ein. Beim Einlösen wird der aktuelle Stand ersetzt, vorher legt das Spiel eine Sicherung in diesem Browser an.</p>
+    <div class="row"><button class="btn alt" id="xferMk">Code erstellen</button><button class="btn alt" id="xferGo">Code einlösen</button></div>
+    <textarea id="xferTa" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Code hier einfügen oder kopieren" style="width:100%;max-width:440px;box-sizing:border-box;font:12px/1.35 monospace;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.25);color:inherit;resize:vertical"></textarea>
+    <div class="row"><span class="note" id="xferMsg"></span></div>`);
+  xferInit(body);
   body.querySelectorAll("[data-title]").forEach(bt=>bt.onclick=()=>{ S.title=bt.dataset.title; markDirty(); boardDirty=true; refreshHUD(); renderPanel() });
   body.querySelectorAll("[data-q]").forEach(bt=>{ const q=+bt.dataset.q; if((S.settings.q??2)===q) bt.className="btn"; bt.onclick=()=>{ S.settings.qLocked=true; setQuality(q); renderPanel() } });
   if($("logoutBtn")) $("logoutBtn").onclick=async()=>{ dirty=true; await syncLoop(); await FDNET.logout(); location.reload() };
   $("musBtn").onclick=()=>{ S.settings.music=!S.settings.music; if(AU.music) AU.music.gain.value=S.settings.music?0.16:0; markDirty(); renderPanel() };
   $("sfxBtn").onclick=()=>{ S.settings.sfx=!S.settings.sfx; if(AU.sfx){ AU.sfx.gain.value=S.settings.sfx?0.7:0; AU.amb.gain.value=S.settings.sfx?0.22:0 } markDirty(); renderPanel() };
   let armed=false; $("resetBtn").onclick=()=>{ if(!armed){ armed=true; $("resetNote").textContent="Nochmal klicken zum Bestätigen."; return } const keep=S.nick; S=freshState(); S.nick=keep; S.admin=adminOn(); ensureBounties("Moosewood"); markDirty(); boardDirty=true; spawnHome(); curSea=1; updateSeaVis(); syncChests(); refreshHUD(); renderQuests(); closeModal(); toast("Neuer Spielstand","#fff") } }
+/* ---------- Spielstand übertragen: Code erstellen und einlösen ----------
+   Format: FD1.<z|p>.<Prüfsumme>.<Daten>  (Daten = Base64url des Spielstands, z = komprimiert). Position, Name und Admin-Flag gehören nicht dazu. */
+function xferB64(u8){ let s=""; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000)); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"") }
+function xferUnB64(t){ t=t.replace(/-/g,"+").replace(/_/g,"/"); while(t.length%4) t+="="; const s=atob(t), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u }
+function xferSum(t){ let h=0; for(let i=0;i<t.length;i++) h=(h*31+t.charCodeAt(i))>>>0; return h.toString(36) }
+const XFER_ZIP=typeof CompressionStream==="function"&&typeof DecompressionStream==="function";
+async function xferPipe(u8,C,mode){ const st=new C(mode), w=st.writable.getWriter(); w.write(u8); w.close(); return new Uint8Array(await new Response(st.readable).arrayBuffer()) }
+async function xferEncode(){
+  const o=JSON.parse(JSON.stringify(S)); delete o.pos; delete o.nick; delete o.admin;
+  const raw=new TextEncoder().encode(JSON.stringify(o)), b=XFER_ZIP?await xferPipe(raw,CompressionStream,"deflate-raw"):raw, d=xferB64(b);
+  return "FD1."+(XFER_ZIP?"z":"p")+"."+xferSum(d)+"."+d }
+async function xferDecode(code){
+  const m=/^FD1\.([zp])\.([a-z0-9]+)\.([A-Za-z0-9_-]+)$/.exec(String(code||"").replace(/\s+/g,""));
+  if(!m) throw new Error("Das ist kein gültiger Spielstand-Code.");
+  if(xferSum(m[3])!==m[2]) throw new Error("Der Code ist unvollständig kopiert. Bitte noch einmal ganz kopieren.");
+  let u8; try{ u8=xferUnB64(m[3]) }catch(e){ throw new Error("Der Code ist beschädigt.") }
+  if(m[1]==="z"){ if(!XFER_ZIP) throw new Error("Dieser Browser kann den Code nicht entpacken. Bitte einen neueren Browser nehmen."); try{ u8=await xferPipe(u8,DecompressionStream,"deflate-raw") }catch(e){ throw new Error("Der Code ist beschädigt.") } }
+  let o; try{ o=JSON.parse(new TextDecoder().decode(u8)) }catch(e){ throw new Error("Der Code ist beschädigt.") }
+  if(!o||typeof o!=="object"||o.v!==SAVE_V||typeof o.money!=="number"||typeof o.xp!=="number"||!o.stats||typeof o.stats!=="object"||!Array.isArray(o.rods)) throw new Error("Dieser Code passt nicht zu dieser Version des Spiels.");
+  return o }
+function xferInit(body){
+  const msg=(t,bad)=>{ const m=$("xferMsg"); if(m){ m.textContent=t; m.style.color=bad?"#ffb3a8":"" } };
+  let pending=null;
+  $("xferMk").onclick=async()=>{ pending=null; try{ const c=await xferEncode(), ta=$("xferTa"); ta.value=c; ta.focus(); ta.select(); let ok=false; try{ await navigator.clipboard.writeText(c); ok=true }catch(e){} msg(ok?"Code erstellt und kopiert. Hebe ihn gut auf.":"Code erstellt. Bitte markieren und kopieren.") }catch(e){ msg("Code konnte nicht erstellt werden.",true) } };
+  $("xferGo").onclick=async()=>{
+    const ta=$("xferTa"), code=ta.value;
+    if(!code.trim()){ pending=null; msg("Füge zuerst einen Code ein.",true); return }
+    try{
+      const o=await xferDecode(code);
+      if(pending!==code){ pending=code; msg("Stand von Level "+levelInfo(o.xp).L+" mit "+fmt(o.money)+" C$ gefunden. Nochmal auf „Code einlösen“ klicken, um deinen jetzigen Stand zu ersetzen."); return }
+      // Sicherung des jetzigen Stands, dann ersetzen (neuer Zeitstempel, damit der Cloud-Stand nicht gewinnt)
+      try{ localStorage.setItem("fischerdock-sicherung-"+Date.now(),JSON.stringify(S)); const ks=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf("fischerdock-sicherung-")===0) ks.push(k) } ks.sort(); while(ks.length>3) localStorage.removeItem(ks.shift()) }catch(e){ msg("Die Sicherung des jetzigen Stands war nicht möglich, deshalb wurde nichts geändert.",true); return }
+      const keep=S.nick; S=loadSave(o); S.nick=keep; S.admin=adminOn(); S.pos=null; S.savedAt=Date.now();
+      try{ localStorage.setItem(SAVE_KEY,JSON.stringify(S)) }catch(e){}
+      msg("Stand wird übernommen …");
+      if(myId&&db){ try{ await db.doc(`data/users/${myId}/save`).set({json:JSON.stringify(S),savedAt:S.savedAt}) }catch(e){} }
+      location.reload();
+    }catch(e){ pending=null; msg(e.message||"Der Code konnte nicht gelesen werden.",true) } };
+  $("xferTa").oninput=()=>{ pending=null } }
 async function initMultiplayer(){
   const use=window.claude&&typeof window.claude.use==="function"?window.claude.use.bind(window.claude):null; if(!use) return;
   const [r,d,u]=await Promise.all([use("room").catch(()=>null),use("db").catch(()=>null),use("user").catch(()=>null)]); room=r; db=d; user=u;
