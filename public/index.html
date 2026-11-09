@@ -737,7 +737,8 @@ const BOATS=[
   {id:2,n:"Motorboot",range:6800,speed:40,price:2500,lvl:5,model:"boat_motor",d:"Schnell genug für den zweiten Inselring."},
   {id:3,n:"Hochseeboot",range:99999,speed:54,price:12000,lvl:12,model:"boat_cruiser",d:"Erreicht jede Ecke der See, auch die Tiefseezonen und den Mahlstrom."},
   {id:4,n:"Jetski",range:99999,speed:80,price:65000,lvl:22,model:"boat_jetski",d:"Klein, laut und extrem schnell. Perfekt für Hunts."},
-  {id:5,n:"Karmesin-Segler",range:99999,speed:90,price:180000,lvl:32,model:"boat_sail",d:"Ein prachtvolles Segelschiff mit Hilfsmotor. Das schnellste Schiff der Meere."},
+  {id:5,n:"Karmesin-Segler",range:99999,speed:90,price:180000,lvl:32,model:"boat_sail",d:"Ein prachtvolles Segelschiff mit Hilfsmotor. Schnell und elegant."},
+  {id:6,n:"Geisterschiff",range:99999,speed:100,price:450000,lvl:45,model:"boat_ghost",d:"Ein verfluchtes Piratenschiff mit geisterhaft leuchtenden Segeln. Das schnellste Schiff der Meere."},
 ];
 const BELL={price:35000,lvl:20};
 const BAGS=[20,35,60,100,200,350]; const BAG_PRICE=[0,800,4000,15000,60000,250000];
@@ -1462,7 +1463,7 @@ function fixMat(m){ const n=m.name||""; if(n==="window") return windowMat; if(n=
   else { m.roughness=Math.max(0.45,m.roughness); m.metalness=Math.min(m.metalness,0.6) }
   return AMAT[n]=m }
 async function loadAssets(){ const L=new GLTFLoader();
-  await Promise.all(["world","boats","rods","build"].map(async f=>{ try{ const g=await L.loadAsync(`assets/${f}.glb`);
+  await Promise.all(["world","boats","rods","build","boat_ghost"].map(async f=>{ try{ const g=await L.loadAsync(`assets/${f}.glb`);
     for(const root of [...g.scene.children]){ root.traverse(o=>{ if(o.isMesh){ o.material=fixMat(o.material); o.castShadow=!LOW; o.receiveShadow=true } });
       const h=new THREE.Group(); h.name=root.name; root.position.set(0,0,0); h.add(root); h.updateMatrixWorld(true);
       const bb=new THREE.Box3().setFromObject(h); if(f!=="rods"){ root.position.set(-(bb.min.x+bb.max.x)/2,-bb.min.y,-(bb.min.z+bb.max.z)/2); h.updateMatrixWorld(true) }
@@ -1571,7 +1572,7 @@ function poseCharacter(ch,o,t){
 function hullGeo(len,w,h){ const s=new THREE.Shape(); s.moveTo(-w/2,-len/2); s.lineTo(w/2,-len/2); s.lineTo(w/2,len*0.18); s.quadraticCurveTo(w/2,len*0.42,0,len/2); s.quadraticCurveTo(-w/2,len*0.42,-w/2,len*0.18); s.closePath();
   const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:true,bevelThickness:.2,bevelSize:.2,bevelSegments:2,curveSegments:8}); g.rotateX(Math.PI/2); g.translate(0,h/2,0);
   const p=g.attributes.position; for(let i=0;i<p.count;i++){ const y=p.getY(i); if(y<0){ p.setX(i,p.getX(i)*0.62); } } g.computeVertexNormals(); return g }
-const BOAT_DRAFT={boat_row:0.55,boat_motor:0.8,boat_cruiser:1.3,boat_jetski:0.7,boat_sail:1.1}, BOAT_FIT={boat_cruiser:{z:4.6,seat:0.9},boat_sail:{z:3.6,seat:0.6},boat_motor:{z:1.2,seat:0.25},boat_jetski:{s:1.55,z:-0.6,seat:0.35},boat_row:{seat:0}};
+const BOAT_DRAFT={boat_row:0.55,boat_motor:0.8,boat_cruiser:1.3,boat_jetski:0.7,boat_sail:1.1,boat_ghost:1.4}, BOAT_FIT={boat_cruiser:{z:4.6,seat:0.9},boat_sail:{z:3.6,seat:0.6},boat_motor:{z:1.2,seat:0.25},boat_jetski:{s:1.55,z:-0.6,seat:0.35},boat_row:{seat:0},boat_ghost:{z:2.5,seat:0.55}};
 function makeBoat(tier){ const bm=BOATS[tier]&&BOATS[tier].model; if(bm&&ASSETS[bm]){ const g=new THREE.Group(); const m=ASSETS[bm].clone(true); const F=BOAT_FIT[bm]||{}; m.scale.setScalar(F.s||1); m.position.set(0,-BOAT_DRAFT[bm]*(F.s||1)+0.3,F.z||0); g.add(m); g.userData.model=bm; g.userData.seat=F.seat||0; return g }
   const g=new THREE.Group(); const add=(geo,c,x=0,y=0,z=0,o={})=>{ const m=new THREE.Mesh(geo,stdMat({color:c,...o})); m.position.set(x,y,z); m.castShadow=true; g.add(m); return m };
   if(tier<=1){ add(hullGeo(8,3.4,1.5),"#9a6234"); add(new THREE.BoxGeometry(3.2,.18,7.4),"#c89458",0,0.62,0); add(new THREE.BoxGeometry(3,.25,.8),"#7a4a26",0,1.0,-1.2); add(new THREE.BoxGeometry(2.4,.25,.8),"#7a4a26",0,1.0,1.8);
@@ -3189,7 +3190,7 @@ const CMDS={
   instant:{u:"set:on | off",d:"Sofort-Biss",f:P=>{ ADM.instant=onoff(pv(P,"set"),ADM.instant); return `Sofort-Biss: ${ADM.instant?"an":"aus"}` }},
   autoreel:{u:"set:on | off",d:"Automatisch einholen",f:P=>{ ADM.autoReel=onoff(pv(P,"set"),ADM.autoReel); return `Auto-Einholen: ${ADM.autoReel?"an":"aus"}` }},
   fps:{u:"set:on | off",d:"FPS-Anzeige",f:P=>{ ADM.fps=onoff(pv(P,"set"),ADM.fps); return `FPS-Anzeige: ${ADM.fps?"an":"aus"}` }},
-  boat:{u:"tier:3",d:"Boot (0–5)",f:P=>{ S.boat=Math.max(0,Math.min(BOATS.length-1,pn(pv(P,"tier"),3)|0)); if(!S.boat) pl.boat=false; return `Boot: ${BOATS[S.boat].n}` }},
+  boat:{u:"tier:3",d:"Boot (0–6)",f:P=>{ S.boat=Math.max(0,Math.min(BOATS.length-1,pn(pv(P,"tier"),3)|0)); if(!S.boat) pl.boat=false; return `Boot: ${BOATS[S.boat].n}` }},
   radar:{u:"set:on | off",d:"Fisch-Radar geben/nehmen",f:P=>{ S.radar=onoff(pv(P,"set"),S.radar); S.settings.radar=S.radar; updateRadarUI(); return `Fisch-Radar: ${S.radar?"ja":"nein"}` }},
   areas:{u:"",d:"Fischgebiete hier auflisten",f:()=>{ const loc=locationAt(pl.x,pl.z); const A=(AREA_LOC[loc]||[]).map(a=>`#${a.id} ${a.nat||(a.deep?"tief":"")} (${Math.round(Math.hypot(a.x-pl.x,a.z-pl.z))} m): ${a.fish.join(", ")}`); A.forEach(t=>addChat("Admin",t,true)); return `${A.length} Gebiete bei ${loc}` }},
   bell:{u:"set:on | off",d:"Tauchglocke",f:P=>{ S.bell=onoff(pv(P,"set"),S.bell); return `Tauchglocke: ${S.bell?"ja":"nein"}` }},

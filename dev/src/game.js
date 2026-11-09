@@ -1096,7 +1096,7 @@ const CMDS={
   instant:{u:"set:on | off",d:"Sofort-Biss",f:P=>{ ADM.instant=onoff(pv(P,"set"),ADM.instant); return `Sofort-Biss: ${ADM.instant?"an":"aus"}` }},
   autoreel:{u:"set:on | off",d:"Automatisch einholen",f:P=>{ ADM.autoReel=onoff(pv(P,"set"),ADM.autoReel); return `Auto-Einholen: ${ADM.autoReel?"an":"aus"}` }},
   fps:{u:"set:on | off",d:"FPS-Anzeige",f:P=>{ ADM.fps=onoff(pv(P,"set"),ADM.fps); return `FPS-Anzeige: ${ADM.fps?"an":"aus"}` }},
-  boat:{u:"tier:3",d:"Boot (0–5)",f:P=>{ S.boat=Math.max(0,Math.min(BOATS.length-1,pn(pv(P,"tier"),3)|0)); if(!S.boat) pl.boat=false; return `Boot: ${BOATS[S.boat].n}` }},
+  boat:{u:"tier:3",d:"Boot (0–6)",f:P=>{ S.boat=Math.max(0,Math.min(BOATS.length-1,pn(pv(P,"tier"),3)|0)); if(!S.boat) pl.boat=false; return `Boot: ${BOATS[S.boat].n}` }},
   radar:{u:"set:on | off",d:"Fisch-Radar geben/nehmen",f:P=>{ S.radar=onoff(pv(P,"set"),S.radar); S.settings.radar=S.radar; updateRadarUI(); return `Fisch-Radar: ${S.radar?"ja":"nein"}` }},
   areas:{u:"",d:"Fischgebiete hier auflisten",f:()=>{ const loc=locationAt(pl.x,pl.z); const A=(AREA_LOC[loc]||[]).map(a=>`#${a.id} ${a.nat||(a.deep?"tief":"")} (${Math.round(Math.hypot(a.x-pl.x,a.z-pl.z))} m): ${a.fish.join(", ")}`); A.forEach(t=>addChat("Admin",t,true)); return `${A.length} Gebiete bei ${loc}` }},
   bell:{u:"set:on | off",d:"Tauchglocke",f:P=>{ S.bell=onoff(pv(P,"set"),S.bell); return `Tauchglocke: ${S.bell?"ja":"nein"}` }},
