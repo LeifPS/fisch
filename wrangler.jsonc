@@ -1,6 +1,6 @@
 {
   // Fischerdock – Cloudflare Workers config
-  "name": "fischerdock",
+  "name": "fisch2",
   "main": "src/worker.js",
   "compatibility_date": "2025-09-01",
   "assets": { "directory": "./public", "binding": "ASSETS" },

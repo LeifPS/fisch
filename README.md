@@ -26,7 +26,7 @@ Alles passt in den **kostenlosen Workers-Plan**.
 npx wrangler deploy
 ```
 
-Am Ende zeigt Wrangler die Adresse, z. B. `https://fischerdock.DEIN-NAME.workers.dev`.
+Am Ende zeigt Wrangler die Adresse, z. B. `https://fisch2.DEIN-NAME.workers.dev`.
 Diesen Link an Freunde schicken: Alle, die ihn gleichzeitig offen haben, spielen in derselben Welt.
 
 ## Lokal testen (optional)
@@ -38,7 +38,7 @@ Dann http://localhost:8787 in zwei Browserfenstern öffnen.
 
 ## Eigene Domain (optional)
 
-Im Cloudflare-Dashboard → Workers & Pages → fischerdock → Settings → Domains & Routes → „Add Custom Domain“.
+Im Cloudflare-Dashboard → Workers & Pages → fisch2 → Settings → Domains & Routes → „Add Custom Domain“.
 
 ## Gut zu wissen
 
