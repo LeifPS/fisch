@@ -1572,8 +1572,8 @@ function poseCharacter(ch,o,t){
 function hullGeo(len,w,h){ const s=new THREE.Shape(); s.moveTo(-w/2,-len/2); s.lineTo(w/2,-len/2); s.lineTo(w/2,len*0.18); s.quadraticCurveTo(w/2,len*0.42,0,len/2); s.quadraticCurveTo(-w/2,len*0.42,-w/2,len*0.18); s.closePath();
   const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:true,bevelThickness:.2,bevelSize:.2,bevelSegments:2,curveSegments:8}); g.rotateX(Math.PI/2); g.translate(0,h/2,0);
   const p=g.attributes.position; for(let i=0;i<p.count;i++){ const y=p.getY(i); if(y<0){ p.setX(i,p.getX(i)*0.62); } } g.computeVertexNormals(); return g }
-const BOAT_DRAFT={boat_row:0.55,boat_motor:0.8,boat_cruiser:1.3,boat_jetski:0.7,boat_sail:1.1,boat_ghost:1.4}, BOAT_FIT={boat_cruiser:{z:4.6,seat:0.9},boat_sail:{z:3.6,seat:0.6},boat_motor:{z:1.2,seat:0.25},boat_jetski:{s:1.55,z:-0.6,seat:0.35},boat_row:{seat:0},boat_ghost:{z:2.5,seat:0.55}};
-function makeBoat(tier){ const bm=BOATS[tier]&&BOATS[tier].model; if(bm&&ASSETS[bm]){ const g=new THREE.Group(); const m=ASSETS[bm].clone(true); const F=BOAT_FIT[bm]||{}; m.scale.setScalar(F.s||1); m.position.set(0,-BOAT_DRAFT[bm]*(F.s||1)+0.3,F.z||0); g.add(m); g.userData.model=bm; g.userData.seat=F.seat||0; return g }
+const BOAT_DRAFT={boat_row:0.55,boat_motor:0.8,boat_cruiser:1.3,boat_jetski:0.7,boat_sail:1.1,boat_ghost:1.4}, BOAT_FIT={boat_cruiser:{z:4.6,seat:0.9},boat_sail:{z:3.6,seat:0.6},boat_motor:{z:1.2,seat:0.25},boat_jetski:{s:1.55,z:-0.6,seat:0.35},boat_row:{seat:0},boat_ghost:{s:2.5,z:6.2,seat:1.75,ch:5,cd:1.4}};
+function makeBoat(tier){ const bm=BOATS[tier]&&BOATS[tier].model; if(bm&&ASSETS[bm]){ const g=new THREE.Group(); const m=ASSETS[bm].clone(true); const F=BOAT_FIT[bm]||{}; m.scale.setScalar(F.s||1); m.position.set(0,-BOAT_DRAFT[bm]*(F.s||1)+0.3,F.z||0); g.add(m); g.userData.model=bm; g.userData.seat=F.seat||0; g.userData.ch=F.ch||0; g.userData.cd=F.cd||1; return g }
   const g=new THREE.Group(); const add=(geo,c,x=0,y=0,z=0,o={})=>{ const m=new THREE.Mesh(geo,stdMat({color:c,...o})); m.position.set(x,y,z); m.castShadow=true; g.add(m); return m };
   if(tier<=1){ add(hullGeo(8,3.4,1.5),"#9a6234"); add(new THREE.BoxGeometry(3.2,.18,7.4),"#c89458",0,0.62,0); add(new THREE.BoxGeometry(3,.25,.8),"#7a4a26",0,1.0,-1.2); add(new THREE.BoxGeometry(2.4,.25,.8),"#7a4a26",0,1.0,1.8);
     const oar=add(new THREE.BoxGeometry(.18,.12,5),"#d7b27a",1.9,1.1,-0.5); oar.rotation.y=0.3; const oar2=add(new THREE.BoxGeometry(.18,.12,5),"#d7b27a",-1.9,1.1,-0.5); oar2.rotation.y=-0.3 }
@@ -3333,7 +3333,7 @@ function frame(now){
   me.group.position.set(pl.x,0,pl.z); me.group.rotation.y=pl.ry; poseCharacter(me,{moving:pl.moving,boat:pl.boat,swim:pl.swim,walkT:pl.walkT,st:F.state==="hold"||F.state==="show"||(holdIt&&F.state==="idle")?"hold":F.state,y:pl.y},t);
   boats.forEach((b,i)=>{ if(!b) return; b.visible=pl.boat&&S.boat===i; if(b.visible){ b.position.set(pl.x,waveHeight(pl.x,pl.z,t)-0.3,pl.z); b.rotation.y=pl.ry; b.rotation.z=Math.sin(t*1.6)*0.035; b.rotation.x=Math.sin(t*1.2)*0.02-pl.boatSpeed*0.002; if(b.userData.flag) b.userData.flag.rotation.y=Math.sin(t*4)*0.3 } });
   // camera
-  const f=fwd(cam.yaw), cd=cam.dist; camTarget.set(pl.x,pl.y+(pl.boat?3.6:4.8),pl.z);
+  const bu=pl.boat&&boats[S.boat]&&boats[S.boat].userData; const f=fwd(cam.yaw), cd=cam.dist*((bu&&bu.cd)||1); camTarget.set(pl.x,pl.y+(pl.boat?3.6+((bu&&bu.ch)||0):4.8),pl.z);
   let cx=camTarget.x-f.x*cd*Math.cos(cam.pitch), cz=camTarget.z-f.z*cd*Math.cos(cam.pitch), cy=camTarget.y+cd*Math.sin(cam.pitch); cy=Math.max(cy,groundAt(cx,cz)+2.2,waveHeight(cx,cz,t)+1.5);
   const k=clamp(dt*10,0,1); cam.x=lerp(cam.x,cx,k); cam.y=lerp(cam.y,cy,k); cam.z=lerp(cam.z,cz,k); camera.position.set(cam.x,cam.y,cam.z);
   if(camShake>0){ camShake=Math.max(0,camShake-dt*1.2); camera.position.x+=(Math.random()-.5)*camShake; camera.position.y+=(Math.random()-.5)*camShake } camera.lookAt(camTarget);

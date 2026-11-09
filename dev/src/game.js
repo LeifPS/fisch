@@ -1239,7 +1239,7 @@ function frame(now){
   me.group.position.set(pl.x,0,pl.z); me.group.rotation.y=pl.ry; poseCharacter(me,{moving:pl.moving,boat:pl.boat,swim:pl.swim,walkT:pl.walkT,st:F.state==="hold"||F.state==="show"||(holdIt&&F.state==="idle")?"hold":F.state,y:pl.y},t);
   boats.forEach((b,i)=>{ if(!b) return; b.visible=pl.boat&&S.boat===i; if(b.visible){ b.position.set(pl.x,waveHeight(pl.x,pl.z,t)-0.3,pl.z); b.rotation.y=pl.ry; b.rotation.z=Math.sin(t*1.6)*0.035; b.rotation.x=Math.sin(t*1.2)*0.02-pl.boatSpeed*0.002; if(b.userData.flag) b.userData.flag.rotation.y=Math.sin(t*4)*0.3 } });
   // camera
-  const f=fwd(cam.yaw), cd=cam.dist; camTarget.set(pl.x,pl.y+(pl.boat?3.6:4.8),pl.z);
+  const bu=pl.boat&&boats[S.boat]&&boats[S.boat].userData; const f=fwd(cam.yaw), cd=cam.dist*((bu&&bu.cd)||1); camTarget.set(pl.x,pl.y+(pl.boat?3.6+((bu&&bu.ch)||0):4.8),pl.z);
   let cx=camTarget.x-f.x*cd*Math.cos(cam.pitch), cz=camTarget.z-f.z*cd*Math.cos(cam.pitch), cy=camTarget.y+cd*Math.sin(cam.pitch); cy=Math.max(cy,groundAt(cx,cz)+2.2,waveHeight(cx,cz,t)+1.5);
   const k=clamp(dt*10,0,1); cam.x=lerp(cam.x,cx,k); cam.y=lerp(cam.y,cy,k); cam.z=lerp(cam.z,cz,k); camera.position.set(cam.x,cam.y,cam.z);
   if(camShake>0){ camShake=Math.max(0,camShake-dt*1.2); camera.position.x+=(Math.random()-.5)*camShake; camera.position.y+=(Math.random()-.5)*camShake } camera.lookAt(camTarget);
