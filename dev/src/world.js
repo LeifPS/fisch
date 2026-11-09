@@ -602,8 +602,42 @@ function poseCharacter(ch,o,t){
 function hullGeo(len,w,h){ const s=new THREE.Shape(); s.moveTo(-w/2,-len/2); s.lineTo(w/2,-len/2); s.lineTo(w/2,len*0.18); s.quadraticCurveTo(w/2,len*0.42,0,len/2); s.quadraticCurveTo(-w/2,len*0.42,-w/2,len*0.18); s.closePath();
   const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:true,bevelThickness:.2,bevelSize:.2,bevelSegments:2,curveSegments:8}); g.rotateX(Math.PI/2); g.translate(0,h/2,0);
   const p=g.attributes.position; for(let i=0;i<p.count;i++){ const y=p.getY(i); if(y<0){ p.setX(i,p.getX(i)*0.62); } } g.computeVertexNormals(); return g }
-const BOAT_DRAFT={boat_row:0.55,boat_motor:0.8,boat_cruiser:1.3,boat_jetski:0.7,boat_sail:1.1,boat_ghost:1.4}, BOAT_FIT={boat_cruiser:{z:4.6,seat:0.9},boat_sail:{z:3.6,seat:0.6},boat_motor:{z:1.2,seat:0.25},boat_jetski:{s:1.55,z:-0.6,seat:0.35},boat_row:{seat:0},boat_ghost:{s:2.5,z:6.2,seat:1.75,ch:5,cd:1.4}};
-function makeBoat(tier){ const bm=BOATS[tier]&&BOATS[tier].model; if(bm&&ASSETS[bm]){ const g=new THREE.Group(); const m=ASSETS[bm].clone(true); const F=BOAT_FIT[bm]||{}; m.scale.setScalar(F.s||1); m.position.set(0,-BOAT_DRAFT[bm]*(F.s||1)+0.3,F.z||0); g.add(m); g.userData.model=bm; g.userData.seat=F.seat||0; g.userData.ch=F.ch||0; g.userData.cd=F.cd||1; return g }
+const BOAT_DRAFT={boat_row:0.55,boat_motor:0.8,boat_cruiser:1.3,boat_jetski:0.7,boat_sail:1.1,boat_ghost:1.4}, BOAT_FIT={boat_cruiser:{z:4.6,seat:0.9},boat_sail:{z:3.6,seat:0.6},boat_motor:{z:1.2,seat:0.25},boat_jetski:{s:1.55,z:-0.6,seat:0.35},boat_row:{seat:0},boat_ghost:{s:2.5,z:15,seat:3.7,ch:3,cd:1.15}};
+/* ---------- Geisterschiff: flatternde Segel (Wind + Fahrtwind) und aufsteigender Nebel, Rauch und Geisterfunken ---------- */
+let _fxTex=null; function fxTex(){ if(_fxTex) return _fxTex; const c=document.createElement("canvas"); c.width=c.height=64; const x=c.getContext("2d"); const g=x.createRadialGradient(32,32,0,32,32,32); g.addColorStop(0,"rgba(255,255,255,1)"); g.addColorStop(.35,"rgba(255,255,255,.55)"); g.addColorStop(1,"rgba(255,255,255,0)"); x.fillStyle=g; x.fillRect(0,0,64,64); _fxTex=new THREE.CanvasTexture(c); return _fxTex }
+function ghostSwayMat(mat,U){ const m=mat.clone(); m.onBeforeCompile=sh=>{ sh.uniforms.uSwT=U.t; sh.uniforms.uSwA=U.a; sh.uniforms.uSwW=U.w;
+    sh.vertexShader=sh.vertexShader.replace("#include <common>","#include <common>\nattribute float _sway; uniform float uSwT; uniform float uSwA; uniform float uSwW;")
+      .replace("#include <begin_vertex>",`#include <begin_vertex>
+      float sw=_sway; float ph=position.y*0.55+position.x*0.8+uSwT*(1.6+uSwA*3.2);
+      float fl=sin(ph)*0.6+sin(position.y*1.7-uSwT*(2.4+uSwA*4.)+position.x*1.3)*0.4;
+      transformed.z+=sw*(fl*(0.08+uSwA*0.30)+uSwW*0.22-uSwA*0.10);
+      transformed.x+=sw*fl*0.04*(0.5+uSwA);
+      transformed.y+=sw*sin(ph*1.3)*0.03*uSwA;`) };
+  m.customProgramCacheKey=()=>"ghostsway"; m.needsUpdate=true; return m }
+function ghostFx(){ const g=new THREE.Group(), US=[];
+  const mk=(n,o)=>{ const geo=new THREE.BufferGeometry(), a=new Float32Array(n*4); for(let i=0;i<n*4;i++) a[i]=Math.random();
+    geo.setAttribute("position",new THREE.BufferAttribute(new Float32Array(n*3),3)); geo.setAttribute("aS",new THREE.BufferAttribute(a,4));
+    const u={uT:{value:0},uTrail:{value:0},uTex:{value:fxTex()},uSize:{value:o.size},uAlpha:{value:o.alpha},uRise:{value:o.rise},uSpread:{value:o.spread},uRate:{value:o.rate},uY0:{value:o.y0},uWob:{value:o.wob},uTw:{value:o.tw||0},uGrow:{value:o.grow==null?1:o.grow},uC1:{value:new THREE.Color(o.c1)},uC2:{value:new THREE.Color(o.c2)},uHW:{value:o.hw},uHL:{value:o.hl},uZ0:{value:o.z0}};
+    const mat=new THREE.ShaderMaterial({uniforms:u,transparent:true,depthWrite:false,blending:o.add?THREE.AdditiveBlending:THREE.NormalBlending,
+      vertexShader:`attribute vec4 aS; uniform float uT,uTrail,uSize,uAlpha,uRise,uSpread,uRate,uY0,uWob,uTw,uGrow,uHW,uHL,uZ0; uniform vec3 uC1,uC2; varying vec4 vC;
+        void main(){ float age=fract(aS.x+uT*uRate*(0.7+0.6*aS.w)); vec2 s=vec2(aS.y*2.-1.,aS.z*2.-1.);
+          vec3 p=vec3(s.x*uHW,uY0,uZ0+s.y*uHL); vec2 dir=normalize(vec2(s.x*uHW,s.y*uHL*0.4)+vec2(0.001));
+          p.xz+=dir*age*uSpread*(0.4+aS.w); p.y+=age*uRise*(0.55+0.9*aS.w);
+          p.x+=sin(uT*0.6+aS.x*31.+age*5.)*uWob*age; p.z+=cos(uT*0.5+aS.w*27.+age*4.)*uWob*age-uTrail*age;
+          float f=smoothstep(0.,0.12,age)*(1.-smoothstep(0.5,1.,age)); f*=(1.-uTw)+uTw*(0.5+0.5*sin(uT*6.+aS.x*90.));
+          vec4 mv=modelViewMatrix*vec4(p,1.); f*=smoothstep(2.,9.,-mv.z);
+          float sz=uSize*(0.6+0.8*aS.w)*(1.+uGrow*(age-0.3)); gl_PointSize=min(sz*(300./-mv.z),280.); gl_Position=projectionMatrix*mv;
+          vC=vec4(mix(uC1,uC2,fract(aS.w*5.3+aS.x*3.)),uAlpha*f); }`,
+      fragmentShader:`uniform sampler2D uTex; varying vec4 vC; void main(){ float t=texture2D(uTex,gl_PointCoord).a; gl_FragColor=vec4(vC.rgb,vC.a*t);
+          #include <colorspace_fragment>
+        }`});
+    const pts=new THREE.Points(geo,mat); pts.frustumCulled=false; pts.renderOrder=6; g.add(pts); US.push(u) };
+  const k=LOW?0.45:1;
+  mk(Math.round(150*k),{add:false,size:28,alpha:0.30,rise:7,spread:11,rate:0.04,y0:0.4,wob:2,c1:"#5fe6d6",c2:"#8a5be0",hw:9,hl:27,z0:15,grow:0.8});
+  mk(Math.round(190*k),{add:true,size:8,alpha:0.34,rise:22,spread:3,rate:0.085,y0:4.5,wob:2.5,c1:"#3df2dc",c2:"#a35cff",hw:6,hl:20,z0:15});
+  mk(Math.round(230*k),{add:true,size:1.3,alpha:0.95,rise:36,spread:5,rate:0.065,y0:3,wob:4,tw:1,grow:-0.8,c1:"#9ffff2",c2:"#e08bff",hw:8,hl:24,z0:15});
+  g.userData.us=US; return g }
+function makeBoat(tier){ const bm=BOATS[tier]&&BOATS[tier].model; if(bm&&ASSETS[bm]){ const g=new THREE.Group(); const m=ASSETS[bm].clone(true); const F=BOAT_FIT[bm]||{}; if(bm==="boat_ghost"){ const SU={t:{value:0},a:{value:0},w:{value:0}}; m.traverse(o=>{ if(o.isMesh) o.material=Array.isArray(o.material)?o.material.map(x=>ghostSwayMat(x,SU)):ghostSwayMat(o.material,SU) }); const fx=ghostFx(); g.add(fx); g.userData.upd=(t,spd,wind)=>{ const a=Math.min(1.45,Math.abs(spd)/100); SU.t.value=t; SU.a.value=a; SU.w.value=wind; for(const u of fx.userData.us){ u.uT.value=t; u.uTrail.value=Math.min(Math.abs(spd),100)*0.25 } } } m.scale.setScalar(F.s||1); m.position.set(0,-BOAT_DRAFT[bm]*(F.s||1)+0.3,F.z||0); g.add(m); g.userData.model=bm; g.userData.seat=F.seat||0; g.userData.ch=F.ch||0; g.userData.cd=F.cd||1; return g }
   const g=new THREE.Group(); const add=(geo,c,x=0,y=0,z=0,o={})=>{ const m=new THREE.Mesh(geo,stdMat({color:c,...o})); m.position.set(x,y,z); m.castShadow=true; g.add(m); return m };
   if(tier<=1){ add(hullGeo(8,3.4,1.5),"#9a6234"); add(new THREE.BoxGeometry(3.2,.18,7.4),"#c89458",0,0.62,0); add(new THREE.BoxGeometry(3,.25,.8),"#7a4a26",0,1.0,-1.2); add(new THREE.BoxGeometry(2.4,.25,.8),"#7a4a26",0,1.0,1.8);
     const oar=add(new THREE.BoxGeometry(.18,.12,5),"#d7b27a",1.9,1.1,-0.5); oar.rotation.y=0.3; const oar2=add(new THREE.BoxGeometry(.18,.12,5),"#d7b27a",-1.9,1.1,-0.5); oar2.rotation.y=-0.3 }

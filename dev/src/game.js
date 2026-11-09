@@ -65,6 +65,7 @@ function musicTick(){ const C=AU.ctx; if(!C||!S.settings.music) return; const W=
 const MOOSE=ISLBY["Moosewood"];
 const myColor=(()=>{ try{ const c=localStorage.getItem("fd-col"); if(c) return c }catch(e){} const hues=[200,12,140,280,45,330,170]; const c=`hsl(${hues[Math.floor(Math.random()*hues.length)]}, 62%, 50%)`; try{localStorage.setItem("fd-col",c)}catch(e){} return c })();
 const me=makeCharacter({shirt:new THREE.Color().setStyle(myColor).getHexString().replace(/^/,"#"),hat:"cap",rod:true,backpack:true,skin:SKINS[hashStr(myColor)%SKINS.length]}); scene.add(me.group); setRodLook(me,S.rod);
+let _wind=0.25; function windNow(){ return _wind }
 let boats=[]; function makeMyBoats(){ boats.forEach(b=>b&&scene.remove(b)); boats=[null,...BOATS.slice(1).map(b=>makeBoat(b.id))]; boats.forEach(b=>{ if(b){ b.visible=false; scene.add(b) } }) } makeMyBoats();
 const pl={x:0,z:0,y:2,vy:0,ry:0,boat:false,boatSpeed:0,swim:false,walkT:0,moving:false,grounded:true};
 const cam={yaw:0,pitch:0.34,dist:TOUCH?28:24,x:0,y:10,z:0};
@@ -170,8 +171,8 @@ function updatePlayer(dt,t){
   const mag=Math.min(1,Math.hypot(ix,iz));
   if(mag>0.15&&(F.state==="lure"||F.state==="cast")) cancelFishing(true);
   if(pl.boat){
-    const B=BOATS[S.boat]; const boost=(keys.shift||mBoost)&&iz>0.1; const turn=pl.boatSpeed>=0?ix:-ix; pl.ry-=turn*dt*1.25*(0.35+Math.min(1,Math.abs(pl.boatSpeed)/15));
-    const target=iz>0.1?B.speed*iz*(boost?1.45:1)*ADM.speed:iz<-0.1?-B.speed*0.3:0; pl.boatSpeed=lerp(pl.boatSpeed,target,clamp(dt*(target===0?0.8:1.1),0,1));
+    const B=BOATS[S.boat]; const boost=(keys.shift||mBoost)&&iz>0.1; const turn=pl.boatSpeed>=0?ix:-ix; pl.ry-=turn*dt*1.25*(B.turn||1)*(0.35+Math.min(1,Math.abs(pl.boatSpeed)/15));
+    const target=iz>0.1?B.speed*iz*(boost?1.45:1)*ADM.speed:iz<-0.1?-B.speed*0.3:0; pl.boatSpeed=lerp(pl.boatSpeed,target,clamp(dt*(target===0?0.8:1.1)*(B.acc||1),0,1));
     const f=fwd(pl.ry); let nx=pl.x+f.x*pl.boatSpeed*dt, nz=pl.z+f.z*pl.boatSpeed*dt; const dir=Math.sign(pl.boatSpeed||1);
     const px=nx+f.x*dir*5, pz=nz+f.z*dir*5;
     if(terrainAt(px,pz)<-1.2&&platformAt(px,pz)<-50){ const sea=seaAt(nx), cx=seaC(sea);
@@ -770,7 +771,8 @@ function updatePeers(dt,t){
     const vis=seaAt(tx)===curSea; a.ch.group.visible=vis; if(a.label) a.label.visible=vis;
     if(Math.hypot(tx-a.x,tz-a.z)>40){ a.x=tx; a.z=tz } else { const k=clamp(dt*6,0,1); a.x=lerp(a.x,tx,k); a.z=lerp(a.z,tz,k) } a.y=lerp(a.y,ty,clamp(dt*9,0,1));
     let dr=(+pr.ry||0)-a.ry; dr=Math.atan2(Math.sin(dr),Math.cos(dr)); a.ry+=dr*clamp(dt*10,0,1);
-    const bt=clamp(+pr.b||0,0,BOATS.length-1)|0; a.bts.forEach((b,i)=>{ if(!b) return; b.visible=i===bt&&vis; if(i===bt){ b.position.set(a.x,waveHeight(a.x,a.z,t)-0.3,a.z); b.rotation.y=a.ry } });
+    const bt=clamp(+pr.b||0,0,BOATS.length-1)|0; { const dd=Math.hypot(a.x-(a.lx==null?a.x:a.lx),a.z-(a.lz==null?a.z:a.lz)); a.sp=lerp(a.sp||0,dd/Math.max(dt,0.001),clamp(dt*3,0,1)); a.lx=a.x; a.lz=a.z }
+    a.bts.forEach((b,i)=>{ if(!b) return; b.visible=i===bt&&vis; if(i===bt){ b.position.set(a.x,waveHeight(a.x,a.z,t)-0.3,a.z); b.rotation.y=a.ry; if(b.userData.upd) b.userData.upd(t,Math.min(a.sp,150),windNow()) } });
     const rod=ROD[pr.rod]?pr.rod:"Flimsy Rod"; if(a.rod!==rod){ a.rod=rod; setRodLook(a.ch,rod); colorBobber(a.bob,rod) }
     if(pr.mv===1) a.walkT+=dt*10; const st=typeof pr.st==="string"?pr.st:"idle";
     poseCharacter(a.ch,{moving:pr.mv===1,boat:bt>0,swim:pr.sw===1,walkT:a.walkT,st:pr.hold?"hold":st,y:a.y},t);
@@ -1237,7 +1239,7 @@ function frame(now){
   const dt=Math.min(0.05,(now-lastT)/1000); lastT=now; const t=(now-T0)/1000; U.time.value=t; waterU.uTime.value=t;
   updatePlayer(dt,t);
   me.group.position.set(pl.x,0,pl.z); me.group.rotation.y=pl.ry; poseCharacter(me,{moving:pl.moving,boat:pl.boat,swim:pl.swim,walkT:pl.walkT,st:F.state==="hold"||F.state==="show"||(holdIt&&F.state==="idle")?"hold":F.state,y:pl.y},t);
-  boats.forEach((b,i)=>{ if(!b) return; b.visible=pl.boat&&S.boat===i; if(b.visible){ b.position.set(pl.x,waveHeight(pl.x,pl.z,t)-0.3,pl.z); b.rotation.y=pl.ry; b.rotation.z=Math.sin(t*1.6)*0.035; b.rotation.x=Math.sin(t*1.2)*0.02-pl.boatSpeed*0.002; if(b.userData.flag) b.userData.flag.rotation.y=Math.sin(t*4)*0.3 } });
+  boats.forEach((b,i)=>{ if(!b) return; b.visible=pl.boat&&S.boat===i; if(b.visible){ b.position.set(pl.x,waveHeight(pl.x,pl.z,t)-0.3,pl.z); b.rotation.y=pl.ry; const hv=b.userData.upd?0.3:1; b.rotation.z=Math.sin(t*1.6*(b.userData.upd?0.6:1))*0.035*hv; b.rotation.x=Math.sin(t*1.2*(b.userData.upd?0.6:1))*0.02*hv-pl.boatSpeed*(b.userData.upd?0.0004:0.002); if(b.userData.upd) b.userData.upd(t,pl.boatSpeed,windNow()); if(b.userData.flag) b.userData.flag.rotation.y=Math.sin(t*4)*0.3 } });
   // camera
   const bu=pl.boat&&boats[S.boat]&&boats[S.boat].userData; const f=fwd(cam.yaw), cd=cam.dist*((bu&&bu.cd)||1); camTarget.set(pl.x,pl.y+(pl.boat?3.6+((bu&&bu.ch)||0):4.8),pl.z);
   let cx=camTarget.x-f.x*cd*Math.cos(cam.pitch), cz=camTarget.z-f.z*cd*Math.cos(cam.pitch), cy=camTarget.y+cd*Math.sin(cam.pitch); cy=Math.max(cy,groundAt(cx,cz)+2.2,waveHeight(cx,cz,t)+1.5);
@@ -1264,7 +1266,7 @@ function frame(now){
   for(let i=floats.length-1;i>=0;i--){ const fl=floats[i]; fl.life-=dt; fl.s.position.set(pl.x,me.group.position.y+9+(fl.max-fl.life)*2,pl.z); fl.s.material.opacity=clamp(fl.life/fl.max*1.6,0,1); if(fl.life<=0){ scene.remove(fl.s); fl.s.material.map.dispose(); floats.splice(i,1) } }
   if(myBubble){ myBubbleT-=dt; myBubble.position.set(pl.x,me.group.position.y+10.2,pl.z); if(myBubbleT<=0){ scene.remove(myBubble); myBubble=null } }
   // world animation
-  const W=world(); updateClouds(dt,W.weather==="Windy"||W.aw==="storm"?4:1); updateBirds(t,dt);
+  const W=world(); _wind=W.aw==="storm"?1.2:W.weather==="Windy"?1:W.weather==="Rain"?0.55:0.25; updateClouds(dt,W.weather==="Windy"||W.aw==="storm"?4:1); updateBirds(t,dt);
   updateMeteors(dt,W.aw==="star",pl.x,pl.z,camera); updateBolt(dt);
   if(W.aw==="storm"){ boltTimer-=dt; if(boltTimer<=0){ boltTimer=2+Math.random()*5; const b=strikeLightning(pl.x,pl.z); lightFlash=1; SFX.thunder(b.d) } }
   if(W.aw==="blood"&&Math.random()<dt*25){ const a=Math.random()*6.28, d=10+Math.random()*80; GLOW.emit(pl.x+Math.cos(a)*d,0.5+Math.random()*3,pl.z+Math.sin(a)*d,0,0.8+Math.random(),0,2.5,0.7,"#ff2a3a",0,0.2) }

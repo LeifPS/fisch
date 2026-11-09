@@ -235,7 +235,7 @@ const BOATS=[
   {id:3,n:"Hochseeboot",range:99999,speed:54,price:12000,lvl:12,model:"boat_cruiser",d:"Erreicht jede Ecke der See, auch die Tiefseezonen und den Mahlstrom."},
   {id:4,n:"Jetski",range:99999,speed:80,price:65000,lvl:22,model:"boat_jetski",d:"Klein, laut und extrem schnell. Perfekt für Hunts."},
   {id:5,n:"Karmesin-Segler",range:99999,speed:90,price:180000,lvl:32,model:"boat_sail",d:"Ein prachtvolles Segelschiff mit Hilfsmotor. Schnell und elegant."},
-  {id:6,n:"Geisterschiff",range:99999,speed:100,price:450000,lvl:45,model:"boat_ghost",d:"Ein verfluchtes Piratenschiff mit geisterhaft leuchtenden Segeln. Das schnellste Schiff der Meere."},
+  {id:6,n:"Geisterschiff",range:99999,speed:100,price:450000,lvl:45,model:"boat_ghost",acc:0.3,turn:0.45,d:"Ein verfluchtes Piratenschiff mit geisterhaft leuchtenden Segeln. Das schnellste Schiff der Meere."},
 ];
 const BELL={price:35000,lvl:20};
 const BAGS=[20,35,60,100,200,350]; const BAG_PRICE=[0,800,4000,15000,60000,250000];
